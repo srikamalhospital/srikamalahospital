@@ -502,6 +502,11 @@ DROP POLICY IF EXISTS "Service role manage lab_report_requests" ON public.lab_re
 CREATE POLICY "Service role manage lab_report_requests"
     ON public.lab_report_requests FOR ALL TO service_role USING (true) WITH CHECK (true);
 
+-- -----------------------------------------------------------------------------
+-- 8. SEED LAB TESTS (run once if labtests is empty — optional)
+-- -----------------------------------------------------------------------------
+-- Copy tests from server/labTestsCatalog.js or use Diagnostics Admin → Test catalog → Add.
+
 -- =============================================================================
 -- Render env reminder (backend):
 --   SUPABASE_URL=https://xxxx.supabase.co

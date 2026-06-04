@@ -173,19 +173,34 @@ const adminLoginLimiter = rateLimit({
     message: { success: false, message: 'Too many login attempts. Wait 15 minutes.' },
 });
 
-const requireAdmin = (req, res, next) => {
+const verifyAdminToken = (req) => {
     const auth = req.headers.authorization;
-    if (!auth || !auth.startsWith('Bearer ')) {
-        return res.status(401).json({ success: false, message: 'Admin login required' });
-    }
+    if (!auth || !auth.startsWith('Bearer ')) return null;
     try {
-        const payload = jwt.verify(auth.slice(7), ADMIN_JWT_SECRET);
-        if (payload.role !== 'admin') throw new Error('invalid role');
-        req.admin = payload;
-        return next();
-    } catch (e) {
-        return res.status(401).json({ success: false, message: 'Session expired. Please sign in again.' });
+        return jwt.verify(auth.slice(7), ADMIN_JWT_SECRET);
+    } catch {
+        return null;
     }
+};
+
+/** Hospital control panel — role admin only */
+const requireAdmin = (req, res, next) => {
+    const payload = verifyAdminToken(req);
+    if (!payload || payload.role !== 'admin') {
+        return res.status(401).json({ success: false, message: 'Hospital admin login required' });
+    }
+    req.admin = payload;
+    return next();
+};
+
+/** Diagnostics lab panel — role diagnostics or hospital admin */
+const requireDiagnostics = (req, res, next) => {
+    const payload = verifyAdminToken(req);
+    if (!payload || !['diagnostics', 'admin'].includes(payload.role)) {
+        return res.status(401).json({ success: false, message: 'Diagnostics admin login required' });
+    }
+    req.admin = payload;
+    return next();
 };
 
 const { filterAppointments, filterPharmacyOrders, distinctValues } = require('./adminSearch');
@@ -524,25 +539,37 @@ app.post('/api/ai/discover', async (req, res) => {
 // ─── ADMIN & CONFIG ROUTES ─────────────────────────────────────────────────
 
 app.post('/api/admin/login', adminLoginLimiter, (req, res) => {
-    const { password } = req.body || {};
+    const { password, panel } = req.body || {};
     const expected = process.env.ADMIN_PASSWORD;
     if (!expected) {
         return res.status(503).json({ success: false, message: 'Admin password not configured on server' });
     }
     if (password === expected) {
-        const token = jwt.sign({ role: 'admin', sub: 'hospital-admin' }, ADMIN_JWT_SECRET, { expiresIn: '8h' });
-        return res.json({ success: true, token, expiresIn: 28800 });
+        const role = panel === 'diagnostics' ? 'diagnostics' : 'admin';
+        const token = jwt.sign({ role, sub: role === 'diagnostics' ? 'diagnostics-admin' : 'hospital-admin' }, ADMIN_JWT_SECRET, { expiresIn: '8h' });
+        return res.json({ success: true, token, role, expiresIn: 28800 });
     }
     return res.status(401).json({ success: false, message: 'Invalid password' });
 });
+
+const { registerDiagnosticsAdminRoutes } = require('./diagnosticsAdminRoutes');
+const { LAB_TESTS_CATALOG, normalizeLabTestRow } = require('./labTestsCatalog');
 
 registerFeatureRoutes(app, {
     supabase,
     getSiteConfig: () => siteConfig,
     setSiteConfig: (patch) => { siteConfig = { ...siteConfig, ...patch }; },
     requireAdmin,
+    requireDiagnostics,
     normalizePharmacyOrder,
     pharmacyOrdersMemory,
+});
+
+registerDiagnosticsAdminRoutes(app, {
+    supabase,
+    requireDiagnostics,
+    getSiteConfig: () => siteConfig,
+    setSiteConfig: (patch) => { siteConfig = { ...siteConfig, ...patch }; },
 });
 
 // ─── APPOINTMENT ROUTES ────────────────────────────────────────────────────
@@ -782,26 +809,15 @@ app.get('/api/lab/tests', async (req, res) => {
     try {
         let tests = [];
         if (supabase) {
-            const { data } = await supabase.from('labtests').select('*');
-            if (data?.length > 0) tests = data;
+            const { data } = await supabase
+                .from('labtests')
+                .select('*')
+                .eq('is_active', true)
+                .order('sort_order', { ascending: true });
+            if (data?.length > 0) tests = data.map(normalizeLabTestRow);
         }
         if (tests.length === 0) {
-            tests = [
-                { name: 'Complete Blood Picture (CBP)', category: 'Hematology', price: 250, report_time: 12 },
-                { name: 'Blood Glucose (Sugar)', category: 'Biochemistry', price: 150, report_time: 6 },
-                { name: 'Differential Count (DC)', category: 'Hematology', price: 200, report_time: 12 },
-                { name: 'ESR (1st & 2nd Hour)', category: 'Hematology', price: 100, report_time: 12 },
-                { name: 'Hemoglobin (Hb)', category: 'Hematology', price: 120, report_time: 8 },
-                { name: 'Thyroid Profile (T3, T4, TSH)', category: 'Hormonal', price: 450, report_time: 24 },
-                { name: 'Lipid Profile (Cholesterol)', category: 'Cardiology', price: 500, report_time: 24 },
-                { name: 'Liver Function Test (LFT)', category: 'General', price: 650, report_time: 24 },
-                { name: 'Kidney Function Test (KFT)', category: 'General', price: 750, report_time: 24 },
-                { name: 'HbA1c', category: 'Diabetes', price: 450, report_time: 24 },
-                { name: 'Widal Test', category: 'Serology', price: 300, report_time: 24 },
-                { name: 'Dengue NS1 Antigen', category: 'Serology', price: 600, report_time: 24 },
-                { name: 'Malaria Parasite Test', category: 'Serology', price: 320, report_time: 18 },
-                { name: 'CRP (C-Reactive Protein)', category: 'Immunology', price: 420, report_time: 24 }
-            ];
+            tests = LAB_TESTS_CATALOG.map((t, i) => ({ ...normalizeLabTestRow(t), id: t.id || `cat_${i}` }));
         }
         res.json({ success: true, tests });
     } catch (err) {

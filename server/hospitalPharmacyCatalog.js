@@ -3,22 +3,28 @@
  * Used by /api/pharmacy/products and medicine search
  */
 
+const { resolveMedicineImage, PHOTO } = require('./pharmacyMedicineImages');
+
 const IMG = {
-  pill: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&q=80&w=400',
-  capsule: 'https://images.unsplash.com/photo-1471864190281-ad5fe9bb072c?auto=format&fit=crop&q=80&w=400',
-  syrup: 'https://images.unsplash.com/photo-1550572017-ed2302ca3f8c?auto=format&fit=crop&q=80&w=400',
-  injection: 'https://images.unsplash.com/photo-1631549916768-4119b255f946?auto=format&fit=crop&q=80&w=400',
-  kit: 'https://images.unsplash.com/photo-1581093458791-9f3c3250bb8b?auto=format&fit=crop&q=80&w=400',
+  pill: PHOTO.tab_white,
+  capsule: PHOTO.cap_orange,
+  syrup: PHOTO.syrup_amber,
+  injection: PHOTO.inj_syringe,
+  kit: PHOTO.pharmacy_shelf,
 };
 
-const item = (name, category, price, description, image = 'pill', rx = false) => ({
-  name,
-  category,
-  price,
-  description,
-  image,
-  requiresPrescription: rx,
-});
+const item = (name, category, price, description, form = 'pill', rx = false) => {
+  const img = resolveMedicineImage(name, form);
+  return {
+    name,
+    category,
+    price,
+    description,
+    image: form,
+    img,
+    requiresPrescription: rx,
+  };
+};
 
 const HOSPITAL_PHARMACY_CATALOG = [
   // Analgesics & antipyretics
@@ -151,16 +157,17 @@ const HOSPITAL_PHARMACY_CATALOG = [
 
 const normalizePharmacyRow = (row) => {
   const price = typeof row.price === 'number' ? row.price : parseFloat(String(row.price || 0).replace(/[^\d.]/g, '')) || 0;
-  const imgKey = row.image || 'pill';
+  const form = row.image || 'pill';
+  const img = resolveMedicineImage(row.name, row.img || row.image_url || form);
   return {
     name: row.name,
     category: row.category || 'General',
     price,
     description: row.description || 'Available at hospital pharmacy. Confirm with pharmacist.',
-    image: IMG[imgKey] || IMG.pill,
-    img: IMG[imgKey] || IMG.pill,
+    image: form,
+    img,
     stock: row.stock ?? null,
-    requiresPrescription: Boolean(row.requiresPrescription),
+    requiresPrescription: Boolean(row.requires_prescription ?? row.requiresPrescription),
   };
 };
 
@@ -172,15 +179,30 @@ const mergeWithDatabase = (dbRows = []) => {
   if (!dbRows.length) {
     return HOSPITAL_PHARMACY_CATALOG.map((p) => ({
       ...p,
-      img: IMG[p.image] || IMG.pill,
+      img: p.img || resolveMedicineImage(p.name, p.image),
     }));
   }
   const byName = new Map(dbRows.map((r) => [r.name?.toLowerCase(), normalizePharmacyRow(r)]));
   return HOSPITAL_PHARMACY_CATALOG.map((base) => {
     const db = byName.get(base.name.toLowerCase());
-    if (db) return { ...base, ...db, img: db.img || IMG[base.image] || IMG.pill };
-    return { ...base, img: IMG[base.image] || IMG.pill };
+    if (db) {
+      return {
+        ...base,
+        ...db,
+        img: db.img || resolveMedicineImage(base.name, base.image),
+      };
+    }
+    return { ...base, img: base.img || resolveMedicineImage(base.name, base.image) };
   });
+};
+
+/** Extra DB-only products not in static catalog */
+const appendDatabaseOnlyProducts = (merged, dbRows) => {
+  const names = new Set(merged.map((p) => p.name?.toLowerCase()));
+  const extras = dbRows
+    .filter((r) => r.name && !names.has(r.name.toLowerCase()))
+    .map((r) => normalizePharmacyRow(r));
+  return [...merged, ...extras];
 };
 
 module.exports = {
@@ -190,4 +212,6 @@ module.exports = {
   getMedicineNames,
   getCategories,
   mergeWithDatabase,
+  appendDatabaseOnlyProducts,
+  resolveMedicineImage,
 };

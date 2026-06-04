@@ -1,0 +1,71 @@
+/** Full Sri Kamala Hospital lab catalog — seeded when DB empty */
+const IMG = {
+  blood: 'https://images.unsplash.com/photo-1579152276502-745f467599ee?auto=format&fit=crop&q=80&w=600',
+  glucose: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&q=80&w=600',
+  thyroid: 'https://images.unsplash.com/photo-1511174511562-5f7f185854c8?auto=format&fit=crop&q=80&w=600',
+  lipid: 'https://images.unsplash.com/photo-1628595304645-83bc3e301272?auto=format&fit=crop&q=80&w=600',
+  liver: 'https://images.unsplash.com/photo-1579152438830-466d0938397a?auto=format&fit=crop&q=80&w=600',
+  kidney: 'https://images.unsplash.com/photo-1647416391456-f331616cda2f?auto=format&fit=crop&q=80&w=600',
+  lab: 'https://images.unsplash.com/photo-1582719471384-894fbb16e074?auto=format&fit=crop&q=80&w=600',
+  micro: 'https://images.unsplash.com/photo-1581093458791-9f3c3250bb8b?auto=format&fit=crop&q=80&w=600',
+  urine: 'https://images.unsplash.com/photo-1576086213369-97a306dca664?auto=format&fit=crop&q=80&w=600',
+};
+
+const LAB_TESTS_CATALOG = [
+  { name: 'Complete Blood Picture (CBP)', category: 'Hematology', price: 250, report_time: 12, img: IMG.blood, description: 'Full blood count — RBC, WBC, platelets, Hb. Fasting optional.', sort_order: 1 },
+  { name: 'Hemoglobin (Hb)', category: 'Hematology', price: 120, report_time: 8, img: IMG.blood, description: 'Checks anaemia and oxygen-carrying capacity.', sort_order: 2 },
+  { name: 'Differential Count (DC)', category: 'Hematology', price: 200, report_time: 12, img: IMG.blood, description: 'Types of white blood cells — infection screening.', sort_order: 3 },
+  { name: 'ESR (1st & 2nd Hour)', category: 'Hematology', price: 100, report_time: 12, img: IMG.blood, description: 'Inflammation marker; useful in fever workup.', sort_order: 4 },
+  { name: 'Platelet Count', category: 'Hematology', price: 150, report_time: 10, img: IMG.blood, description: 'Bleeding risk assessment.', sort_order: 5 },
+  { name: 'Peripheral Smear', category: 'Hematology', price: 350, report_time: 24, img: IMG.blood, description: 'Microscopic review of blood cells.', sort_order: 6 },
+  { name: 'Blood Group & Rh Typing', category: 'Hematology', price: 180, report_time: 6, img: IMG.blood, description: 'For transfusion and pregnancy records.', sort_order: 7 },
+  { name: 'Bleeding Time / Clotting Time', category: 'Coagulation', price: 280, report_time: 12, img: IMG.blood, description: 'Basic coagulation screening.', sort_order: 8 },
+  { name: 'PT / INR', category: 'Coagulation', price: 450, report_time: 24, img: IMG.blood, description: 'Warfarin monitoring and liver function proxy.', sort_order: 9 },
+  { name: 'Blood Glucose (Fasting)', category: 'Biochemistry', price: 150, report_time: 6, img: IMG.glucose, description: '8–10 hours fasting required.', sort_order: 10 },
+  { name: 'Blood Glucose (Random)', category: 'Biochemistry', price: 120, report_time: 6, img: IMG.glucose, description: 'No fasting; screening when symptomatic.', sort_order: 11 },
+  { name: 'Post Prandial Blood Sugar (PPBS)', category: 'Diabetes', price: 150, report_time: 6, img: IMG.glucose, description: '2 hours after meal.', sort_order: 12 },
+  { name: 'HbA1c', category: 'Diabetes', price: 450, report_time: 24, img: IMG.glucose, description: '3-month average sugar control; no fasting.', sort_order: 13 },
+  { name: 'Lipid Profile', category: 'Cardiology', price: 500, report_time: 24, img: IMG.lipid, description: 'Cholesterol, HDL, LDL, triglycerides. 12h fasting.', sort_order: 14 },
+  { name: 'Liver Function Test (LFT)', category: 'Biochemistry', price: 650, report_time: 24, img: IMG.liver, description: 'ALT, AST, bilirubin, proteins. Avoid alcohol 24h prior.', sort_order: 15 },
+  { name: 'Kidney Function Test (KFT)', category: 'Biochemistry', price: 750, report_time: 24, img: IMG.kidney, description: 'Creatinine, urea, electrolytes. Stay hydrated.', sort_order: 16 },
+  { name: 'Serum Electrolytes (Na, K, Cl)', category: 'Biochemistry', price: 550, report_time: 24, img: IMG.lab, description: 'Salt balance — dehydration, vomiting.', sort_order: 17 },
+  { name: 'Serum Calcium', category: 'Biochemistry', price: 280, report_time: 24, img: IMG.lab, description: 'Bone, kidney and parathyroid screening.', sort_order: 18 },
+  { name: 'Serum Uric Acid', category: 'Biochemistry', price: 220, report_time: 24, img: IMG.lab, description: 'Gout and kidney stone risk.', sort_order: 19 },
+  { name: 'CRP (C-Reactive Protein)', category: 'Immunology', price: 420, report_time: 24, img: IMG.micro, description: 'Acute inflammation marker.', sort_order: 20 },
+  { name: 'RA Factor', category: 'Immunology', price: 480, report_time: 48, img: IMG.micro, description: 'Rheumatoid arthritis screening.', sort_order: 21 },
+  { name: 'ASO Titre', category: 'Immunology', price: 380, report_time: 48, img: IMG.micro, description: 'Strep-related joint/throat follow-up.', sort_order: 22 },
+  { name: 'Thyroid Profile (T3, T4, TSH)', category: 'Hormonal', price: 450, report_time: 24, img: IMG.thyroid, description: 'Thyroid gland function; morning sample preferred.', sort_order: 23 },
+  { name: 'TSH Only', category: 'Hormonal', price: 280, report_time: 24, img: IMG.thyroid, description: 'Screening test for thyroid disorders.', sort_order: 24 },
+  { name: 'Vitamin D (25-OH)', category: 'Vitamins', price: 1200, report_time: 48, img: IMG.lab, description: 'Deficiency common; bone health.', sort_order: 25 },
+  { name: 'Vitamin B12', category: 'Vitamins', price: 900, report_time: 48, img: IMG.lab, description: 'Anaemia and neuropathy workup.', sort_order: 26 },
+  { name: 'Serum Iron / TIBC / Ferritin', category: 'Hematology', price: 850, report_time: 48, img: IMG.blood, description: 'Iron deficiency anaemia panel.', sort_order: 27 },
+  { name: 'Widal Test', category: 'Serology', price: 300, report_time: 24, img: IMG.micro, description: 'Typhoid fever screening.', sort_order: 28 },
+  { name: 'Dengue NS1 Antigen', category: 'Serology', price: 600, report_time: 24, img: IMG.micro, description: 'Early dengue detection.', sort_order: 29 },
+  { name: 'Dengue IgM / IgG', category: 'Serology', price: 650, report_time: 24, img: IMG.micro, description: 'Dengue immune response.', sort_order: 30 },
+  { name: 'Malaria Parasite (MP)', category: 'Serology', price: 320, report_time: 18, img: IMG.micro, description: 'Thick/thin smear or rapid card.', sort_order: 31 },
+  { name: 'HIV 1 & 2 (Screening)', category: 'Serology', price: 400, report_time: 24, img: IMG.micro, description: 'Confidential counselling available at lab.', sort_order: 32 },
+  { name: 'HBsAg (Hepatitis B)', category: 'Serology', price: 350, report_time: 24, img: IMG.micro, description: 'Hepatitis B surface antigen.', sort_order: 33 },
+  { name: 'Anti HCV (Hepatitis C)', category: 'Serology', price: 450, report_time: 48, img: IMG.micro, description: 'Hepatitis C antibody screen.', sort_order: 34 },
+  { name: 'Complete Urine Examination (CUE)', category: 'Urine', price: 150, report_time: 12, img: IMG.urine, description: 'Infection, sugar, protein in urine.', sort_order: 35 },
+  { name: 'Urine Culture & Sensitivity', category: 'Urine', price: 750, report_time: 72, img: IMG.urine, description: 'Mid-stream sterile sample preferred.', sort_order: 36 },
+  { name: 'Stool Routine & Microscopy', category: 'Stool', price: 200, report_time: 24, img: IMG.lab, description: 'Diarrhoea, parasites, occult blood.', sort_order: 37 },
+  { name: 'Semen Analysis', category: 'Special', price: 600, report_time: 48, img: IMG.lab, description: '2–5 days abstinence; morning sample.', sort_order: 38 },
+  { name: 'Pregnancy Test (UPT)', category: 'Special', price: 150, report_time: 4, img: IMG.lab, description: 'Urine hCG — early morning sample best.', sort_order: 39 },
+  { name: 'Prostate Specific Antigen (PSA)', category: 'Special', price: 750, report_time: 48, img: IMG.lab, description: 'Men >40; doctor referral advised.', sort_order: 40 },
+];
+
+function normalizeLabTestRow(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    category: row.category || 'General',
+    price: Number(row.price) || 0,
+    report_time: Number(row.report_time ?? row.time ?? 24) || 24,
+    description: row.description || '',
+    img: row.img || IMG.lab,
+    is_active: row.is_active !== false,
+    sort_order: row.sort_order ?? 0,
+  };
+}
+
+module.exports = { LAB_TESTS_CATALOG, IMG, normalizeLabTestRow };

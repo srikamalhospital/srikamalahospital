@@ -26,7 +26,12 @@ const api = axios.create({
 api.interceptors.request.use((config) => {
   const token = getAdminToken();
   const path = config.url || '';
-  if (token && (path.includes('/admin/') || path === '/config' && config.method === 'post')) {
+  if (
+    token &&
+    (path.includes('/admin/') ||
+      path.includes('/diagnostics/admin/') ||
+      (path === '/config' && config.method === 'post'))
+  ) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
@@ -51,7 +56,16 @@ export const getAppointments = (params = {}) => api.get('/admin/appointments', {
 export const getAppointmentByToken = (token) => api.get(`/appointments/${token}`);
 export const getConfig = () => api.get('/config');
 export const updateConfig = (data) => api.post('/config', data);
-export const adminLogin = (password) => api.post('/admin/login', { password });
+export const adminLogin = (password, panel = 'hospital') =>
+  api.post('/admin/login', { password, panel: panel === 'diagnostics' ? 'diagnostics' : 'hospital' });
+
+export const getDiagnosticsStats = () => api.get('/diagnostics/admin/stats');
+export const getAdminLabTests = () => api.get('/diagnostics/admin/tests');
+export const createLabTest = (data) => api.post('/diagnostics/admin/tests', data);
+export const updateLabTest = (id, data) => api.patch(`/diagnostics/admin/tests/${id}`, data);
+export const deleteLabTest = (id) => api.delete(`/diagnostics/admin/tests/${id}`);
+export const getDiagnosticsBookings = (params) => api.get('/diagnostics/admin/bookings', { params });
+export const updateDiagnosticsSettings = (data) => api.patch('/diagnostics/admin/settings', data);
 export const getAdminDashboardStats = () => api.get('/admin/dashboard-stats');
 export const getAdminPharmacyOrders = (params = {}) => api.get('/admin/pharmacy-orders', { params });
 export const updatePharmacyOrderStatus = (payload) => api.patch('/admin/pharmacy-orders', payload);

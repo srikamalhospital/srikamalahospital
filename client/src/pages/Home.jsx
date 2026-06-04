@@ -4,6 +4,7 @@ import QuickActionGrid from '../components/QuickActionGrid';
 import PatientReviews from '../components/PatientReviews';
 import Doctors from '../components/Doctors';
 import EmergencyBar from '../components/EmergencyBar';
+import HospitalLocationMap from '../components/HospitalLocationMap';
 
 function Home() {
   useEffect(() => {
@@ -28,6 +29,10 @@ function Home() {
 
         <section id="doctors" className="relative py-8 px-6">
           <Doctors />
+        </section>
+
+        <section id="location" className="relative py-10 px-4 sm:px-6">
+          <HospitalLocationMap />
         </section>
 
         <section id="reviews" className="relative py-8">

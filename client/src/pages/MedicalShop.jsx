@@ -26,7 +26,7 @@ import {
   createPharmacyOrder,
 } from '../utils/pharmacyCart';
 
-const DEFAULT_IMG = 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&q=80&w=400';
+import { getPharmacyProductImage } from '../utils/pharmacyImages';
 
 const MedicalShop = () => {
   const navigate = useNavigate();
@@ -395,10 +395,16 @@ const MedicalShop = () => {
                 >
                   <div className="aspect-square rounded-xl overflow-hidden bg-slate-100 mb-3 relative">
                     <img
-                      src={product.img || product.image || DEFAULT_IMG}
+                      src={getPharmacyProductImage(product)}
                       alt={product.name}
                       className="w-full h-full object-cover"
                       loading="lazy"
+                      onError={(e) => {
+                        if (e.currentTarget.dataset.fb) return;
+                        e.currentTarget.dataset.fb = '1';
+                        e.currentTarget.src =
+                          'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&q=85&w=600';
+                      }}
                     />
                     {product.requiresPrescription && (
                       <span className="absolute top-2 left-2 text-[10px] font-bold bg-amber-500 text-white px-2 py-0.5 rounded">

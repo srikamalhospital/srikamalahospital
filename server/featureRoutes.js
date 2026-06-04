@@ -3,7 +3,8 @@ const { deductPharmacyStock } = require('./stockDeduction');
 const LAB_STATUSES = ['submitted', 'sample_received', 'processing', 'report_ready'];
 
 function registerFeatureRoutes(app, ctx) {
-    const { supabase, getSiteConfig, setSiteConfig, requireAdmin, normalizePharmacyOrder, pharmacyOrdersMemory } = ctx;
+    const { supabase, getSiteConfig, setSiteConfig, requireAdmin, requireDiagnostics, normalizePharmacyOrder, pharmacyOrdersMemory } = ctx;
+    const requireLabAdmin = requireDiagnostics || requireAdmin;
     const cfg = () => (typeof getSiteConfig === 'function' ? getSiteConfig() : {});
     const reviewsMemory = [];
     const labReportsMemory = [];
@@ -201,7 +202,7 @@ function registerFeatureRoutes(app, ctx) {
         }
     });
 
-    app.get('/api/admin/lab-reports', requireAdmin, async (req, res) => {
+    app.get('/api/admin/lab-reports', requireLabAdmin, async (req, res) => {
         try {
             if (supabase) {
                 const { data, error } = await supabase.from('lab_report_requests').select('*').order('created_at', { ascending: false }).limit(200);
@@ -213,7 +214,7 @@ function registerFeatureRoutes(app, ctx) {
         }
     });
 
-    app.patch('/api/admin/lab-reports', requireAdmin, async (req, res) => {
+    app.patch('/api/admin/lab-reports', requireLabAdmin, async (req, res) => {
         try {
             const { id, token, status, adminNotes } = req.body || {};
             if (!status || (!id && !token)) return res.status(400).json({ success: false, message: 'status and id or token required' });

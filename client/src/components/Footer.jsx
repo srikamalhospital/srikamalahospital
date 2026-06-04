@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom';
 import { SITE_URL, SITE_DOMAIN } from '../config/site';
 import useSiteConfig from '../hooks/useSiteConfig';
 import ThemeToggle from './ThemeToggle';
+import HospitalLocationMap from './HospitalLocationMap';
+import { getMapsDirectionsUrl } from '../utils/maps';
 
 const Footer = () => {
     const { config, hospitalTel, diagnosticsTel } = useSiteConfig();
@@ -78,11 +80,22 @@ const Footer = () => {
                                 <div className="w-14 h-14 bg-white rounded-[1.2rem] flex items-center justify-center text-hospital-primary border border-white/80 group-hover:scale-110 group-hover:rotate-12 transition-all shadow-clinical shrink-0">
                                     <MapPin size={24} />
                                 </div>
-                                <div className="flex-1">
+                                <div className="flex-1 min-w-0">
                                     <p className="text-base font-black text-hospital-dark font-['Noto_Sans_Telugu'] leading-tight mb-1">మహాత్మా గాంధీ రోడ్డు, సూర్యాపేట</p>
-                                    <p className="text-[9px] uppercase font-black tracking-[0.3em] text-hospital-slate/40">M.G. Road Corridor, Suryapet</p>
+                                    <p className="text-[9px] uppercase font-black tracking-[0.3em] text-hospital-slate/40 mb-2">M.G. Road, Suryapet</p>
+                                    <p className="text-xs text-theme-muted leading-relaxed">{config.hospitalAddress}</p>
+                                    <a
+                                        href={getMapsDirectionsUrl(config.hospitalAddress)}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1.5 mt-2 text-[10px] font-bold uppercase tracking-wider text-hospital-primary hover:text-hospital-secondary"
+                                    >
+                                        Get directions <ArrowUpRight size={12} />
+                                    </a>
                                 </div>
                             </div>
+
+                            <HospitalLocationMap variant="compact" />
 
                             <div className="flex gap-5 group cursor-pointer" onClick={() => window.open(hospitalTel)}>
                                 <div className="w-14 h-14 bg-hospital-dark text-white rounded-[1.2rem] flex items-center justify-center group-hover:scale-110 group-hover:-rotate-12 transition-all shadow-premium shrink-0 relative overflow-hidden">

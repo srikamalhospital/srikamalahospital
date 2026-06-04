@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     updateConfig,
     getConfig,
-    adminLogin,
     fetchPharmacyProducts,
     getAppointments,
     updateAppointment,
@@ -15,18 +14,18 @@ import {
     getAdminPharmacyOrders,
     updatePharmacyOrderStatus,
 } from '../utils/api';
-import { setAdminSession, getAdminToken, clearAdminSession, isAdminSessionValid } from '../utils/adminSession';
+import { useNavigate } from 'react-router-dom';
+import { setAdminSession, getAdminToken, clearAdminSession, isAdminSessionValid, getAdminRole } from '../utils/adminSession';
+import AdminLoginScreen from '../components/AdminLoginScreen';
 import { getAdminLang, setAdminLang, tAdmin } from '../admin/translations';
 import AdminPharmacyPanel from '../admin/AdminPharmacyPanel';
 import AdminReviewsPanel from '../admin/AdminReviewsPanel';
-import AdminLabPanel from '../admin/AdminLabPanel';
 import AdminDoctorSchedule from '../admin/AdminDoctorSchedule';
 import AdminPatientJourney from '../admin/AdminPatientJourney';
 
 const AdminDashboard = () => {
-    const [isAuthenticated, setIsAuthenticated] = useState(() => isAdminSessionValid());
-    const [password, setPassword] = useState('');
-    const [loginError, setLoginError] = useState('');
+    const navigate = useNavigate();
+    const [isAuthenticated, setIsAuthenticated] = useState(() => isAdminSessionValid() && getAdminRole() === 'admin');
     const [lang, setLang] = useState(() => getAdminLang());
     const [pharmacyOrders, setPharmacyOrders] = useState([]);
     const [dashboardStats, setDashboardStats] = useState(null);
@@ -173,20 +172,19 @@ const AdminDashboard = () => {
         }
     };
 
-    const handleLogin = async (e) => {
-        e.preventDefault();
-        setLoginError('');
-        try {
-            const resp = await adminLogin(password);
-            if (resp.data.success && resp.data.token) {
-                setAdminSession(resp.data.token, resp.data.expiresIn || 28800);
-                setIsAuthenticated(true);
-                setPassword('');
-            }
-        } catch (err) {
-            setLoginError(t('loginError'));
+    const handleLoginSuccess = (role) => {
+        if (role === 'diagnostics') {
+            navigate('/lab-admin');
+            return;
         }
+        setIsAuthenticated(true);
     };
+
+    useEffect(() => {
+        if (isAdminSessionValid() && getAdminRole() === 'diagnostics') {
+            navigate('/lab-admin');
+        }
+    }, [navigate]);
 
     const handleAiSearch = async (val) => {
         setAiKeyword(val);
@@ -279,36 +277,9 @@ const AdminDashboard = () => {
         } catch (err) { console.error(err); }
     };
 
-    if (!isAuthenticated) return (
-        <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-slate-900 relative overflow-hidden font-['Outfit']">
-            {/* Background Decor */}
-            <div className="fixed inset-0 z-0 pointer-events-none opacity-20 overflow-hidden">
-                <div className="absolute top-[10%] right-[10%] w-[600px] h-[600px] bg-hospital-primary/5 rounded-full blur-[140px] animate-pulse-soft"></div>
-                <div className="absolute bottom-[20%] left-[10%] w-[500px] h-[500px] bg-hospital-secondary/5 rounded-full blur-[120px] animate-pulse-soft" style={{ animationDelay: '3s' }}></div>
-            </div>
-
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="relative z-10 w-full max-w-md bg-white border border-black/5 p-12 rounded-[60px] shadow-4xl text-center backdrop-blur-3xl group">
-                <div className="w-24 h-24 mx-auto bg-slate-50 border border-black/5 text-hospital-primary rounded-[35px] flex items-center justify-center shadow-md mb-12 group-hover:rotate-12 transition-transform">
-                    <Lock size={40} className="shadow-sm" />
-                </div>
-                <div className="flex justify-center gap-2 mb-6">
-                    <button type="button" onClick={() => { setAdminLang('en'); setLang('en'); }} className={`px-3 py-1 rounded-full text-xs font-bold ${lang === 'en' ? 'bg-hospital-primary text-white' : 'bg-slate-100'}`}>EN</button>
-                    <button type="button" onClick={() => { setAdminLang('te'); setLang('te'); }} className={`px-3 py-1 rounded-full text-xs font-bold ${lang === 'te' ? 'bg-hospital-primary text-white' : 'bg-slate-100'}`}>తెలుగు</button>
-                </div>
-                <h2 className="text-2xl font-black mb-2 text-slate-900 font-['Noto_Sans_Telugu']">{t('loginTitle')}</h2>
-                <p className="text-sm text-slate-500 mb-8">{t('loginSub')}</p>
-                <form onSubmit={handleLogin} className="space-y-6">
-                    <div className="relative">
-                        <Key size={18} className="absolute left-6 top-1/2 -translate-y-1/2 text-hospital-primary/50" />
-                        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t('password')} autoComplete="current-password"
-                            className="w-full bg-slate-50 border border-black/5 p-6 pl-16 rounded-[28px] text-slate-900 outline-none focus:border-hospital-primary transition-all text-center text-sm shadow-inner" />
-                    </div>
-                    {loginError && <p className="text-red-500 text-sm font-semibold">{loginError}</p>}
-                    <button type="submit" className="w-full bg-[#0f172a] text-white py-5 rounded-[28px] font-bold text-sm hover:bg-hospital-primary transition-all active:scale-95 shadow-lg">{t('loginBtn')}</button>
-                </form>
-            </motion.div>
-        </div>
-    );
+    if (!isAuthenticated) {
+        return <AdminLoginScreen defaultPanel="hospital" onSuccess={handleLoginSuccess} />;
+    }
 
     return (
         <div className="min-h-screen min-h-[100dvh] bg-slate-50 flex font-['Outfit'] text-slate-900 overflow-hidden relative">
@@ -341,7 +312,6 @@ const AdminDashboard = () => {
                         { id: 'patients', icon: <Users size={22} />, label: t('tabs.patients') },
                         { id: 'medicines', icon: <Pill size={22} />, label: t('tabs.medicines') },
                         { id: 'reviews', icon: <MessageSquare size={22} />, label: t('tabs.reviews') },
-                        { id: 'lab', icon: <Microscope size={22} />, label: t('tabs.lab') },
                         { id: 'website', icon: <BookOpen size={22} />, label: t('tabs.website') },
                         { id: 'settings', icon: <Settings size={22} />, label: t('tabs.settings') }
                     ].map(item => (
@@ -353,7 +323,17 @@ const AdminDashboard = () => {
                     ))}
                 </nav>
 
-                <div className="p-8 border-t border-black/5">
+                <div className="p-8 border-t border-black/5 space-y-3">
+                    {isSidebarOpen && (
+                        <button
+                            type="button"
+                            onClick={() => navigate('/lab-admin')}
+                            className="w-full flex items-center gap-4 p-4 rounded-2xl text-teal-700 bg-teal-50 border border-teal-100 text-xs font-bold hover:bg-teal-100"
+                        >
+                            <Microscope size={20} />
+                            Diagnostics lab panel
+                        </button>
+                    )}
                     <button type="button" onClick={handleLogout} className="w-full flex items-center justify-center lg:justify-start gap-6 p-5 rounded-[28px] text-red-500 hover:bg-red-50 transition-all bg-white border border-black/5 active:scale-95">
                         <LogOut size={22} />
                         {isSidebarOpen && <span className="text-sm font-bold">{t('logout')}</span>}
@@ -494,10 +474,6 @@ const AdminDashboard = () => {
 
                         {activeTab === 'reviews' && (
                             <AdminReviewsPanel lang={lang} t={t} />
-                        )}
-
-                        {activeTab === 'lab' && (
-                            <AdminLabPanel t={t} />
                         )}
 
                         {activeTab === 'website' && (

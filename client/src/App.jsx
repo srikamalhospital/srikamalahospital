@@ -7,6 +7,7 @@ import Home from './pages/Home';
 import Diagnosis from './pages/Diagnosis';
 import MedicalShop from './pages/MedicalShop';
 import AdminDashboard from './pages/AdminDashboard';
+import DiagnosticsAdminDashboard from './pages/DiagnosticsAdminDashboard';
 import Receipt from './pages/Receipt';
 import PharmacyReceipt from './pages/PharmacyReceipt';
 import BookingPage from './pages/BookingPage';
@@ -29,7 +30,7 @@ const ScrollToTop = () => {
 
 const Layout = ({ children }) => {
     const { pathname } = useLocation();
-    const isAdmin = pathname === '/6665';
+    const isAdmin = pathname === '/6665' || pathname === '/lab-admin';
 
     return (
         <div className="site-shell relative selection:bg-hospital-primary selection:text-white overflow-x-clip min-h-screen min-h-[100dvh] scan-effect">
@@ -69,6 +70,7 @@ const App = () => {
                     <Route path="/lab-reports" element={<LabReportsPage />} />
                     <Route path="/info/:slug" element={<SiteInfoPage />} />
                     <Route path="/6665" element={<AdminDashboard />} />
+                    <Route path="/lab-admin" element={<DiagnosticsAdminDashboard />} />
                     <Route path="/receipt" element={<Receipt />} />
                     <Route path="/pharmacy-receipt" element={<PharmacyReceipt />} />
                     <Route path="/contact.html" element={<Navigate to="/" replace />} />

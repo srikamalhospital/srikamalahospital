@@ -1,12 +1,28 @@
-import React, { useEffect, useState } from 'react';
-import { FlaskConical as Flask, Search, Heart, Plus, Microscope, Orbit, ArrowRight, Sparkles, Info, X, Scissors, Syringe, Droplets } from 'lucide-react';
+import React, { useEffect, useState, useMemo } from 'react';
+import {
+  FlaskConical,
+  Search,
+  Heart,
+  Microscope,
+  ArrowRight,
+  Sparkles,
+  Info,
+  X,
+  Phone,
+  Clock,
+  FileText,
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import { fetchLabTests } from '../utils/api';
 import DiagnosticBookingModal from '../components/DiagnosticBookingModal';
+import useSiteConfig from '../hooks/useSiteConfig';
 
 const Diagnosis = () => {
+  const { config, diagnosticsTel } = useSiteConfig();
   const [tests, setTests] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [category, setCategory] = useState('All');
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedTest, setSelectedTest] = useState(null);
@@ -16,7 +32,7 @@ const Diagnosis = () => {
   const [activeInfo, setActiveInfo] = useState(null);
 
   useEffect(() => {
-    const loadTests = async () => {
+    (async () => {
       try {
         const response = await fetchLabTests();
         setTests(response.data.success ? response.data.tests : []);
@@ -25,76 +41,26 @@ const Diagnosis = () => {
       } finally {
         setLoading(false);
       }
-    };
-    loadTests();
+    })();
   }, []);
 
-  const fallbackTests = [
-    {
-      name: 'Complete Blood Picture (CBP)',
-      category: 'Hematology',
-      price: 250,
-      report_time: 12,
-      img: 'https://images.unsplash.com/photo-1579152276502-745f467599ee?auto=format&fit=crop&q=80&w=400',
-      description: 'Comprehensive analysis of red/white cells and platelets. Fasting not strictly required but recommended.'
-    },
-    {
-      name: 'Blood Glucose (Sugar)',
-      category: 'Biochemistry',
-      price: 150,
-      report_time: 6,
-      img: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&q=80&w=400',
-      description: 'Standard test for diabetes monitoring. 8-10 hours fasting required for accurate results.'
-    },
-    {
-      name: 'Thyroid Profile (T3/T4/TSH)',
-      category: 'Hormonal',
-      price: 450,
-      report_time: 24,
-      img: 'https://images.unsplash.com/photo-1511174511562-5f7f185854c8?auto=format&fit=crop&q=80&w=400',
-      description: 'Evaluates thyroid gland function. Best performed in the morning.'
-    },
-    {
-      name: 'Lipid Profile',
-      category: 'Cardiology',
-      price: 500,
-      report_time: 24,
-      img: 'https://images.unsplash.com/photo-1628595304645-83bc3e301272?auto=format&fit=crop&q=80&w=400',
-      description: 'Measures cholesterol and triglycerides. Strict 12-hour fasting required.'
-    },
-    {
-      name: 'Liver Function Test',
-      category: 'Biochemistry',
-      price: 650,
-      report_time: 24,
-      img: 'https://images.unsplash.com/photo-1579152438830-466d0938397a?auto=format&fit=crop&q=80&w=400',
-      description: 'Assesses liver health and protein levels. Avoid alcohol 24 hours prior.'
-    },
-    {
-      name: 'Kidney Function Test',
-      category: 'Biochemistry',
-      price: 750,
-      report_time: 24,
-      img: 'https://images.unsplash.com/photo-1647416391456-f331616cda2f?auto=format&fit=crop&q=80&w=400',
-      description: 'Measures creatinine and urea. Stay hydrated before the test.'
-    },
-    {
-      name: 'HbA1c',
-      category: 'Diabetes',
-      price: 450,
-      report_time: 24,
-      img: 'https://images.unsplash.com/photo-1576086213369-97a306dca664?auto=format&fit=crop&q=80&w=400',
-      description: 'Average blood sugar over 3 months. No fasting required.'
-    },
-    {
-      name: 'CRP',
-      category: 'Immunology',
-      price: 420,
-      report_time: 24,
-      img: 'https://images.unsplash.com/photo-1581093458791-9f3c3250bb8b?auto=format&fit=crop&q=80&w=400',
-      description: 'Detects inflammation in the body. Used for acute clinical assessments.'
-    }
-  ];
+  const categories = useMemo(() => {
+    const set = new Set(tests.map((t) => t.category).filter(Boolean));
+    return ['All', ...Array.from(set).sort()];
+  }, [tests]);
+
+  const filteredTests = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    return tests.filter((test) => {
+      const matchCat = category === 'All' || test.category === category;
+      const matchQ =
+        !q ||
+        test.name.toLowerCase().includes(q) ||
+        (test.category || '').toLowerCase().includes(q) ||
+        (test.description || '').toLowerCase().includes(q);
+      return matchCat && matchQ;
+    });
+  }, [tests, searchQuery, category]);
 
   const handleAiRecommend = async () => {
     if (!aiInput) return;
@@ -102,12 +68,9 @@ const Diagnosis = () => {
     setAiRecommendation(null);
     try {
       const { chatWithAI } = await import('../utils/api');
-      const testList = currentTests.map(t => t.name).join(', ');
-      const prompt = `Based on these symptoms: "${aiInput}", which of these lab tests from our clinic are most relevant: [${testList}]? Provide a 1-sentence suggestion and pick 1-2 tests. Max 2 sentences.
-CRITICAL RULE: You MUST format your precise response as: 
-[Telugu Translation]
-|||
-[English Translation]`;
+      const testList = tests.map((t) => t.name).join(', ');
+      const prompt = `Based on these symptoms: "${aiInput}", which lab tests from our clinic are most relevant: [${testList}]? One sentence suggestion, pick 1-2 tests.
+Format: [Telugu]||| [English]`;
       const resp = await chatWithAI(prompt);
       setAiRecommendation(resp.data.response);
     } catch (err) {
@@ -122,193 +85,211 @@ CRITICAL RULE: You MUST format your precise response as:
     setIsModalOpen(true);
   };
 
-  const currentTests = (tests && tests.length > 0) ? tests : fallbackTests;
-
-  const filteredTests = currentTests.filter(test =>
-    test.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    test.category.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
   return (
-    <div className="pro-page grainy">
+    <div className="pro-page grainy pb-28">
       <div className="page-container max-w-7xl">
-        <header className="mb-10">
-          <p className="pro-section-label">Diagnostics</p>
-          <h1 className="pro-title font-['Noto_Sans_Telugu']">ల్యాబ్ పరీక్షలు</h1>
-          <p className="pro-subtitle">Book blood tests at Sri Kamala Hospital. AI can suggest tests based on your symptoms.</p>
-        </header>
-
-        <div className="flex flex-col lg:flex-row items-start justify-between mb-12 gap-10">
-          <div className="max-w-xl">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-hospital-primary/10 flex items-center justify-center text-hospital-primary"><Flask size={20} /></div>
-              <span className="text-sm font-semibold text-slate-700">Full diagnostic catalog</span>
+        {/* Hero */}
+        <header className="mb-8 rounded-2xl bg-gradient-to-br from-teal-700 to-sky-800 text-white p-6 sm:p-10 relative overflow-hidden">
+          <div className="relative z-10 max-w-2xl">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-white/70 mb-2">Sri Kamala Hospital · Diagnostics</p>
+            <h1 className="text-2xl sm:text-4xl font-black font-['Noto_Sans_Telugu'] leading-tight mb-2">ల్యాబ్ & రక్త పరీక్షలు</h1>
+            <p className="text-sm sm:text-base text-white/90 mb-4">
+              {tests.length}+ blood tests with transparent pricing. Book online or track your lab report status.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <a
+                href={diagnosticsTel}
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-white/15 hover:bg-white/25 rounded-xl text-sm font-bold"
+              >
+                <Phone size={16} />
+                Lab {config.diagnosticsPhone}
+              </a>
+              <Link
+                to="/lab-reports"
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-white text-teal-900 rounded-xl text-sm font-bold hover:bg-slate-100"
+              >
+                <FileText size={16} />
+                Track lab report
+              </Link>
             </div>
           </div>
+          <Microscope className="absolute right-4 bottom-4 w-24 h-24 sm:w-32 sm:h-32 text-white/10" />
+        </header>
 
-          <div className="flex flex-col gap-8 w-full md:w-[500px]">
-            <div className="bg-white border border-black/5 p-5 sm:p-8 md:p-10 rounded-3xl sm:rounded-[50px] text-slate-900 shadow-xl relative overflow-hidden group">
-              <div className="absolute top-0 right-0 p-6 text-hospital-primary opacity-5 group-hover:scale-125 transition-transform duration-1000"><Sparkles size={120} /></div>
-              <div className="flex justify-between items-start mb-4">
-                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-hospital-primary mb-4 opacity-70">AI Diagnostic Scout Protocol</p>
-                <span className="text-[9px] font-black text-slate-300 font-['Noto_Sans_Telugu'] italic">AI సలహాదారు</span>
-              </div>
-              <h4 className="text-sm font-black mb-6 uppercase tracking-widest text-slate-800 italic">Predictive Test Requirement Analysis</h4>
-              <div className="relative">
-                <input value={aiInput} onChange={(e) => setAiInput(e.target.value)} type="text" placeholder="మీ లక్షణాలను తెలపండి (e.g. జ్వరం, అలసట)..."
-                  className="w-full bg-slate-50 border border-black/5 p-6 rounded-3xl text-[12px] text-slate-900 outline-none focus:ring-2 ring-hospital-primary/20 transition-all font-bold placeholder:text-slate-300 font-['Noto_Sans_Telugu']" />
-                <button onClick={handleAiRecommend} disabled={isAiLoading} className="absolute right-3 top-1/2 -translate-y-1/2 w-12 h-12 bg-[#0f172a] text-white rounded-2xl flex items-center justify-center hover:bg-hospital-primary active:scale-90 transition-all shadow-lg">
-                  {isAiLoading ? <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div> : <ArrowRight size={20} />}
-                </button>
-              </div>
-              <AnimatePresence>
-                {aiRecommendation && (
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-6 p-6 bg-slate-50 rounded-3xl border border-black/5 relative z-10">
-                    {aiRecommendation.includes('|||') ? (
-                      <>
-                        <p className="text-[14px] font-bold leading-relaxed text-slate-900 font-['Noto_Sans_Telugu'] mb-3">{aiRecommendation.split('|||')[0].trim()}</p>
-                        <div className="h-px bg-black/5 mb-3 w-1/2"></div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-hospital-primary opacity-90 italic leading-snug">{aiRecommendation.split('|||')[1].trim()}</p>
-                      </>
-                    ) : (
-                      <p className="text-[14px] font-bold leading-relaxed text-slate-900 font-['Noto_Sans_Telugu']">{aiRecommendation}</p>
-                    )}
-                  </motion.div>
+        {/* AI + search */}
+        <div className="grid lg:grid-cols-2 gap-6 mb-8">
+          <div className="pro-ai-panel">
+            <p className="text-xs font-bold uppercase text-sky-700 mb-2 flex items-center gap-2">
+              <Sparkles size={14} /> AI test advisor
+            </p>
+            <div className="relative">
+              <input
+                value={aiInput}
+                onChange={(e) => setAiInput(e.target.value)}
+                type="text"
+                placeholder="Describe symptoms (fever, fatigue…)"
+                className="pro-input pr-14"
+              />
+              <button
+                type="button"
+                onClick={handleAiRecommend}
+                disabled={isAiLoading}
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-slate-900 text-white rounded-lg flex items-center justify-center"
+              >
+                {isAiLoading ? (
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <ArrowRight size={18} />
                 )}
-              </AnimatePresence>
+              </button>
             </div>
-            
-            <div className="relative group w-full">
-              <Search size={24} className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-hospital-primary transition-all z-10" />
-              <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} type="text" placeholder="కావాల్సిన పరీక్ష కోసం వెతకండి..."
-                className="w-full bg-white border border-black/5 focus:border-hospital-primary/30 shadow-xl p-4 sm:p-7 pl-12 sm:pl-16 rounded-2xl sm:rounded-[40px] outline-none text-sm font-bold transition-all text-slate-900 placeholder:text-slate-200 font-['Noto_Sans_Telugu']" />
-            </div>
+            {aiRecommendation && (
+              <p className="mt-3 text-sm text-slate-700 bg-white/80 rounded-xl p-3 border border-sky-100">
+                {aiRecommendation.includes('|||')
+                  ? aiRecommendation.split('|||').map((p, i) => <span key={i} className="block mb-1">{p.trim()}</span>)
+                  : aiRecommendation}
+              </p>
+            )}
+          </div>
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+            <input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              type="search"
+              placeholder="Search test name or category…"
+              className="pro-input pl-12"
+            />
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 md:gap-8">
-          {filteredTests.map((test, index) => (
-            <motion.div key={index}
-              initial={{ y: 30, opacity: 0 }}
-              whileInView={{ y: 0, opacity: 1 }}
-              transition={{ delay: index * 0.05, duration: 0.8 }}
-              whileHover={{ y: -10 }}
-              className="bg-white rounded-[40px] border border-black/5 shadow-xl transition-all duration-700 group relative overflow-hidden h-full flex flex-col cursor-pointer hover:shadow-2xl active:scale-95"
+        {/* Category chips */}
+        <div className="flex flex-wrap gap-2 mb-8">
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              type="button"
+              onClick={() => setCategory(cat)}
+              className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${
+                category === cat
+                  ? 'bg-teal-700 text-white shadow-md'
+                  : 'bg-white border border-slate-200 text-slate-600 hover:border-teal-300'
+              }`}
             >
-              <div className="relative w-full h-48 overflow-hidden bg-slate-50">
-                <img src={test.img || 'https://images.unsplash.com/photo-1511174511562-5f7f185854c8?auto=format&fit=crop&q=80&w=400'} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" alt={test.name} />
-                <div className="absolute top-4 right-4 z-20">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setActiveInfo(test); }}
-                    className="w-10 h-10 bg-white/90 backdrop-blur-xl rounded-xl flex items-center justify-center text-slate-900 border border-black/5 shadow-lg hover:bg-hospital-primary hover:text-white transition-all">
-                    <Info size={18} />
-                  </button>
-                </div>
-                <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/20 to-transparent"></div>
-              </div>
-
-              <div className="p-5 sm:p-8 flex-1 flex flex-col pt-4 sm:pt-6 text-left">
-                <div className="mb-6 flex-1 text-left">
-                  <div className="px-3 py-1 bg-hospital-primary/10 rounded-full border border-hospital-primary/20 text-[8px] font-black uppercase tracking-widest text-hospital-primary inline-block mb-3 shadow-inner">
-                    {test.category}
-                  </div>
-                  <h3 className="text-base font-black text-slate-900 leading-tight line-clamp-2 h-[3rem] font-['Noto_Sans_Telugu'] group-hover:text-hospital-secondary transition-colors tracking-tighter text-left">{test.name}</h3>
-                </div>
-
-                <div className="space-y-6 mt-auto">
-                  <div className="flex justify-between items-end border-t border-slate-50 pt-5">
-                    <div className="text-left">
-                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1 leading-none text-left">Catalog Est.</p>
-                      <p className="text-xl font-black text-slate-800 tracking-tighter tabular-nums underline decoration-hospital-primary/20 text-left">₹{test.price}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1 leading-none text-right">TAT Node</p>
-                      <p className="text-[10px] font-black text-hospital-secondary tabular-nums italic text-right uppercase">{test.report_time}H REF</p>
-                    </div>
-                  </div>
-
-                  <button onClick={() => { handleBookTest(test); }} className="animated-button group/btn w-full bg-[#0f172a] text-white py-4 rounded-[22px] text-[10px] font-black uppercase tracking-widest shadow-lg hover:bg-hospital-primary hover:text-white transition-all flex items-center justify-center gap-3 border-none relative overflow-hidden">
-                    <span className="relative z-10 flex items-center gap-2 italic font-['Noto_Sans_Telugu']"><Heart size={14} className="group-hover/btn:fill-white transition-all" /> బుకింగ్ చేయండి</span>
-                  </button>
-                </div>
-              </div>
-
-              <AnimatePresence>
-                {activeInfo && activeInfo.name === test.name && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="absolute inset-0 z-30 bg-white/95 p-10 flex flex-col justify-center text-center backdrop-blur-xl border border-black/5 rounded-[40px]"
-                  >
-                    <button onClick={(e) => { e.stopPropagation(); setActiveInfo(null); }} className="absolute top-8 right-8 text-slate-400 hover:text-slate-900 transition-colors group-hover:rotate-90 duration-500"><X size={32} strokeWidth={1} /></button>
-                    <Sparkles className="text-hospital-secondary mx-auto mb-6 animate-pulse" size={48} />
-                    <h4 className="text-slate-900 text-[10px] font-black uppercase tracking-[0.5em] mb-6">Internal Preparation Protocol</h4>
-                    <p className="text-slate-500 text-[13px] font-medium leading-relaxed font-serif italic mb-10">"{test.description || "Consult specialist for specific molecular preparation requirements."}"</p>
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => { handleBookTest(test); setActiveInfo(null); }}
-                      className="mt-4 py-5 px-10 bg-hospital-primary text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl"
-                    >
-                      Book This Test Node
-                    </motion.button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
+              {cat}
+            </button>
           ))}
         </div>
 
-        {filteredTests.length === 0 && (
-          <div className="bg-white p-24 rounded-[70px] border border-dashed border-black/5 text-center shadow-xl">
-            <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-8 text-slate-300 border border-black/5">
-              <Search size={48} />
-            </div>
-            <h3 className="text-3xl font-black text-slate-900 tracking-tighter mb-4">No diagnostic nodes found matching "{searchQuery}"</h3>
-            <p className="text-slate-400 font-black uppercase tracking-[0.4em] text-[10px] italic">Access system support or refine clinical keywords</p>
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+              <div key={i} className="h-72 bg-slate-100 rounded-2xl animate-pulse" />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+            {filteredTests.map((test, index) => (
+              <motion.article
+                key={test.id || test.name}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: Math.min(index * 0.02, 0.3) }}
+                className="bg-white rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-lg transition-shadow flex flex-col overflow-hidden group"
+              >
+                <div className="relative h-40 bg-slate-100 overflow-hidden">
+                  <img
+                    src={test.img || 'https://images.unsplash.com/photo-1582719471384-894fbb16e074?auto=format&fit=crop&q=80&w=500'}
+                    alt=""
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    loading="lazy"
+                  />
+                  <span className="absolute top-3 left-3 px-2 py-0.5 rounded-md bg-white/90 text-[10px] font-bold uppercase text-teal-800">
+                    {test.category}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setActiveInfo(test)}
+                    className="absolute top-3 right-3 w-9 h-9 bg-white rounded-lg shadow flex items-center justify-center text-slate-700 hover:text-teal-700"
+                    aria-label="Test info"
+                  >
+                    <Info size={16} />
+                  </button>
+                </div>
+                <div className="p-4 flex-1 flex flex-col">
+                  <h3 className="font-bold text-slate-900 text-sm leading-snug line-clamp-2 min-h-[2.5rem]">{test.name}</h3>
+                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
+                    <div>
+                      <p className="text-[10px] uppercase text-slate-400 font-bold">Price</p>
+                      <p className="text-lg font-black text-slate-900">₹{test.price}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] uppercase text-slate-400 font-bold flex items-center gap-1 justify-end">
+                        <Clock size={10} /> Report
+                      </p>
+                      <p className="text-xs font-bold text-teal-700">{test.report_time}h</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleBookTest(test)}
+                    className="mt-4 w-full py-3 rounded-xl bg-slate-900 text-white text-xs font-bold uppercase tracking-wide hover:bg-teal-700 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Heart size={14} />
+                    Book test
+                  </button>
+                </div>
+              </motion.article>
+            ))}
           </div>
         )}
 
-        {/* Global Hub Redirect */}
-        <div className="mt-32 p-16 bg-white rounded-[70px] border border-black/5 text-slate-900 flex flex-col md:flex-row items-center justify-between shadow-xl relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-16 text-hospital-primary opacity-[0.02] pointer-events-none group-hover:rotate-45 group-hover:scale-125 transition-transform duration-[2000ms]"><Flask size={250} /></div>
-          
-          <div className="relative z-10 text-center md:text-left mb-10 md:mb-0">
-            <h3 className="text-3xl font-black mb-6 font-['Noto_Sans_Telugu'] tracking-tighter text-left">నేరుగా కాల్ చేయండి</h3>
-            <p className="text-hospital-primary font-black uppercase tracking-[0.5em] text-[10px] mb-4 opacity-70 text-left">Integrated Lab Consultation Infrastructure</p>
-            <div className="flex items-center gap-6 justify-center md:justify-start">
-                <div className="p-4 bg-slate-50 rounded-2xl border border-black/5 shadow-lg"><Phone size={28} className="text-hospital-primary group-hover:animate-pulse" /></div>
-                <h4 className="text-5xl font-black tracking-widest tabular-nums font-mono text-slate-900 selection:bg-hospital-primary selection:text-white hover:text-hospital-secondary transition-colors cursor-pointer">98668 95634</h4>
-            </div>
-            <p className="text-[9px] mt-6 uppercase tracking-[0.3em] text-slate-400 italic text-left">Hospital Ops Hub: 99480 76665 | Surveillance 24/7/365</p>
+        {!loading && filteredTests.length === 0 && (
+          <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-slate-200">
+            <Search size={40} className="mx-auto text-slate-300 mb-4" />
+            <p className="font-bold text-slate-800">No tests match your search</p>
+            <p className="text-sm text-slate-500 mt-1">Try another category or call the lab desk</p>
           </div>
-          <div className="relative z-10 flex gap-6">
-            <button onClick={() => window.open('tel:9866895634')} className="group/call px-14 py-7 bg-[#0f172a] text-white rounded-[35px] font-black text-[11px] uppercase tracking-[0.5em] shadow-xl hover:bg-hospital-primary transition-all relative overflow-hidden">
-                <span className="relative z-10 italic">Secure Line Link</span>
-                <div className="absolute inset-0 bg-hospital-primary opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            </button>
-          </div>
-        </div>
+        )}
 
+        <p className="text-center text-xs text-slate-500 mt-8">
+          Showing {filteredTests.length} of {tests.length} tests · Prices indicative · Confirm at lab reception
+        </p>
       </div>
 
-      <DiagnosticBookingModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        test={selectedTest}
-      />
+      <AnimatePresence>
+        {activeInfo && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/50"
+            onClick={() => setActiveInfo(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.95 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl relative"
+            >
+              <button type="button" onClick={() => setActiveInfo(null)} className="absolute top-4 right-4 text-slate-400">
+                <X size={24} />
+              </button>
+              <img src={activeInfo.img} alt="" className="w-full h-40 object-cover rounded-xl mb-4" />
+              <h3 className="text-lg font-bold text-slate-900">{activeInfo.name}</h3>
+              <p className="text-sm text-slate-600 mt-2">{activeInfo.description || 'Ask lab staff for preparation instructions.'}</p>
+              <button type="button" onClick={() => { handleBookTest(activeInfo); setActiveInfo(null); }} className="mt-4 w-full pro-btn-primary bg-teal-700">
+                Book this test
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-       {/* Local Decorations */}
-       <div className="absolute top-1/4 left-[5%] opacity-[0.02] text-slate-900 rotate-12 pointer-events-none medical-icon-float"><Scissors size={180} /></div>
-       <div className="absolute bottom-1/4 right-[5%] opacity-[0.02] text-hospital-secondary -rotate-12 pointer-events-none medical-icon-float"><Droplets size={160} /></div>
-       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 opacity-[0.01] text-slate-900 pointer-events-none medical-icon-float"><Plus size={400} /></div>
-
+      <DiagnosticBookingModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} test={selectedTest} />
     </div>
   );
 };
-
-// Internal sub-component for consistency
-const Phone = ({size, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>;
 
 export default Diagnosis;
