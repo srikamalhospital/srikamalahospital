@@ -4,18 +4,96 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --hospital-primary: #0ea5e9; 
-  --hospital-secondary: #00897b; 
+:root,
+[data-theme="light"] {
+  --hospital-primary: #0ea5e9;
+  --hospital-secondary: #10b981;
   --hospital-dark: #0f172a;
-  --glass-border: rgba(255, 255, 255, 0.1);
+  --page-bg: #f8fafc;
+  --surface-bg: #ffffff;
+  --card-bg: #ffffff;
+  --card-muted-bg: #f8fafc;
+  --text-primary: #0f172a;
+  --text-muted: #64748b;
+  --border-color: rgba(15, 23, 42, 0.08);
+  --nav-bg: rgba(255, 255, 255, 0.72);
+  --input-bg: #ffffff;
+  --glass-border: rgba(255, 255, 255, 0.4);
   --glass-bg: rgba(255, 255, 255, 0.7);
   --clinical-shadow: 0 10px 30px -5px rgba(14, 165, 233, 0.1);
+  --grain-opacity: 0.02;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --hospital-primary: #38bdf8;
+  --hospital-secondary: #34d399;
+  --hospital-dark: #e2e8f0;
+  --page-bg: #0b1220;
+  --surface-bg: #111827;
+  --card-bg: #1e293b;
+  --card-muted-bg: #0f172a;
+  --text-primary: #f1f5f9;
+  --text-muted: #94a3b8;
+  --border-color: rgba(148, 163, 184, 0.2);
+  --nav-bg: rgba(15, 23, 42, 0.88);
+  --input-bg: #0f172a;
+  --glass-border: rgba(148, 163, 184, 0.15);
+  --glass-bg: rgba(30, 41, 59, 0.85);
+  --clinical-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5);
+  --grain-opacity: 0.04;
+}
+
+.site-shell {
+  background-color: var(--page-bg);
+  color: var(--text-primary);
+  transition: background-color 0.35s ease, color 0.35s ease;
+}
+
+.text-theme { color: var(--text-primary); }
+.text-theme-muted { color: var(--text-muted); }
+.bg-theme-card { background-color: var(--card-bg); }
+.border-theme { border-color: var(--border-color); }
+
+.theme-panel {
+  background-color: var(--card-muted-bg);
+  border: 1px solid var(--border-color);
+}
+
+.theme-inner-card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+}
+
+.theme-upload-zone {
+  background-color: var(--card-muted-bg);
+  border: 2px dashed var(--border-color);
+  border-radius: 1.25rem;
+  transition: background-color 0.3s, border-color 0.3s;
+}
+
+.theme-upload-zone:hover {
+  background-color: var(--card-bg);
+  border-color: var(--hospital-primary);
+}
+
+.theme-toggle {
+  @apply flex items-center gap-2 px-3 py-2 rounded-xl border text-sm font-semibold transition-all;
+  background-color: var(--card-bg);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+.theme-toggle:hover {
+  border-color: var(--hospital-primary);
+  color: var(--hospital-primary);
 }
 
 @layer base {
   body {
-    @apply m-0 font-sans bg-hospital-surface text-hospital-dark selection:bg-hospital-primary/20;
+    @apply m-0 font-sans selection:bg-hospital-primary/30;
+    background-color: var(--page-bg);
+    color: var(--text-primary);
     scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
     font-size: 14px; /* Reduced base font size */
@@ -33,19 +111,26 @@
 }
 
 .pro-page {
-  @apply min-h-screen bg-hospital-surface pt-28 pb-16 px-4 md:px-6;
+  @apply min-h-screen pt-28 pb-16 px-4 md:px-6;
+  background-color: var(--page-bg);
+  color: var(--text-primary);
 }
 
 .pro-title {
-  @apply text-3xl md:text-4xl font-bold text-hospital-dark tracking-tight leading-tight;
+  @apply text-3xl md:text-4xl font-bold tracking-tight leading-tight;
+  color: var(--text-primary);
 }
 
 .pro-subtitle {
-  @apply text-sm md:text-base text-hospital-slate mt-2 max-w-2xl leading-relaxed;
+  @apply text-sm md:text-base mt-2 max-w-2xl leading-relaxed;
+  color: var(--text-muted);
 }
 
 .pro-card {
-  @apply bg-white rounded-2xl border border-slate-200/80 shadow-clinical p-6 md:p-8;
+  @apply rounded-2xl shadow-clinical p-6 md:p-8;
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
 }
 
 .pro-badge {
@@ -65,8 +150,15 @@
 }
 
 .pro-input {
-  @apply w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 outline-none transition-colors;
+  @apply w-full rounded-xl px-4 py-3 text-sm outline-none transition-colors;
+  background-color: var(--input-bg);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
   @apply focus:border-hospital-primary focus:ring-2 focus:ring-hospital-primary/20;
+}
+
+.pro-input::placeholder {
+  color: var(--text-muted);
 }
 
 .pro-textarea {
@@ -78,8 +170,11 @@
 }
 
 .pro-btn-outline {
-  @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 text-sm font-semibold;
-  @apply hover:border-hospital-primary hover:text-hospital-primary transition-colors;
+  @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors;
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  @apply hover:border-hospital-primary hover:text-hospital-primary;
 }
 
 .pro-section-label {
@@ -87,7 +182,8 @@
 }
 
 .pro-ai-panel {
-  @apply pro-card border-hospital-primary/10 bg-gradient-to-br from-white to-slate-50/80;
+  @apply pro-card border-hospital-primary/20;
+  background: linear-gradient(135deg, var(--card-bg) 0%, var(--card-muted-bg) 100%);
 }
 
 .pro-tab {
@@ -95,26 +191,51 @@
 }
 
 .pro-tab-active {
-  @apply bg-hospital-dark text-white border-transparent shadow-clinical;
+  @apply border-transparent shadow-clinical text-white;
+  background-color: #0f172a;
+}
+
+[data-theme="dark"] .pro-tab-active {
+  background-color: var(--hospital-primary);
+  color: #0b1220;
 }
 
 .pro-tab-inactive {
-  @apply bg-white text-slate-500 border-slate-200 hover:border-hospital-primary/40 hover:text-hospital-dark;
+  @apply hover:border-hospital-primary/40;
+  background-color: var(--card-bg);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+}
+
+.pro-tab-inactive:hover {
+  color: var(--text-primary);
 }
 
 @layer components {
   /* Minimalist Glass Panel */
   .glass-panel {
-    @apply bg-white/60 backdrop-blur-xl border border-white/40 shadow-clinical rounded-3xl transition-all duration-500;
+    @apply backdrop-blur-xl shadow-clinical rounded-3xl transition-all duration-500;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    color: var(--text-primary);
   }
 
   .premium-card {
-    @apply relative overflow-hidden bg-white/40 backdrop-blur-lg rounded-3xl border border-white/60 shadow-clinical hover:shadow-premium hover:-translate-y-1 transition-all duration-300;
+    @apply relative overflow-hidden backdrop-blur-lg rounded-3xl shadow-clinical hover:shadow-premium hover:-translate-y-1 transition-all duration-300;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
   }
 
-  /* Compact Hospital Button */
   .btn-clinical {
-    @apply relative inline-flex items-center justify-center px-6 py-3 bg-hospital-dark text-white rounded-xl font-bold text-xs tracking-widest uppercase overflow-hidden transition-all duration-300 hover:scale-105 active:scale-95 shadow-md;
+    @apply relative inline-flex items-center justify-center px-6 py-3 rounded-xl font-bold text-xs tracking-widest uppercase overflow-hidden transition-all duration-300 hover:scale-105 active:scale-95 shadow-md;
+    background-color: #0f172a;
+    color: #fff;
+  }
+
+  [data-theme="dark"] .btn-clinical {
+    background-color: var(--hospital-primary);
+    color: #0b1220;
   }
 
   .btn-clinical::before {
@@ -212,5 +333,65 @@
 }
 
 .heading-clinical {
-  @apply text-4xl md:text-5xl font-black text-hospital-dark leading-none tracking-tighter;
+  @apply text-4xl md:text-5xl font-black leading-none tracking-tighter;
+  color: var(--text-primary);
+}
+
+/* Dark mode: remap common hardcoded utility classes site-wide */
+[data-theme="dark"] .text-hospital-dark,
+[data-theme="dark"] .text-slate-900,
+[data-theme="dark"] .text-slate-800,
+[data-theme="dark"] .text-slate-700 {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .text-hospital-slate,
+[data-theme="dark"] .text-slate-600,
+[data-theme="dark"] .text-slate-500,
+[data-theme="dark"] .text-slate-400 {
+  color: var(--text-muted) !important;
+}
+
+[data-theme="dark"] .bg-white,
+[data-theme="dark"] .bg-white\/40,
+[data-theme="dark"] .bg-white\/60,
+[data-theme="dark"] .bg-white\/80 {
+  background-color: var(--card-bg) !important;
+}
+
+[data-theme="dark"] .bg-slate-50,
+[data-theme="dark"] .bg-hospital-surface {
+  background-color: var(--card-muted-bg) !important;
+}
+
+[data-theme="dark"] .border-black\/5,
+[data-theme="dark"] .border-slate-200,
+[data-theme="dark"] .border-slate-200\/80,
+[data-theme="dark"] .border-white\/80 {
+  border-color: var(--border-color) !important;
+}
+
+[data-theme="dark"] footer {
+  background-color: var(--surface-bg) !important;
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .pro-badge-safe {
+  @apply bg-emerald-950/50 text-emerald-300 border-emerald-800;
+}
+
+[data-theme="dark"] .pro-badge-warn {
+  @apply bg-amber-950/50 text-amber-200 border-amber-800;
+}
+
+[data-theme="dark"] .pro-badge-danger {
+  @apply bg-red-950/50 text-red-300 border-red-800;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-track {
+  background: var(--page-bg);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: #334155;
 }

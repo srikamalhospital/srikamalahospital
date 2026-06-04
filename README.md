@@ -29,7 +29,7 @@ A modern, full-stack hospital management and public information website built wi
    ```
 
 2. **Setup Environment**:
-   Create a `.env` file in the `server` directory with your MongoDB URI and other credentials (see `.env.example`).
+   Use your existing `server/.env` and `client/.env` files (not committed to git). Add Supabase, `ADMIN_PASSWORD`, and NVIDIA keys on the server; set `VITE_API_URL` on the client.
 
 3. **Run Development Server**:
    ```bash

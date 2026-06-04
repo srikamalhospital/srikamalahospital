@@ -8,6 +8,7 @@ import Diagnosis from './pages/Diagnosis';
 import MedicalShop from './pages/MedicalShop';
 import AdminDashboard from './pages/AdminDashboard';
 import Receipt from './pages/Receipt';
+import PharmacyReceipt from './pages/PharmacyReceipt';
 import BookingPage from './pages/BookingPage';
 import DoctorsPage from './pages/DoctorsPage';
 import ReviewsPage from './pages/ReviewsPage';
@@ -15,6 +16,7 @@ import AIHealthPage from './pages/AIHealthPage';
 import SiteInfoPage from './pages/SiteInfoPage';
 import CustomCursor from './components/CustomCursor';
 import BackgroundIcons from './components/BackgroundIcons';
+import { ThemeProvider } from './context/ThemeContext';
 
 const ScrollToTop = () => {
     const { pathname } = useLocation();
@@ -29,7 +31,7 @@ const Layout = ({ children }) => {
     const isAdmin = pathname === '/6665';
 
     return (
-        <div className="relative selection:bg-hospital-primary selection:text-white overflow-x-hidden min-h-screen bg-[#f8fafc] scan-effect">
+        <div className="site-shell relative selection:bg-hospital-primary selection:text-white overflow-x-hidden min-h-screen scan-effect">
             <ScrollToTop />
             <CustomCursor />
             <BackgroundIcons />
@@ -52,6 +54,7 @@ const Layout = ({ children }) => {
 
 const App = () => {
     return (
+        <ThemeProvider>
         <Router>
             <Layout>
                 <Routes>
@@ -65,11 +68,13 @@ const App = () => {
                     <Route path="/info/:slug" element={<SiteInfoPage />} />
                     <Route path="/6665" element={<AdminDashboard />} />
                     <Route path="/receipt" element={<Receipt />} />
+                    <Route path="/pharmacy-receipt" element={<PharmacyReceipt />} />
                     <Route path="/contact.html" element={<Navigate to="/" replace />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
             </Layout>
         </Router>
+        </ThemeProvider>
     );
 };
 

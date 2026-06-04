@@ -19,7 +19,7 @@ const FeatureGrid = () => {
             title: 'AI Health Analyzer',
             telugu: 'AI రోగ నిర్ధారణ',
             descriptionTelugu: 'తెలివైన లక్షణాల తనిఖీ మరియు ముందస్తు ఆరోగ్య అంచనా.',
-            descriptionEnglish: 'Intelligent symptom checker and predictive health assessment.',
+            descriptionEnglish: 'Live symptom AI, report OCR, and skin screening on our server.',
             icon: <Brain size={20} />,
             link: '/ai-health',
             color: 'text-indigo-600',
@@ -46,12 +46,12 @@ const FeatureGrid = () => {
             bg: 'bg-blue-50'
         },
         {
-            title: 'Cardiac Care',
-            telugu: 'గుండె ఆరోగ్యం',
-            descriptionTelugu: 'ప్రత్యేక హృదయ ఆరోగ్య పర్యవేక్షణ మరియు నిపుణులైన కార్డియాలజీ.',
-            descriptionEnglish: 'Specialized heart health monitoring and expert cardiology.',
+            title: 'Book OP / Cardiology',
+            telugu: 'అపాయింట్‌మెంట్',
+            descriptionTelugu: 'జనరల్, కార్డియాలజీ మరియు ఇతర విభాగాలకు ఆన్‌లైన్ బుకింగ్.',
+            descriptionEnglish: 'Book general, cardiology, and other departments online.',
             icon: <Heart size={20} />,
-            link: '/ai-health',
+            link: '/book',
             color: 'text-red-600',
             bg: 'bg-red-50'
         },
@@ -68,7 +68,7 @@ const FeatureGrid = () => {
     ];
 
     return (
-        <section id="services" className="py-10 px-6 bg-hospital-surface relative overflow-hidden grainy font-['Plus_Jakarta_Sans']">
+        <section id="services" className="py-10 px-6 relative overflow-hidden grainy font-['Plus_Jakarta_Sans']" style={{ backgroundColor: 'var(--page-bg)' }}>
 
             <div className="container mx-auto max-w-6xl relative z-10">
 

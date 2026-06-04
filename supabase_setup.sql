@@ -121,6 +121,42 @@ CREATE TABLE IF NOT EXISTS public.medicines (
 CREATE INDEX IF NOT EXISTS medicines_name_idx ON public.medicines (name);
 
 -- -----------------------------------------------------------------------------
+-- 4b. PHARMACY ORDERS (Medical shop cart → verification receipt)
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.pharmacy_orders (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    token TEXT NOT NULL UNIQUE,
+    patient_name TEXT NOT NULL,
+    phone TEXT NOT NULL,
+    age TEXT,
+    gender TEXT,
+    notes TEXT,
+    items JSONB NOT NULL DEFAULT '[]'::jsonb,
+    subtotal NUMERIC(10,2) DEFAULT 0,
+    rx_count INTEGER DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'pending_verification',
+    verified_by TEXT,
+    verified_at TIMESTAMPTZ,
+    dispensed_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS pharmacy_orders_token_idx ON public.pharmacy_orders (token);
+CREATE INDEX IF NOT EXISTS pharmacy_orders_status_idx ON public.pharmacy_orders (status);
+CREATE INDEX IF NOT EXISTS pharmacy_orders_created_at_idx ON public.pharmacy_orders (created_at DESC);
+CREATE INDEX IF NOT EXISTS pharmacy_orders_patient_name_idx ON public.pharmacy_orders (lower(patient_name));
+CREATE INDEX IF NOT EXISTS pharmacy_orders_phone_idx ON public.pharmacy_orders (phone);
+
+ALTER TABLE public.pharmacy_orders ADD COLUMN IF NOT EXISTS age TEXT;
+ALTER TABLE public.pharmacy_orders ADD COLUMN IF NOT EXISTS gender TEXT;
+
+DROP TRIGGER IF EXISTS pharmacy_orders_updated_at ON public.pharmacy_orders;
+CREATE TRIGGER pharmacy_orders_updated_at
+    BEFORE UPDATE ON public.pharmacy_orders
+    FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+-- -----------------------------------------------------------------------------
 -- 5. PATIENT CLINICAL NOTES (Admin prescriptions & history)
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.patient_clinical_notes (
@@ -189,8 +225,22 @@ ALTER TABLE public.appointments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.labtests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.medicines ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.pharmacy_orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.patient_clinical_notes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.site_config ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public insert pharmacy_orders" ON public.pharmacy_orders;
+CREATE POLICY "Public insert pharmacy_orders"
+    ON public.pharmacy_orders FOR INSERT
+    TO anon, authenticated
+    WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Service role manage pharmacy_orders" ON public.pharmacy_orders;
+CREATE POLICY "Service role manage pharmacy_orders"
+    ON public.pharmacy_orders FOR ALL
+    TO service_role
+    USING (true)
+    WITH CHECK (true);
 
 -- Appointments: public can book only; reads/updates via service role (backend)
 DROP POLICY IF EXISTS "Public insert appointments" ON public.appointments;

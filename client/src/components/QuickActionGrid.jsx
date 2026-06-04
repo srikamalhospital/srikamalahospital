@@ -17,21 +17,21 @@ const QuickActionGrid = () => {
             accent: 'bg-emerald-500'
         },
         { 
-            title: 'Cardiac AI Core', 
-            telugu: 'కార్డియాక్ AI కోర్', 
-            descriptionTelugu: 'రియల్ టైమ్ అరిథ్మియా గుర్తింపు మరియు క్లినికల్ AI కొలతలు.', 
-            descriptionEnglish: 'Real-time arrhythmia detection and clinical AI metrics.', 
+            title: 'AI Health Tools', 
+            telugu: 'AI ఆరోగ్య కేంద్రం', 
+            descriptionTelugu: 'లక్షణాల విశ్లేషణ, రిపోర్ట్ OCR, చర్మ పరీక్ష — లైవ్ సర్వర్‌కు కనెక్ట్.', 
+            descriptionEnglish: 'Symptoms, report OCR, and skin scan — live hospital AI.', 
             icon: <Activity size={32} />, 
             link: '/ai-health', 
-            color: 'from-rose-400/20 to-rose-600/5', 
-            iconColor: 'text-rose-500',
-            accent: 'bg-rose-500'
+            color: 'from-sky-400/20 to-sky-600/5', 
+            iconColor: 'text-sky-500',
+            accent: 'bg-sky-500'
         },
         { 
             title: 'Digital Pharmacy', 
             telugu: 'డిజిటల్ ఫార్మసీ', 
             descriptionTelugu: 'నేరుగా ఇంటికి డెలివరీ చేసే ధృవీకరించబడిన క్లినికల్ ఫార్మసీ.', 
-            descriptionEnglish: 'Verified clinical apothecary for direct home delivery.', 
+            descriptionEnglish: 'Browse catalog, cart, and pharmacy verification receipt.', 
             icon: <Bot size={32} />, 
             link: '/medical-shop', 
             color: 'from-indigo-400/20 to-indigo-600/5', 
@@ -52,7 +52,7 @@ const QuickActionGrid = () => {
     ];
 
     return (
-        <section className="py-10 px-6 bg-hospital-surface relative overflow-hidden grainy">
+        <section className="py-10 px-6 relative overflow-hidden grainy" style={{ backgroundColor: 'var(--page-bg)' }}>
             
             <div className="container mx-auto max-w-7xl relative z-10">
                 

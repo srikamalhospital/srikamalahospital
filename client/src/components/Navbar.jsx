@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Home, Calendar, Users, FlaskConical, ShoppingBag, Activity, Menu, X, Star } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import ThemeToggle from './ThemeToggle';
 
 const Navbar = () => {
     const location = useLocation();
@@ -27,7 +28,7 @@ const Navbar = () => {
     return (
         <nav className={`fixed top-4 left-0 right-0 z-[500] transition-all duration-700 ${scrolled ? 'translate-y-[-10px]' : 'translate-y-0'}`}>
             <div className="container mx-auto px-4 max-w-6xl">
-                <div className={`glass-panel px-4 py-2 flex items-center justify-between transition-all duration-700 overflow-hidden ${scrolled ? 'rounded-[1.5rem] shadow-premium border-white/40 bg-white/60' : 'rounded-[2.5rem] shadow-none border-transparent bg-transparent'}`}>
+                <div className={`glass-panel px-4 py-2 flex items-center justify-between transition-all duration-700 overflow-hidden ${scrolled ? 'rounded-[1.5rem] shadow-premium' : 'rounded-[2.5rem] shadow-none'}`}>
 
                     {/* Unique Logo Section */}
                     <Link to="/" className="flex items-center gap-3 group relative py-1 px-2 rounded-2xl hover:bg-black/5 transition-all">
@@ -36,7 +37,7 @@ const Navbar = () => {
                             <div className="absolute inset-0 bg-hospital-primary opacity-0 group-hover:opacity-20 transition-opacity rounded-lg"></div>
                         </div>
                         <div className="flex flex-col">
-                            <span className="text-[11px] font-black text-hospital-dark uppercase tracking-tighter leading-none group-hover:text-hospital-secondary transition-colors font-['Noto_Sans_Telugu']">
+                            <span className="text-[11px] font-black text-theme uppercase tracking-tighter leading-none group-hover:text-hospital-secondary transition-colors font-['Noto_Sans_Telugu']">
                                 శ్రీ కమల <span className="text-[7px] font-black uppercase text-hospital-dark/30 ml-1 font-['Plus_Jakarta_Sans']">Sri Kamala</span>
                             </span>
                             <span className="text-[8px] font-bold text-hospital-primary leading-none mt-1 font-['Noto_Sans_Telugu'] flex items-center gap-1.5">
@@ -53,7 +54,7 @@ const Navbar = () => {
                                 <Link
                                     key={item.english}
                                     to={item.link}
-                                    className={`px-4 py-2 rounded-xl transition-all duration-500 flex items-center gap-2 relative overflow-hidden group/nav ${isActive ? 'bg-white text-hospital-dark shadow-sm' : 'text-hospital-slate hover:text-hospital-dark'}`}
+                                    className={`px-4 py-2 rounded-xl transition-all duration-500 flex items-center gap-2 relative overflow-hidden group/nav ${isActive ? 'bg-theme-card text-theme shadow-sm border border-theme' : 'text-theme-muted hover:text-theme'}`}
                                 >
                                     <div className={`transition-transform duration-500 ${isActive ? 'scale-110' : 'group-hover/nav:scale-110 opacity-40 group-hover/nav:opacity-100'} text-hospital-secondary`}>
                                         {item.icon}
@@ -69,7 +70,8 @@ const Navbar = () => {
 
                     {/* Quick Access Portal */}
                     <div className="flex items-center gap-2">
-                        <Link to="/book" className="relative group px-4 py-2 bg-hospital-dark text-white rounded-xl hover:bg-hospital-secondary transition-all shadow-premium overflow-hidden hidden md:flex items-center gap-2">
+                        <ThemeToggle className="hidden sm:flex" />
+                        <Link to="/book" className="relative group px-4 py-2 btn-clinical rounded-xl transition-all shadow-premium overflow-hidden hidden md:flex items-center gap-2">
                             <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
                             <Calendar size={12} className="group-hover:rotate-12 transition-transform" />
                             <span className="font-['Noto_Sans_Telugu'] text-[10px] font-bold flex flex-col leading-none">

@@ -1,12 +1,33 @@
-import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, Users, Calendar, CheckCircle, Clock, Search, LogOut, ChevronRight, Download, Pill, Activity, Plus, Trash2, Settings, Globe, Lock, Key, Sparkles, Filter, MoreVertical, FileText, UserPlus, Phone, MapPin, Cpu, ShieldCheck, Zap, Dna, Microscope, Syringe, Scissors, Brain } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { LayoutDashboard, Users, Calendar, Clock, Search, LogOut, Download, Pill, Activity, Plus, Trash2, Settings, Globe, Lock, Key, Sparkles, MoreVertical, FileText, Phone, MapPin, ShieldCheck, Zap, Dna, Microscope, Syringe, Scissors, Brain, Languages, BookOpen, ClipboardList, Package } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { updateConfig, getConfig, adminLogin, fetchPharmacyProducts, getAppointments, updateAppointment, discoverMedicines, savePatientClinicalNote, getPatientClinicalHistory } from '../utils/api';
+import {
+    updateConfig,
+    getConfig,
+    adminLogin,
+    fetchPharmacyProducts,
+    getAppointments,
+    updateAppointment,
+    discoverMedicines,
+    savePatientClinicalNote,
+    getPatientClinicalHistory,
+    getAdminDashboardStats,
+    getAdminPharmacyOrders,
+    updatePharmacyOrderStatus,
+} from '../utils/api';
+import { setAdminSession, getAdminToken, clearAdminSession, isAdminSessionValid } from '../utils/adminSession';
+import { getAdminLang, setAdminLang, tAdmin } from '../admin/translations';
+import AdminPharmacyPanel from '../admin/AdminPharmacyPanel';
 
 const AdminDashboard = () => {
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [isAuthenticated, setIsAuthenticated] = useState(() => isAdminSessionValid());
     const [password, setPassword] = useState('');
     const [loginError, setLoginError] = useState('');
+    const [lang, setLang] = useState(() => getAdminLang());
+    const [pharmacyOrders, setPharmacyOrders] = useState([]);
+    const [dashboardStats, setDashboardStats] = useState(null);
+    const [configSaved, setConfigSaved] = useState(false);
+    const t = useCallback((key) => tAdmin(lang, key), [lang]);
 
     // Core Data
     const [appointments, setAppointments] = useState([]);
@@ -15,6 +36,11 @@ const AdminDashboard = () => {
     const [activeTab, setActiveTab] = useState('overview');
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [receiptFilters, setReceiptFilters] = useState({
+        q: '', name: '', phone: '', age: '', gender: '', status: '', token: '', medicine: '',
+    });
+    const [pharmacyMeta, setPharmacyMeta] = useState({ total: 0, totalUnfiltered: 0, filterOptions: {} });
+    const [aptTotal, setAptTotal] = useState(0);
     const [config, setConfig] = useState({
         showCoreServices: true,
         allowOnlinePayment: true,
@@ -42,18 +68,40 @@ const AdminDashboard = () => {
     const [auditResult, setAuditResult] = useState(null);
 
     useEffect(() => {
-        if (isAuthenticated) {
+        const onLogout = () => setIsAuthenticated(false);
+        window.addEventListener('sk-admin-logout', onLogout);
+        return () => window.removeEventListener('sk-admin-logout', onLogout);
+    }, []);
+
+    useEffect(() => {
+        if (isAuthenticated && getAdminToken()) {
             fetchData();
+        } else if (isAuthenticated && !getAdminToken()) {
+            setIsAuthenticated(false);
         }
     }, [isAuthenticated]);
 
+    const buildQueryParams = useCallback(() => {
+        const merged = { ...receiptFilters, q: searchTerm.trim() || receiptFilters.q || '' };
+        return Object.fromEntries(Object.entries(merged).filter(([, v]) => v != null && String(v).trim() !== ''));
+    }, [receiptFilters, searchTerm]);
+
+    useEffect(() => {
+        if (!isAuthenticated || !getAdminToken()) return undefined;
+        const timer = setTimeout(() => fetchData(), 350);
+        return () => clearTimeout(timer);
+    }, [receiptFilters, searchTerm, isAuthenticated]);
+
     const fetchData = async () => {
         setLoading(true);
+        const params = buildQueryParams();
         try {
-            const [aptResp, prodResp, confResp] = await Promise.all([
-                getAppointments(),
+            const [aptResp, prodResp, confResp, pharmaResp, statsResp] = await Promise.all([
+                getAppointments(params),
                 fetchPharmacyProducts(),
-                getConfig()
+                getConfig(),
+                getAdminPharmacyOrders(params).catch(() => ({ data: { success: false, orders: [] } })),
+                getAdminDashboardStats().catch(() => ({ data: { success: false } })),
             ]);
 
             if (aptResp.data.success) {
@@ -80,23 +128,57 @@ const AdminDashboard = () => {
             }
             if (prodResp.data.success) setProducts(prodResp.data.products);
             if (confResp.data.success) setConfig(confResp.data.config);
+            if (pharmaResp.data?.success) {
+                setPharmacyOrders(pharmaResp.data.orders || []);
+                setPharmacyMeta({
+                    total: pharmaResp.data.total ?? pharmaResp.data.orders?.length ?? 0,
+                    totalUnfiltered: pharmaResp.data.totalUnfiltered,
+                    filterOptions: pharmaResp.data.filterOptions || {},
+                });
+            }
+            if (aptResp.data?.success) setAptTotal(aptResp.data.total ?? aptResp.data.appointments?.length ?? 0);
+            if (statsResp.data?.success) setDashboardStats(statsResp.data.stats);
         } catch (err) {
             console.error("Dashboard Fetch Error:", err);
+            if (err.response?.status === 401) setIsAuthenticated(false);
         } finally {
             setLoading(false);
         }
     };
 
+    const handleLogout = () => {
+        clearAdminSession();
+        setIsAuthenticated(false);
+        setPassword('');
+    };
+
+    const toggleLang = () => {
+        const next = lang === 'en' ? 'te' : 'en';
+        setAdminLang(next);
+        setLang(next);
+    };
+
+    const handlePharmacyStatus = async (order, status) => {
+        try {
+            await updatePharmacyOrderStatus({ id: order.id, token: order.token, status });
+            await fetchData();
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
     const handleLogin = async (e) => {
         e.preventDefault();
+        setLoginError('');
         try {
             const resp = await adminLogin(password);
-            if (resp.data.success) {
+            if (resp.data.success && resp.data.token) {
+                setAdminSession(resp.data.token, resp.data.expiresIn || 28800);
                 setIsAuthenticated(true);
-                setLoginError('');
+                setPassword('');
             }
         } catch (err) {
-            setLoginError('Invalid Administrator Password');
+            setLoginError(t('loginError'));
         }
     };
 
@@ -203,16 +285,20 @@ const AdminDashboard = () => {
                 <div className="w-24 h-24 mx-auto bg-slate-50 border border-black/5 text-hospital-primary rounded-[35px] flex items-center justify-center shadow-md mb-12 group-hover:rotate-12 transition-transform">
                     <Lock size={40} className="shadow-sm" />
                 </div>
-                <h2 className="text-4xl font-black mb-2 tracking-tighter italic uppercase text-slate-900">K-OS <span className="text-hospital-secondary">HQ</span></h2>
-                <p className="text-[10px] font-black text-slate-400 tracking-[0.6em] uppercase mb-12 italic opacity-60 leading-none">Institutional Security Node</p>
+                <div className="flex justify-center gap-2 mb-6">
+                    <button type="button" onClick={() => { setAdminLang('en'); setLang('en'); }} className={`px-3 py-1 rounded-full text-xs font-bold ${lang === 'en' ? 'bg-hospital-primary text-white' : 'bg-slate-100'}`}>EN</button>
+                    <button type="button" onClick={() => { setAdminLang('te'); setLang('te'); }} className={`px-3 py-1 rounded-full text-xs font-bold ${lang === 'te' ? 'bg-hospital-primary text-white' : 'bg-slate-100'}`}>తెలుగు</button>
+                </div>
+                <h2 className="text-2xl font-black mb-2 text-slate-900 font-['Noto_Sans_Telugu']">{t('loginTitle')}</h2>
+                <p className="text-sm text-slate-500 mb-8">{t('loginSub')}</p>
                 <form onSubmit={handleLogin} className="space-y-6">
                     <div className="relative">
                         <Key size={18} className="absolute left-6 top-1/2 -translate-y-1/2 text-hospital-primary/50" />
-                        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Handshake Code"
-                            className="w-full bg-slate-50 border border-black/5 p-6 pl-16 rounded-[28px] text-slate-900 outline-none focus:border-hospital-primary transition-all font-mono tracking-widest text-center text-sm shadow-inner" />
+                        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t('password')} autoComplete="current-password"
+                            className="w-full bg-slate-50 border border-black/5 p-6 pl-16 rounded-[28px] text-slate-900 outline-none focus:border-hospital-primary transition-all text-center text-sm shadow-inner" />
                     </div>
-                    {loginError && <p className="text-red-500 text-[10px] font-black uppercase tracking-[0.4em] italic">{loginError}</p>}
-                    <button className="w-full bg-[#0f172a] text-white py-6 rounded-[28px] font-black text-[11px] uppercase tracking-[0.6em] hover:bg-hospital-primary transition-all active:scale-95 shadow-lg italic">Init Handshake</button>
+                    {loginError && <p className="text-red-500 text-sm font-semibold">{loginError}</p>}
+                    <button type="submit" className="w-full bg-[#0f172a] text-white py-5 rounded-[28px] font-bold text-sm hover:bg-hospital-primary transition-all active:scale-95 shadow-lg">{t('loginBtn')}</button>
                 </form>
             </motion.div>
         </div>
@@ -225,16 +311,18 @@ const AdminDashboard = () => {
             <aside className={`bg-white border-r border-black/5 flex flex-col transition-all duration-700 overflow-hidden ${isSidebarOpen ? 'w-80' : 'w-24'} relative z-30 backdrop-blur-3xl shadow-xl`}>
                 <div className="p-10 flex items-center justify-center lg:justify-start gap-5 border-b border-black/5 h-28 italic">
                     <div className="w-14 h-14 bg-slate-50 border border-black/5 rounded-2xl shadow-md flex items-center justify-center shrink-0 hover:rotate-12 transition-transform text-hospital-secondary"><LayoutDashboard size={26} /></div>
-                    {isSidebarOpen && <h1 className="text-2xl font-black tracking-tighter uppercase whitespace-nowrap italic text-slate-900 leading-none">SRK-HQ <span className="text-hospital-primary">4.0</span></h1>}
+                    {isSidebarOpen && <h1 className="text-xl font-black text-slate-900 leading-none font-['Noto_Sans_Telugu']">శ్రీ కమల</h1>}
                 </div>
 
                 <nav className="p-8 space-y-4 flex-1 overflow-y-auto scrollbar-hide">
                     {[
-                        { id: 'overview', icon: <Activity size={22} />, label: 'Analytics' },
-                        { id: 'appointments', icon: <Calendar size={22} />, label: 'Live Queue' },
-                        { id: 'patients', icon: <Users size={22} />, label: 'Master DB' },
-                        { id: 'medicines', icon: <Pill size={22} />, label: 'Inventory' },
-                        { id: 'settings', icon: <Settings size={22} />, label: 'Cloud Config' }
+                        { id: 'overview', icon: <Activity size={22} />, label: t('tabs.overview') },
+                        { id: 'appointments', icon: <Calendar size={22} />, label: t('tabs.appointments') },
+                        { id: 'pharmacy', icon: <Package size={22} />, label: t('tabs.pharmacy') },
+                        { id: 'patients', icon: <Users size={22} />, label: t('tabs.patients') },
+                        { id: 'medicines', icon: <Pill size={22} />, label: t('tabs.medicines') },
+                        { id: 'website', icon: <BookOpen size={22} />, label: t('tabs.website') },
+                        { id: 'settings', icon: <Settings size={22} />, label: t('tabs.settings') }
                     ].map(item => (
                         <button key={item.id} onClick={() => setActiveTab(item.id)}
                             className={`w-full flex items-center gap-6 p-5 rounded-[28px] font-black text-[11px] uppercase tracking-[0.4em] transition-all border group italic ${activeTab === item.id ? 'bg-[#0f172a] text-white border-transparent shadow-xl' : 'text-slate-400 border-black/5 hover:border-black/20 hover:text-slate-900 bg-white'}`}>
@@ -245,9 +333,9 @@ const AdminDashboard = () => {
                 </nav>
 
                 <div className="p-8 border-t border-black/5">
-                    <button onClick={() => setIsAuthenticated(false)} className="w-full flex items-center justify-center lg:justify-start gap-6 p-5 rounded-[28px] text-red-500 hover:bg-red-50 transition-all bg-white border border-black/5 active:scale-95 italic">
+                    <button type="button" onClick={handleLogout} className="w-full flex items-center justify-center lg:justify-start gap-6 p-5 rounded-[28px] text-red-500 hover:bg-red-50 transition-all bg-white border border-black/5 active:scale-95">
                         <LogOut size={22} />
-                        {isSidebarOpen && <span className="uppercase text-[11px] tracking-[0.4em]">Seal Node</span>}
+                        {isSidebarOpen && <span className="text-sm font-bold">{t('logout')}</span>}
                     </button>
                 </div>
             </aside>
@@ -258,20 +346,20 @@ const AdminDashboard = () => {
                 <header className="h-28 px-12 flex justify-between items-center border-b border-black/5 shrink-0 relative z-20 backdrop-blur-3xl bg-white/80">
                     <div className="flex items-center gap-8">
                         <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="w-12 h-12 flex items-center justify-center bg-slate-50 border border-black/5 rounded-2xl hover:bg-slate-100 transition-colors text-slate-400"><MoreVertical size={22} /></button>
-                        <h2 className="text-3xl font-black tracking-tighter uppercase italic text-slate-900 leading-none"><span className="text-hospital-primary">{activeTab}</span> Console</h2>
+                        <h2 className="text-2xl font-bold text-slate-900 leading-none">{t(`tabs.${activeTab}`) || activeTab}</h2>
                     </div>
-                    <div className="flex items-center gap-10">
+                    <div className="flex items-center gap-4 flex-wrap">
+                        <button type="button" onClick={toggleLang} className="flex items-center gap-2 px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold hover:bg-white">
+                            <Languages size={18} /> {lang === 'en' ? 'తెలుగు' : 'English'}
+                        </button>
                         <div className="relative group hidden lg:block">
-                            <Search size={20} className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-hospital-primary transition-colors" />
-                            <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} type="text" placeholder="Scan Global Node Data..."
-                                className="bg-slate-50 border border-black/5 pl-16 pr-8 py-4 rounded-[28px] text-xs font-black italic outline-none focus:border-hospital-primary transition-all w-80 lg:w-[450px] shadow-inner text-slate-900 placeholder:text-slate-200" />
+                            <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                            <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} type="text" placeholder={t('search')}
+                                className="bg-slate-50 border border-black/5 pl-12 pr-6 py-3 rounded-2xl text-sm outline-none focus:border-hospital-primary w-64 lg:w-80" />
                         </div>
-                        <div className="flex items-center gap-6 group">
-                            <div className="text-right hidden sm:block">
-                                <p className="text-[10px] font-black uppercase text-slate-400 leading-none mb-2 italic">Node Status: <span className="text-green-500">Live</span></p>
-                                <p className="text-sm font-black text-slate-900 italic underline decoration-hospital-secondary/20 uppercase tracking-tighter">Chief Director</p>
-                            </div>
-                            <div className="w-16 h-16 bg-white border border-black/5 rounded-[24px] shadow-md flex items-center justify-center text-hospital-secondary group-hover:scale-110 group-hover:rotate-12 transition-all"><Cpu size={30} /></div>
+                        <div className="text-right hidden sm:block">
+                            <p className="text-xs text-green-600 font-semibold">{t('live')}</p>
+                            <p className="text-sm font-bold text-slate-800">{t('role')}</p>
                         </div>
                     </div>
                 </header>
@@ -280,12 +368,13 @@ const AdminDashboard = () => {
                     <AnimatePresence mode="wait">
                         {activeTab === 'overview' && (
                             <motion.div key="overview" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -20, opacity: 0 }} className="space-y-16">
+                                <h3 className="text-xl font-bold text-slate-900 mb-2">{t('overview.title')}</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
                                     {[
-                                        { l: 'Load Factor', v: appointments.length, i: <Clock />, c: 'text-hospital-primary', bg: 'bg-hospital-primary' },
-                                        { l: 'Patient Master', v: patients.length, i: <Users />, c: 'text-hospital-secondary', bg: 'bg-hospital-secondary' },
-                                        { l: 'Pharma Inventory', v: products.length, i: <Pill />, c: 'text-slate-900', bg: 'bg-slate-900' },
-                                        { l: 'Revenue Node', v: `₹${appointments.length * 200}`, i: <Zap />, c: 'text-hospital-primary', bg: 'bg-hospital-primary' }
+                                        { l: t('overview.bookings'), v: dashboardStats?.appointments ?? appointments.length, i: <Clock /> },
+                                        { l: t('overview.patients'), v: patients.length, i: <Users /> },
+                                        { l: t('overview.pharmacyPending'), v: dashboardStats?.pharmacyPending ?? pharmacyOrders.filter((o) => o.status !== 'dispensed' && o.status !== 'cancelled').length, i: <ClipboardList /> },
+                                        { l: t('overview.medicines'), v: dashboardStats?.medicines ?? products.length, i: <Pill /> },
                                     ].map((stat, i) => (
                                         <div key={i} className="bg-white p-10 rounded-[50px] shadow-xl border border-black/5 hover:border-black/10 transition-all relative overflow-hidden group">
                                             <div className="absolute -top-10 -right-10 opacity-5 group-hover:scale-110 transition-transform duration-1000 rotate-12">{stat.i}</div>
@@ -298,37 +387,17 @@ const AdminDashboard = () => {
                                         </div>
                                     ))}
                                 </div>
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                                    <div className="bg-white p-14 rounded-[65px] shadow-xl border border-black/5 relative overflow-hidden h-[450px] group backdrop-blur-3xl">
-                                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-slate-900 opacity-5 group-hover:scale-[1.2] transition-transform duration-[3s]"><Activity size={400} strokeWidth={1} /></div>
-                                        <div className="relative z-10 h-full flex flex-col justify-between">
-                                            <div>
-                                                <h3 className="text-4xl font-black mb-3 italic tracking-tighter uppercase leading-none text-slate-900">Global Health IQ</h3>
-                                                <p className="text-[10px] font-black text-hospital-primary tracking-[0.6em] uppercase italic">Real-Time Core Orchestration</p>
-                                            </div>
-                                            <div className="space-y-10">
-                                                <div className="space-y-4">
-                                                    <div className="flex justify-between text-xs font-semibold uppercase tracking-wide text-slate-500"><span>System status</span><span className="text-hospital-secondary">Online</span></div>
-                                                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden border border-black/5"><motion.div initial={{ width: 0 }} animate={{ width: '99.8%' }} transition={{ duration: 2 }} className="h-full bg-hospital-secondary"></motion.div></div>
-                                                </div>
-                                                <div className="space-y-4">
-                                                    <div className="flex justify-between text-[11px] font-black uppercase tracking-[0.4em] italic text-slate-400"><span>IOPS Efficiency</span><span className="text-hospital-primary">94.2%</span></div>
-                                                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden border border-black/5"><motion.div initial={{ width: 0 }} animate={{ width: '94.2%' }} transition={{ duration: 2, delay: 0.2 }} className="h-full bg-hospital-primary"></motion.div></div>
-                                                </div>
-                                            </div>
-                                            <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.8em] italic">AUTONOMOUS CLOUD ANALYTICS ACTIVE</p>
-                                        </div>
-                                    </div>
-                                    <div className="bg-white p-14 rounded-[65px] shadow-xl border border-black/5 flex flex-col justify-center items-center text-center relative overflow-hidden group">
-                                        <div className="absolute -bottom-20 -left-20 text-slate-900 opacity-5 -rotate-12 group-hover:scale-110 transition-transform duration-[3s]"><Users size={350} strokeWidth={1} /></div>
-                                        <div className="w-32 h-32 bg-slate-50 border border-black/5 rounded-[45px] flex items-center justify-center text-hospital-secondary mb-10 shadow-md group-hover:rotate-[360deg] transition-all duration-1000"><Users size={54} /></div>
-                                        <h3 className="text-3xl font-black text-slate-900 italic tracking-tighter uppercase mb-6">STAFF TELEMETRY</h3>
-                                        <div className="flex -space-x-6 mb-10 h-16">
-                                            {[...Array(5)].map((_, i) => <div key={i} className="w-16 h-16 rounded-[24px] bg-slate-50 border-4 border-white shadow-md flex items-center justify-center text-[10px] font-black text-slate-900 italic uppercase transition-all">S-{i}</div>)}
-                                            <div className="w-16 h-16 rounded-[24px] bg-hospital-primary text-white flex items-center justify-center text-xs font-black shadow-lg italic">+14</div>
-                                        </div>
-                                        <button className="text-[11px] font-black uppercase tracking-[0.6em] text-hospital-primary hover:text-slate-900 transition-colors italic leading-none border-b border-hospital-primary/30 pb-2">View Specialized Matrix</button>
-                                    </div>
+                                <div className="bg-white p-10 rounded-3xl border border-slate-200 shadow-sm">
+                                    <h4 className="font-bold text-lg text-slate-900 mb-6">{t('overview.quickTitle')}</h4>
+                                    <ul className="space-y-4 text-sm text-slate-600">
+                                        <li className="flex gap-3"><span className="text-hospital-primary font-bold">1.</span>{t('overview.q1')}</li>
+                                        <li className="flex gap-3"><span className="text-hospital-primary font-bold">2.</span>{t('overview.q2')}</li>
+                                        <li className="flex gap-3"><span className="text-hospital-primary font-bold">3.</span>{t('overview.q3')}</li>
+                                        <li className="flex gap-3"><span className="text-hospital-primary font-bold">4.</span>{t('overview.q4')}</li>
+                                    </ul>
+                                    <p className="mt-8 text-xs text-green-700 font-semibold flex items-center gap-2"><ShieldCheck size={14} /> {t('overview.systemOk')}</p>
+                                    <p className="mt-2 text-xs text-slate-400">{t('overview.revenueHint')}: ₹{appointments.length * 100}</p>
+                                    <p className="mt-1 text-xs text-slate-500">{t('overview.pharmacyDone')}: {dashboardStats?.pharmacyDispensed ?? 0}</p>
                                 </div>
                             </motion.div>
                         )}
@@ -339,8 +408,8 @@ const AdminDashboard = () => {
                                     <div className="absolute top-0 right-0 p-12 opacity-5 text-slate-900 rotate-12 pointer-events-none scale-150"><Calendar size={300} strokeWidth={1} /></div>
                                     <div className="flex items-center justify-between mb-16 relative z-10">
                                         <div>
-                                            <h3 className="text-4xl font-black italic tracking-tighter uppercase leading-none text-slate-900">Booking Stream</h3>
-                                            <p className="text-[10px] font-black text-hospital-secondary tracking-[0.6em] uppercase italic mt-3 flex items-center gap-4">Active Queue Surveillance <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div></p>
+                                            <h3 className="text-2xl font-bold text-slate-900">{t('apt.title')}</h3>
+                                            <p className="text-sm text-slate-500 mt-2">{t('apt.sub')} — {tAdmin(lang, 'filter.showing')} {aptTotal}</p>
                                         </div>
                                         <button className="px-10 py-5 bg-slate-50 border border-black/5 rounded-full text-[11px] font-black uppercase tracking-[0.4em] italic hover:bg-slate-100 active:scale-95 transition-all text-slate-900">Download Audit CSV</button>
                                     </div>
@@ -348,14 +417,16 @@ const AdminDashboard = () => {
                                         <table className="w-full text-left min-w-[900px]">
                                             <thead>
                                                 <tr className="border-b border-black/5">
-                                                    <th className="py-8 px-6 text-[11px] font-black uppercase tracking-[0.6em] text-slate-400 italic">Token Trace</th>
-                                                    <th className="py-8 px-6 text-[11px] font-black uppercase tracking-[0.6em] text-slate-400 italic">Patient Profile</th>
-                                                    <th className="py-8 px-6 text-[11px] font-black uppercase tracking-[0.6em] text-slate-400 italic">Service Node</th>
-                                                    <th className="py-8 px-6 text-[11px] font-black uppercase tracking-[0.6em] text-slate-400 italic text-right">Verification</th>
+                                                    <th className="py-8 px-6 text-xs font-bold text-slate-500">{t('apt.token')}</th>
+                                                    <th className="py-8 px-6 text-xs font-bold text-slate-500">{t('apt.patient')}</th>
+                                                    <th className="py-8 px-6 text-xs font-bold text-slate-500">{t('apt.dept')}</th>
+                                                    <th className="py-8 px-6 text-xs font-bold text-slate-500 text-right">{t('apt.action')}</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {appointments.filter(a => (a.name || '').toLowerCase().includes(searchTerm.toLowerCase())).map((apt, i) => (
+                                                {appointments.length === 0 ? (
+                                                    <tr><td colSpan={4} className="py-12 text-center text-slate-500">{t('apt.empty')}</td></tr>
+                                                ) : appointments.map((apt, i) => (
                                                     <motion.tr initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} key={apt._id || i} className="group hover:bg-slate-50 transition-all cursor-default border-b border-black/5 last:border-none">
                                                         <td className="py-10 px-6 font-mono font-black text-lg text-hospital-primary italic group-hover:scale-105 transition-transform origin-left">{apt.token}</td>
                                                         <td className="py-10 px-6">
@@ -363,7 +434,7 @@ const AdminDashboard = () => {
                                                                 <div className="w-14 h-14 bg-slate-50 border border-black/5 rounded-2xl flex items-center justify-center text-slate-900 font-black italic shadow-inner group-hover:border-hospital-primary/40 transition-colors">P-{i}</div>
                                                                 <div>
                                                                     <p className="font-black text-xl italic tracking-tighter uppercase leading-none mb-2 text-slate-900">{apt.name}</p>
-                                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] italic">{apt.phone} // {apt.age}y // {apt.gender}</p>
+                                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] italic">{apt.phone}{apt.age != null && apt.age !== '' ? ` · ${apt.age}y` : ''}{apt.gender ? ` · ${apt.gender}` : ''}</p>
                                                                 </div>
                                                             </div>
                                                         </td>
@@ -373,7 +444,7 @@ const AdminDashboard = () => {
                                                         <td className="py-10 px-6 text-right">
                                                             <button onClick={() => updateAptStatus(apt._id, 'Paid')}
                                                                 className={`px-10 py-4 rounded-[30px] text-[10px] font-black uppercase tracking-[0.6em] border transition-all active:scale-90 italic ${apt.paymentStatus === 'Paid' ? 'bg-green-50 border-green-200 text-green-600' : 'bg-transparent border-black/5 text-slate-300 hover:border-hospital-primary hover:text-slate-900 hover:bg-white'}`}>
-                                                                {apt.paymentStatus === 'Paid' ? 'VERIFIED ✓' : 'INIT VERIFY'}
+                                                                {apt.paymentStatus === 'Paid' ? t('apt.paid') : t('apt.unpaid')}
                                                             </button>
                                                         </td>
                                                     </motion.tr>
@@ -382,6 +453,34 @@ const AdminDashboard = () => {
                                         </table>
                                     </div>
                                 </div>
+                            </motion.div>
+                        )}
+
+                        {activeTab === 'pharmacy' && (
+                            <AdminPharmacyPanel
+                                lang={lang}
+                                orders={pharmacyOrders}
+                                loading={loading}
+                                total={pharmacyMeta.total}
+                                totalUnfiltered={pharmacyMeta.totalUnfiltered}
+                                filters={receiptFilters}
+                                filterOptions={pharmacyMeta.filterOptions}
+                                onFiltersChange={setReceiptFilters}
+                                onRefresh={fetchData}
+                                onUpdateStatus={handlePharmacyStatus}
+                            />
+                        )}
+
+                        {activeTab === 'website' && (
+                            <motion.div key="website" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-3xl bg-white rounded-3xl border border-slate-200 p-10 shadow-sm space-y-6">
+                                <h3 className="text-2xl font-bold text-slate-900">{t('website.title')}</h3>
+                                <ul className="space-y-4 text-slate-700">
+                                    <li className="flex gap-3"><Calendar className="shrink-0 text-hospital-primary" size={20} /><span>{t('website.book')}</span></li>
+                                    <li className="flex gap-3"><Activity className="shrink-0 text-hospital-secondary" size={20} /><span>{t('website.diag')}</span></li>
+                                    <li className="flex gap-3"><Pill className="shrink-0 text-amber-600" size={20} /><span>{t('website.shop')}</span></li>
+                                    <li className="flex gap-3"><Sparkles className="shrink-0 text-purple-500" size={20} /><span>{t('website.ai')}</span></li>
+                                </ul>
+                                <p className="text-sm text-slate-500 border-t pt-6">{t('website.adminPath')}</p>
                             </motion.div>
                         )}
 
@@ -770,9 +869,13 @@ const AdminDashboard = () => {
                                         </div>
                                     </div>
 
-                                    <button onClick={() => updateConfig(config)} className="mt-20 w-full bg-[#0f172a] text-white py-10 rounded-[45px] font-black text-[13px] uppercase tracking-[0.8em] shadow-xl hover:bg-hospital-primary transition-all active:scale-95 italic group/publish relative overflow-hidden">
-                                        <span className="relative z-10 flex items-center justify-center gap-6">PUBLISH ARCHITECTURE CHANGES</span>
-                                        <div className="absolute inset-x-0 bottom-0 top-0 bg-hospital-primary opacity-0 group-hover/publish:opacity-100 transition-opacity"></div>
+                                    {configSaved && <p className="text-green-600 text-sm font-semibold text-center">{t('settings.saved')}</p>}
+                                    <button type="button" onClick={async () => {
+                                        await updateConfig(config);
+                                        setConfigSaved(true);
+                                        setTimeout(() => setConfigSaved(false), 3000);
+                                    }} className="mt-12 w-full bg-[#0f172a] text-white py-5 rounded-2xl font-bold text-sm shadow-lg hover:bg-hospital-primary transition-all">
+                                        {t('settings.save')}
                                     </button>
                                 </div>
                                 <div className="text-center italic mt-16 pb-12">

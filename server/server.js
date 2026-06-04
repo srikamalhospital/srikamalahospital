@@ -123,6 +123,9 @@ app.use((req, res, next) => {
         '/medicines/catalog': '/api/medicines/catalog',
         '/admin/patient-clinical-note': '/api/admin/patient-clinical-note',
         '/admin/patient-clinical-history': '/api/admin/patient-clinical-history',
+        '/admin/pharmacy-orders': '/api/admin/pharmacy-orders',
+        '/admin/dashboard-stats': '/api/admin/dashboard-stats',
+        '/pharmacy/orders': '/api/pharmacy/orders',
         '/ocr': '/api/ai/ocr',
         '/predict': '/predict',
         '/api/ai/skin-predict': '/api/ai/skin-predict'
@@ -152,19 +155,56 @@ let siteConfig = {
 };
 
 const patientClinicalRecords = {};
-const medicineCatalog = [
-    "Paracetamol 650mg", "Dolo 650", "Amoxicillin 500mg", "Azithromycin 500mg",
-    "Cefixime 200mg", "Cetirizine 10mg", "Levocetirizine", "Pantoprazole 40mg",
-    "Rabeprazole", "Ondansetron", "Vomikind Injection", "Metformin 500mg",
-    "Glimepiride", "Insulin Human Mixtard", "Amlodipine 5mg", "Telmisartan 40mg",
-    "Losartan 50mg", "Atorvastatin 10mg", "Calcium + Vitamin D3", "Iron Folic Acid",
-    "Multivitamin Syrup", "ORS Sachet", "NS Saline Bottle", "RL Bottle",
-    "Disposable Syringe 2ml", "Disposable Syringe 5ml", "IV Cannula 20G",
-    "Surgical Gloves", "Examination Gloves", "Sterile Cotton Roll", "Bandage Roll",
-    "Betadine Ointment", "Diclofenac Gel", "Amoxiclav 625mg", "Doxycycline 100mg",
-    "Nebulizer Solution", "Inhaler (Salbutamol)", "Hydrocortisone Injection",
-    "Vitamin B12 Injection", "TT Injection", "Pain Relief Spray"
-];
+const pharmacyOrdersMemory = [];
+
+const ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET || process.env.ADMIN_PASSWORD || 'sk-admin-change-in-env';
+const adminLoginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    message: { success: false, message: 'Too many login attempts. Wait 15 minutes.' },
+});
+
+const requireAdmin = (req, res, next) => {
+    const auth = req.headers.authorization;
+    if (!auth || !auth.startsWith('Bearer ')) {
+        return res.status(401).json({ success: false, message: 'Admin login required' });
+    }
+    try {
+        const payload = jwt.verify(auth.slice(7), ADMIN_JWT_SECRET);
+        if (payload.role !== 'admin') throw new Error('invalid role');
+        req.admin = payload;
+        return next();
+    } catch (e) {
+        return res.status(401).json({ success: false, message: 'Session expired. Please sign in again.' });
+    }
+};
+
+const { filterAppointments, filterPharmacyOrders, distinctValues } = require('./adminSearch');
+
+const normalizePharmacyOrder = (row) => ({
+    id: row.id,
+    token: row.token,
+    patientName: row.patient_name || row.patientName,
+    phone: row.phone,
+    age: row.age ?? null,
+    gender: row.gender ?? null,
+    notes: row.notes,
+    items: row.items || [],
+    subtotal: Number(row.subtotal) || 0,
+    rxCount: row.rx_count ?? row.rxCount ?? 0,
+    status: row.status || 'pending_verification',
+    createdAt: row.created_at || row.createdAt,
+    verifiedAt: row.verified_at || row.verifiedAt,
+    dispensedAt: row.dispensed_at || row.dispensedAt,
+});
+
+const {
+    getMedicineNames,
+    getCategories: getPharmacyCategories,
+    mergeWithDatabase,
+    normalizePharmacyRow,
+} = require('./hospitalPharmacyCatalog');
+const medicineCatalog = getMedicineNames();
 
 const openai = new OpenAI({
     apiKey: process.env.NVIDIA_API_KEY || 'dummy_key_to_prevent_crash_if_missing',
@@ -471,17 +511,21 @@ app.post('/api/ai/discover', async (req, res) => {
 
 // ─── ADMIN & CONFIG ROUTES ─────────────────────────────────────────────────
 
-app.post('/api/admin/login', (req, res) => {
-    const { password } = req.body;
-    if (password === process.env.ADMIN_PASSWORD) {
-        res.json({ success: true, token: 'admin-authorized-session' });
-    } else {
-        res.status(401).json({ success: false, message: 'Invalid Admin Password' });
+app.post('/api/admin/login', adminLoginLimiter, (req, res) => {
+    const { password } = req.body || {};
+    const expected = process.env.ADMIN_PASSWORD;
+    if (!expected) {
+        return res.status(503).json({ success: false, message: 'Admin password not configured on server' });
     }
+    if (password === expected) {
+        const token = jwt.sign({ role: 'admin', sub: 'hospital-admin' }, ADMIN_JWT_SECRET, { expiresIn: '8h' });
+        return res.json({ success: true, token, expiresIn: 28800 });
+    }
+    return res.status(401).json({ success: false, message: 'Invalid password' });
 });
 
 app.get('/api/config', (req, res) => res.json({ success: true, config: siteConfig }));
-app.post('/api/config', (req, res) => {
+app.post('/api/config', requireAdmin, (req, res) => {
     siteConfig = { ...siteConfig, ...req.body };
     res.json({ success: true, config: siteConfig });
 });
@@ -599,17 +643,79 @@ app.post('/api/create-appointment', (req, res) => {
     });
 });
 
-app.get('/api/admin/appointments', async (req, res) => {
+app.get('/api/admin/dashboard-stats', requireAdmin, async (req, res) => {
     try {
-        if (!supabase) return res.json({ success: true, appointments: [{ _id: '1', name: 'Mock Patient', token: 'TKN-DEMO', department: 'General', phone: '0000', paymentStatus: 'Paid', appointmentDate: '2026-03-22' }] });
-        const { data, error } = await supabase.from('appointments').select('*').order('created_at', { ascending: false });
-        if (error) throw error;
-        const transformed = data.map(item => ({
-            _id: item.id, name: item.name, token: item.token, department: item.department,
-            phone: item.phone, age: item.age, gender: item.gender, reason: item.reason,
-            paymentStatus: item.payment_status, appointmentDate: item.appointment_date, orderId: item.order_id, image: item.image
-        }));
-        res.json({ success: true, appointments: transformed });
+        let appointmentsCount = 0;
+        let pharmacyPending = 0;
+        let pharmacyDispensed = 0;
+        if (supabase) {
+            const { count: aptCount } = await supabase.from('appointments').select('*', { count: 'exact', head: true });
+            appointmentsCount = aptCount || 0;
+            const { count: pend } = await supabase.from('pharmacy_orders').select('*', { count: 'exact', head: true }).eq('status', 'pending_verification');
+            const { count: ver } = await supabase.from('pharmacy_orders').select('*', { count: 'exact', head: true }).eq('status', 'verified');
+            const { count: disp } = await supabase.from('pharmacy_orders').select('*', { count: 'exact', head: true }).eq('status', 'dispensed');
+            pharmacyPending = (pend || 0) + (ver || 0);
+            pharmacyDispensed = disp || 0;
+        } else {
+            appointmentsCount = 0;
+            pharmacyPending = pharmacyOrdersMemory.filter((o) => o.status === 'pending_verification' || o.status === 'verified').length;
+            pharmacyDispensed = pharmacyOrdersMemory.filter((o) => o.status === 'dispensed').length;
+        }
+        return res.json({
+            success: true,
+            stats: {
+                appointments: appointmentsCount,
+                pharmacyPending,
+                pharmacyDispensed,
+                medicines: medicineCatalog.length,
+            },
+        });
+    } catch (err) {
+        return res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+app.get('/api/admin/appointments', requireAdmin, async (req, res) => {
+    try {
+        let transformed = [];
+        if (!supabase) {
+            transformed = [{ _id: '1', name: 'Mock Patient', token: 'TKN-DEMO', department: 'General', phone: '0000', age: 30, gender: 'Male', paymentStatus: 'Paid', appointmentDate: '2026-03-22' }];
+        } else {
+            const { data, error } = await supabase
+                .from('appointments')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .limit(500);
+            if (error) throw error;
+            transformed = (data || []).map((item) => ({
+                _id: item.id,
+                name: item.name,
+                token: item.token,
+                department: item.department,
+                phone: item.phone,
+                age: item.age,
+                gender: item.gender,
+                reason: item.reason,
+                paymentStatus: item.payment_status,
+                appointmentDate: item.appointment_date,
+                orderId: item.order_id,
+                image: item.image,
+            }));
+        }
+        const { results, filters, total } = filterAppointments(transformed, req.query);
+        return res.json({
+            success: true,
+            appointments: results,
+            total,
+            totalUnfiltered: transformed.length,
+            filters,
+            filterOptions: {
+                names: distinctValues(transformed, 'name'),
+                ages: distinctValues(transformed, 'age'),
+                genders: distinctValues(transformed, 'gender'),
+                departments: distinctValues(transformed, 'department'),
+            },
+        });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }
@@ -629,7 +735,7 @@ app.get('/api/appointments/:token', async (req, res) => {
     }
 });
 
-app.post('/api/admin/update-appointment', async (req, res) => {
+app.post('/api/admin/update-appointment', requireAdmin, async (req, res) => {
     try {
         const { id, paymentStatus } = req.body;
         if (!supabase) return res.status(503).json({ success: false, message: 'Database not connected' });
@@ -688,24 +794,145 @@ app.get('/api/lab/tests', async (req, res) => {
     }
 });
 
+app.post('/api/pharmacy/orders', async (req, res) => {
+    try {
+        const { token, name, phone, age, gender, notes, items, subtotal, rxCount, status, createdAt } = req.body || {};
+        if (!token || !name || !phone || !Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({ success: false, message: 'token, name, phone and items are required' });
+        }
+        const row = {
+            token: String(token).trim(),
+            patient_name: String(name).trim(),
+            phone: String(phone).trim(),
+            age: age != null && String(age).trim() ? String(age).trim() : null,
+            gender: gender != null && String(gender).trim() ? String(gender).trim() : null,
+            notes: (notes || '').trim(),
+            items,
+            subtotal: Number(subtotal) || 0,
+            rx_count: Number(rxCount) || 0,
+            status: status || 'pending_verification',
+            created_at: createdAt || new Date().toISOString(),
+        };
+        if (supabase) {
+            const { data, error } = await supabase.from('pharmacy_orders').insert(row).select().maybeSingle();
+            if (error) {
+                if (error.code === '42P01') {
+                    pharmacyOrdersMemory.unshift({ ...row, id: `mem_${Date.now()}` });
+                    return res.json({ success: true, order: normalizePharmacyOrder(pharmacyOrdersMemory[0]), offline: true });
+                }
+                throw error;
+            }
+            return res.json({ success: true, order: normalizePharmacyOrder(data) });
+        }
+        pharmacyOrdersMemory.unshift({ ...row, id: `mem_${Date.now()}` });
+        return res.json({ success: true, order: normalizePharmacyOrder(pharmacyOrdersMemory[0]), offline: true });
+    } catch (err) {
+        return res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+app.get('/api/admin/pharmacy-orders', requireAdmin, async (req, res) => {
+    try {
+        let rows = [];
+        if (supabase) {
+            const { data, error } = await supabase
+                .from('pharmacy_orders')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .limit(500);
+            if (error) {
+                if (error.code === '42P01') {
+                    rows = pharmacyOrdersMemory.map(normalizePharmacyOrder);
+                } else {
+                    throw error;
+                }
+            } else {
+                rows = (data || []).map(normalizePharmacyOrder);
+            }
+        } else {
+            rows = pharmacyOrdersMemory.map(normalizePharmacyOrder);
+        }
+        const { results, filters, total } = filterPharmacyOrders(rows, req.query);
+        return res.json({
+            success: true,
+            orders: results,
+            total,
+            totalUnfiltered: rows.length,
+            filters,
+            filterOptions: {
+                names: distinctValues(rows, 'patientName'),
+                ages: distinctValues(rows, 'age'),
+                genders: distinctValues(rows, 'gender'),
+                statuses: ['pending_verification', 'verified', 'dispensed', 'cancelled'],
+            },
+        });
+    } catch (err) {
+        return res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+app.patch('/api/admin/pharmacy-orders', requireAdmin, async (req, res) => {
+    try {
+        const { id, token, status, verifiedBy } = req.body || {};
+        if (!status || (!id && !token)) {
+            return res.status(400).json({ success: false, message: 'status and id or token required' });
+        }
+        const patch = { status, updated_at: new Date().toISOString() };
+        if (status === 'verified') {
+            patch.verified_by = verifiedBy || 'admin';
+            patch.verified_at = new Date().toISOString();
+        }
+        if (status === 'dispensed') patch.dispensed_at = new Date().toISOString();
+
+        if (supabase) {
+            let q = supabase.from('pharmacy_orders').update(patch);
+            q = id ? q.eq('id', id) : q.eq('token', token);
+            const { data, error } = await q.select().maybeSingle();
+            if (error) {
+                if (error.code === '42P01') {
+                    const idx = pharmacyOrdersMemory.findIndex((o) => (id && o.id === id) || o.token === token);
+                    if (idx >= 0) {
+                        pharmacyOrdersMemory[idx] = { ...pharmacyOrdersMemory[idx], ...patch, status };
+                        return res.json({ success: true, order: normalizePharmacyOrder(pharmacyOrdersMemory[idx]) });
+                    }
+                    return res.status(404).json({ success: false, message: 'Order not found' });
+                }
+                throw error;
+            }
+            if (!data) return res.status(404).json({ success: false, message: 'Order not found' });
+            return res.json({ success: true, order: normalizePharmacyOrder(data) });
+        }
+        const idx = pharmacyOrdersMemory.findIndex((o) => (id && o.id === id) || o.token === token);
+        if (idx < 0) return res.status(404).json({ success: false, message: 'Order not found' });
+        pharmacyOrdersMemory[idx] = { ...pharmacyOrdersMemory[idx], ...patch, status };
+        return res.json({ success: true, order: normalizePharmacyOrder(pharmacyOrdersMemory[idx]) });
+    } catch (err) {
+        return res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+app.get('/api/pharmacy/categories', (req, res) => {
+    res.json({ success: true, categories: getPharmacyCategories() });
+});
+
 app.get('/api/pharmacy/products', async (req, res) => {
     try {
-        let products = [];
+        const { category } = req.query;
+        let dbRows = [];
         if (supabase) {
             const { data } = await supabase.from('products').select('*');
-            if (data?.length > 0) products = data;
+            if (data?.length) dbRows = data.map(normalizePharmacyRow);
         }
-        if (products.length === 0) {
-            products = [
-                { name: 'Paracetamol 650mg', category: 'General', price: 12, image: 'pill' },
-                { name: 'Amoxicillin 500mg', category: 'Antibiotics', price: 45, image: 'capsule' },
-                { name: 'Surgical Gloves (Pair)', category: 'General Hospital', price: 20, image: 'kit' },
-                { name: 'Disposable Syringe 5ml', category: 'Injections', price: 15, image: 'kit' },
-                { name: 'D-Rise 60k Capsule', category: 'Vitamins', price: 25, image: 'capsule' },
-                { name: 'Azithromycin 500mg', category: 'Antibiotics', price: 80, image: 'capsule' }
-            ];
+        let products = mergeWithDatabase(dbRows);
+        if (category && category !== 'All') {
+            products = products.filter((p) => p.category === category);
         }
-        res.json({ success: true, products });
+        res.json({
+            success: true,
+            products,
+            total: products.length,
+            categories: ['All', ...getPharmacyCategories()],
+        });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }
@@ -714,34 +941,76 @@ app.get('/api/pharmacy/products', async (req, res) => {
 app.post('/api/ai/medicine-discovery', async (req, res) => {
     const { keyword } = req.body;
     if (!keyword) return res.json({ success: true, results: [] });
-    const results = medicineCatalog.filter(m => m.toLowerCase().includes(keyword.toLowerCase()));
-    res.json({ success: true, results: results.slice(0, 8), totalMatches: results.length, ai_note: keyword.length > 2 ? `Detected '${keyword}'. ${results.length} items found.` : '' });
+    const q = keyword.toLowerCase();
+    const results = medicineCatalog.filter((m) => m.toLowerCase().includes(q));
+    res.json({
+        success: true,
+        results: results.slice(0, 12),
+        totalMatches: results.length,
+        ai_note: results.length ? `Found ${results.length} matching items in hospital pharmacy.` : 'Not in catalog — ask reception.',
+    });
 });
 
 app.get('/api/medicines/catalog', (req, res) => {
-    res.json({ success: true, medicines: medicineCatalog });
+    res.json({ success: true, medicines: medicineCatalog, total: medicineCatalog.length });
 });
 
 // ─── PATIENT CLINICAL NOTES ────────────────────────────────────────────────
 
-app.post('/api/admin/patient-clinical-note', (req, res) => {
+app.post('/api/admin/patient-clinical-note', requireAdmin, async (req, res) => {
     try {
         const { token, patientName, phone, diagnosisType, notes, prescription } = req.body;
         if (!token || !patientName || !phone) return res.status(400).json({ success: false, message: 'token, patientName and phone are required' });
+        const entry = {
+            token,
+            diagnosisType: diagnosisType || 'General',
+            notes: notes || '',
+            prescription: prescription || [],
+            createdAt: new Date().toISOString(),
+        };
+        if (supabase) {
+            const { error } = await supabase.from('patient_clinical_notes').insert({
+                token,
+                patient_name: patientName.trim(),
+                phone: phone.trim(),
+                diagnosis_type: entry.diagnosisType,
+                notes: entry.notes,
+                prescription: entry.prescription,
+            });
+            if (error && error.code !== '42P01') console.warn('Clinical note DB:', error.message);
+        }
         const key = `${patientName.trim().toLowerCase()}_${phone.trim()}`;
         if (!patientClinicalRecords[key]) patientClinicalRecords[key] = [];
-        patientClinicalRecords[key].push({ token, diagnosisType: diagnosisType || 'General', notes: notes || '', prescription: prescription || [], createdAt: new Date().toISOString() });
+        patientClinicalRecords[key].push(entry);
         return res.json({ success: true, records: patientClinicalRecords[key] });
     } catch (err) {
         return res.status(500).json({ success: false, message: err.message });
     }
 });
 
-app.post('/api/admin/patient-clinical-history', (req, res) => {
+app.post('/api/admin/patient-clinical-history', requireAdmin, async (req, res) => {
     const { patientName, phone } = req.body;
     if (!patientName || !phone) return res.status(400).json({ success: false, message: 'patientName and phone are required' });
     const key = `${patientName.trim().toLowerCase()}_${phone.trim()}`;
-    return res.json({ success: true, records: patientClinicalRecords[key] || [] });
+    let records = patientClinicalRecords[key] || [];
+    if (supabase) {
+        const { data, error } = await supabase
+            .from('patient_clinical_notes')
+            .select('*')
+            .ilike('patient_name', patientName.trim())
+            .eq('phone', phone.trim())
+            .order('created_at', { ascending: false });
+        if (!error && data?.length) {
+            records = data.map((r) => ({
+                token: r.token,
+                diagnosisType: r.diagnosis_type,
+                notes: r.notes,
+                prescription: r.prescription,
+                createdAt: r.created_at,
+            }));
+        }
+    }
+    return res.json({ success: true, records });
 });
 
 // ─── GLOBAL ERROR HANDLER (catches any unhandled Express errors) ────────────

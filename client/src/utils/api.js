@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { SITE_URL as DEFAULT_SITE_URL } from '../config/site';
+import { getAdminToken, clearAdminSession } from './adminSession';
 
 const envUrl = import.meta.env.VITE_API_URL;
 export const SITE_URL = import.meta.env.VITE_SITE_URL?.replace(/\/$/, '') || DEFAULT_SITE_URL;
@@ -22,15 +23,56 @@ const api = axios.create({
       : 'https://srikamalahospital.onrender.com/api',
 });
 
+api.interceptors.request.use((config) => {
+  const token = getAdminToken();
+  const path = config.url || '';
+  if (token && (path.includes('/admin/') || path === '/config' && config.method === 'post')) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const path = error.config?.url || '';
+    if (error.response?.status === 401 && path.includes('/admin/')) {
+      clearAdminSession();
+      if (typeof window !== 'undefined' && window.location.pathname === '/6665') {
+        window.dispatchEvent(new Event('sk-admin-logout'));
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export const bookAppointment = (data) => api.post('/create-appointment', data);
-export const getAppointments = () => api.get('/admin/appointments');
+export const getAppointments = (params = {}) => api.get('/admin/appointments', { params });
 export const getAppointmentByToken = (token) => api.get(`/appointments/${token}`);
 export const getConfig = () => api.get('/config');
 export const updateConfig = (data) => api.post('/config', data);
 export const adminLogin = (password) => api.post('/admin/login', { password });
+export const getAdminDashboardStats = () => api.get('/admin/dashboard-stats');
+export const getAdminPharmacyOrders = (params = {}) => api.get('/admin/pharmacy-orders', { params });
+export const updatePharmacyOrderStatus = (payload) => api.patch('/admin/pharmacy-orders', payload);
+export const submitPharmacyOrder = (order) => api.post('/pharmacy/orders', {
+  token: order.token,
+  name: order.name,
+  phone: order.phone,
+  age: order.age,
+  gender: order.gender,
+  notes: order.notes,
+  items: order.items,
+  subtotal: order.subtotal,
+  rxCount: order.rxCount,
+  status: order.status,
+  createdAt: order.createdAt,
+});
 export const updateAppointment = (id, status) => api.post('/admin/update-appointment', { id, paymentStatus: status });
 export const fetchLabTests = () => api.get('/lab/tests');
-export const fetchPharmacyProducts = () => api.get('/pharmacy/products');
+export const fetchPharmacyProducts = (category) =>
+  api.get('/pharmacy/products', { params: category && category !== 'All' ? { category } : {} });
+export const fetchPharmacyCategories = () => api.get('/pharmacy/categories');
 export const fetchMedicinesCatalog = () => api.get('/medicines/catalog');
 
 export const analyzeSymptoms = (symptoms) => api.post('/ai/symptom', { symptoms });
