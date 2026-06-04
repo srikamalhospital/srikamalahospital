@@ -31,18 +31,13 @@ const Doctors = () => {
   };
 
   return (
-    <section id="doctors" className="py-4">
-      <div className="grid lg:grid-cols-3 gap-8 items-start">
-        <div className="lg:col-span-1 space-y-4">
-          <p className="pro-section-label">Our specialists</p>
-          <h2 className="pro-title font-['Noto_Sans_Telugu']">
-            వైద్య నిపుణులు
-          </h2>
-          <p className="pro-subtitle">
-            Consult with experienced doctors at Sri Kamala Hospital. AI assistant helps with symptoms and booking — final care is always in person.
-          </p>
-          <Link to="/ai-health" className="pro-btn-outline w-full justify-center">
-            <Sparkles size={16} /> Full AI Health Center
+    <section id="doctors" className="py-2">
+      <div className="grid lg:grid-cols-3 gap-6 items-start max-w-6xl mx-auto">
+        <div className="lg:col-span-1 space-y-3">
+          <h2 className="text-xl font-bold text-hospital-dark font-['Noto_Sans_Telugu']">వైద్య నిపుణులు</h2>
+          <p className="text-sm text-slate-600">Dr. D. Kiran — General Medicine. Book OP or use AI for symptom guidance.</p>
+          <Link to="/doctors" className="text-sm font-semibold text-hospital-primary hover:underline">
+            View all →
           </Link>
         </div>
 

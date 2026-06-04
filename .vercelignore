@@ -1,0 +1,9 @@
+server
+.git
+agent-transcripts
+**/.env
+**/.env.*
+**/node_modules
+client/dist
+*.log
+.DS_Store

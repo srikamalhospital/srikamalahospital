@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Search,
@@ -150,6 +151,144 @@ const MedicalShop = () => {
   };
 
   const cartQtyFor = (name) => cart.find((l) => l.name === name)?.qty || 0;
+
+  useEffect(() => {
+    if (!submitOpen) return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [submitOpen]);
+
+  const submitModal = typeof document !== 'undefined' ? createPortal(
+      <AnimatePresence>
+        {submitOpen && (
+          <motion.div
+            key="pharmacy-submit-modal"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-6"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="pharmacy-receipt-title"
+          >
+            <button
+              type="button"
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px]"
+              aria-label="Close"
+              disabled={submitting}
+              onClick={() => setSubmitOpen(false)}
+            />
+            <motion.form
+              initial={{ opacity: 0, y: 16, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.98 }}
+              className="relative z-10 w-full max-w-md max-h-[min(90dvh,640px)] flex flex-col rounded-2xl border border-theme shadow-2xl bg-[var(--card-bg,#fff)] overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+              onSubmit={handleSubmitOrder}
+            >
+              <div className="shrink-0 px-5 pt-5 pb-3 border-b border-theme">
+                <h3 id="pharmacy-receipt-title" className="text-lg font-bold text-theme">
+                  Generate pharmacy receipt
+                </h3>
+                <p className="text-sm text-theme-muted mt-1">
+                  Details for your verification receipt at the hospital pharmacy.
+                </p>
+              </div>
+
+              <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 py-4 space-y-3">
+                <div>
+                  <label className="block text-xs font-semibold text-theme-muted uppercase mb-1">Full name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={patientName}
+                    onChange={(e) => setPatientName(e.target.value)}
+                    className="pro-input w-full"
+                    placeholder="Patient name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-theme-muted uppercase mb-1">Phone *</label>
+                  <input
+                    type="tel"
+                    required
+                    value={patientPhone}
+                    onChange={(e) => setPatientPhone(e.target.value)}
+                    className="pro-input w-full"
+                    placeholder="10-digit mobile"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-theme-muted uppercase mb-1">
+                    OP appointment token (optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={appointmentToken}
+                    onChange={(e) => setAppointmentToken(e.target.value)}
+                    className="pro-input w-full"
+                    placeholder="Links pharmacy receipt to OP booking"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-theme-muted uppercase mb-1">Age</label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={patientAge}
+                      onChange={(e) => setPatientAge(e.target.value)}
+                      className="pro-input w-full"
+                      placeholder="e.g. 45"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-theme-muted uppercase mb-1">Gender</label>
+                    <select
+                      value={patientGender}
+                      onChange={(e) => setPatientGender(e.target.value)}
+                      className="pro-input w-full"
+                    >
+                      <option value="">—</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-theme-muted uppercase mb-1">Notes (optional)</label>
+                  <textarea
+                    value={patientNotes}
+                    onChange={(e) => setPatientNotes(e.target.value)}
+                    className="pro-input w-full min-h-[72px] resize-y"
+                    placeholder="Doctor name, OPD visit, etc."
+                  />
+                </div>
+              </div>
+
+              <div className="shrink-0 px-5 py-4 border-t border-theme flex gap-2 bg-[var(--card-bg,#fff)]">
+                <button
+                  type="button"
+                  disabled={submitting}
+                  onClick={() => setSubmitOpen(false)}
+                  className="pro-btn-outline flex-1 py-3"
+                >
+                  Cancel
+                </button>
+                <button type="submit" disabled={submitting} className="pro-btn-primary flex-1 py-3">
+                  {submitting ? 'Creating…' : 'Create receipt'}
+                </button>
+              </div>
+            </motion.form>
+          </motion.div>
+        )}
+      </AnimatePresence>,
+      document.body
+  ) : null;
 
   return (
     <div className="pro-page grainy pb-28">
@@ -487,104 +626,7 @@ const MedicalShop = () => {
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {submitOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] bg-slate-900/60 flex items-center justify-center p-4"
-            onClick={() => !submitting && setSubmitOpen(false)}
-          >
-            <motion.form
-              initial={{ scale: 0.95 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.95 }}
-              className="pro-card max-w-md w-full"
-              onClick={(e) => e.stopPropagation()}
-              onSubmit={handleSubmitOrder}
-            >
-              <h3 className="text-lg font-bold text-slate-900 mb-1">Generate pharmacy receipt</h3>
-              <p className="text-sm text-slate-600 mb-6">
-                Enter your details. You will get a downloadable receipt with a &quot;Verification Required&quot; stamp to
-                show at the hospital medical shop.
-              </p>
-              <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Full name *</label>
-              <input
-                type="text"
-                required
-                value={patientName}
-                onChange={(e) => setPatientName(e.target.value)}
-                className="pro-input w-full mb-4"
-                placeholder="Patient name"
-              />
-              <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Phone *</label>
-              <input
-                type="tel"
-                required
-                value={patientPhone}
-                onChange={(e) => setPatientPhone(e.target.value)}
-                className="pro-input w-full mb-4"
-                placeholder="10-digit mobile"
-              />
-              <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">OP appointment token (optional)</label>
-              <input
-                type="text"
-                value={appointmentToken}
-                onChange={(e) => setAppointmentToken(e.target.value)}
-                className="pro-input w-full mb-4"
-                placeholder="Links pharmacy receipt to OP booking"
-              />
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Age</label>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={patientAge}
-                    onChange={(e) => setPatientAge(e.target.value)}
-                    className="pro-input w-full"
-                    placeholder="e.g. 45"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Gender</label>
-                  <select
-                    value={patientGender}
-                    onChange={(e) => setPatientGender(e.target.value)}
-                    className="pro-input w-full"
-                  >
-                    <option value="">—</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-              </div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Notes (optional)</label>
-              <textarea
-                value={patientNotes}
-                onChange={(e) => setPatientNotes(e.target.value)}
-                className="pro-input w-full mb-6 min-h-[80px]"
-                placeholder="Doctor name, OPD visit, etc."
-              />
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  disabled={submitting}
-                  onClick={() => setSubmitOpen(false)}
-                  className="pro-btn-outline flex-1 py-3"
-                >
-                  Cancel
-                </button>
-                <button type="submit" disabled={submitting} className="pro-btn-primary flex-1 py-3">
-                  {submitting ? 'Creating…' : 'Create receipt'}
-                </button>
-              </div>
-            </motion.form>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {submitModal}
     </div>
   );
 };
