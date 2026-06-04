@@ -11,7 +11,6 @@ import {
   ReceiptLineTable,
   ReceiptNotice,
   ReceiptStaffBlock,
-  receiptPrintStyles,
 } from '../components/MedicalReceiptLayout';
 
 const formatDate = (iso) => {
@@ -39,7 +38,7 @@ const buildPharmacyPdf = (order, config) => {
   const pageW = doc.internal.pageSize.getWidth();
   let y = 18;
 
-  doc.setFillColor(14, 116, 144);
+  doc.setFillColor(15, 118, 110);
   doc.rect(0, 0, pageW, 4, 'F');
   y += 6;
 
@@ -109,6 +108,7 @@ const buildPharmacyPdf = (order, config) => {
   y += 4;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
+  doc.setTextColor(15, 118, 110);
   doc.text(`Indicative total: ₹${Number(order.subtotal || 0).toFixed(2)}`, margin, y);
   y += 12;
 
@@ -142,18 +142,18 @@ const PharmacyReceipt = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="w-8 h-8 border-2 border-sky-600 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-[var(--page-bg)]">
+        <div className="w-8 h-8 border-2 border-teal-700 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   if (!order) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-6 nav-offset">
-        <Pill size={40} className="text-sky-600 mb-4 opacity-30" />
-        <h2 className="text-xl font-bold text-slate-900 mb-2">Receipt not found</h2>
-        <p className="text-slate-600 mb-6 text-center max-w-md text-sm">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[var(--page-bg)] p-6">
+        <Pill size={40} className="text-teal-700 mb-4 opacity-30" />
+        <h2 className="text-xl font-bold text-theme mb-2">Receipt not found</h2>
+        <p className="text-theme-muted mb-6 text-center max-w-md text-sm">
           This pharmacy request could not be loaded. Submit a new order from the medical shop.
         </p>
         <button type="button" onClick={() => navigate('/medical-shop')} className="btn-clinical px-6 py-3 rounded-lg">
@@ -191,14 +191,14 @@ const PharmacyReceipt = () => {
         id: line.name,
         medicine: (
           <div>
-            <span className="font-semibold text-slate-900">{line.name}</span>
+            <span className="font-semibold text-theme">{line.name}</span>
             {line.requiresPrescription && (
               <span className="ml-2 text-[10px] font-bold uppercase bg-amber-600 text-white px-1.5 py-0.5 rounded">
                 Rx
               </span>
             )}
             {line.category && (
-              <span className="block text-[10px] text-slate-500 mt-0.5">{line.category}</span>
+              <span className="block text-[10px] text-theme-muted mt-0.5">{line.category}</span>
             )}
           </div>
         ),
@@ -209,23 +209,23 @@ const PharmacyReceipt = () => {
     }) ?? [];
 
   const tableFooter = (
-    <tr className="bg-slate-100">
-      <td colSpan={3} className="py-3 px-4 text-right text-[10px] font-bold uppercase text-slate-600">
+    <tr className="bg-teal-50 dark:bg-teal-950/30 print:bg-teal-50">
+      <td colSpan={3} className="py-3 px-4 text-right text-[10px] font-bold uppercase text-teal-800 dark:text-teal-300 print:text-teal-800">
         Indicative total (subject to verification)
       </td>
-      <td className="py-3 px-4 text-right text-lg font-bold text-sky-700">
+      <td className="py-3 px-4 text-right text-lg font-bold text-teal-800 dark:text-teal-400 print:text-teal-800">
         ₹{Number(order.subtotal || 0).toFixed(2)}
       </td>
     </tr>
   );
 
   return (
-    <div className="min-h-screen min-h-[100dvh] bg-slate-100/80 px-4 py-6 sm:p-8 font-sans flex flex-col items-center nav-offset safe-area-pb">
-      <header className="receipt-toolbar w-full max-w-3xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-6">
+    <div className="receipt-print-wrap min-h-screen min-h-[100dvh] px-4 py-6 sm:p-8 font-sans flex flex-col items-center safe-area-pb">
+      <header className="receipt-no-print receipt-toolbar w-full max-w-3xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-6">
         <button
           type="button"
           onClick={() => navigate('/medical-shop')}
-          className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-900"
+          className="inline-flex items-center gap-2 text-sm font-medium text-theme-muted hover:text-theme"
         >
           <ArrowLeft size={16} />
           Back to medical shop
@@ -234,15 +234,15 @@ const PharmacyReceipt = () => {
           <button
             type="button"
             onClick={handleDownloadPdf}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 hover:bg-slate-50 shadow-sm"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-theme-card border border-theme rounded-lg text-xs font-semibold text-theme hover:opacity-90 shadow-sm"
           >
-            <Download size={16} className="text-sky-600" />
+            <Download size={16} className="text-teal-700" />
             Download PDF
           </button>
           <button
             type="button"
             onClick={handlePrint}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-sky-700 text-white rounded-lg text-xs font-semibold hover:bg-sky-800 shadow-sm"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-teal-700 text-white rounded-lg text-xs font-semibold hover:bg-teal-800 shadow-sm"
           >
             Print
           </button>
@@ -253,6 +253,7 @@ const PharmacyReceipt = () => {
         <MedicalReceiptLayout
           id="pharmacy-receipt-content"
           config={config}
+          variant="pharmacy"
           documentTitle="Pharmacy request"
           documentSubtitle="Medical shop · prescription verification"
           token={order.token}
@@ -264,18 +265,19 @@ const PharmacyReceipt = () => {
           <ReceiptFieldGrid fields={patientFields} />
 
           {order.notes && (
-            <p className="text-sm text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 mb-6">
-              <span className="text-[10px] font-bold uppercase text-slate-500 block mb-1">Patient note</span>
+            <p className="text-sm text-theme bg-theme-card border border-theme rounded-lg px-4 py-3 mb-6 print:text-slate-700 print:bg-slate-50">
+              <span className="text-[10px] font-bold uppercase text-theme-muted block mb-1">Patient note</span>
               {order.notes}
             </p>
           )}
 
-          <ReceiptLineTable columns={tableColumns} rows={tableRows} footer={tableFooter} />
+          <ReceiptLineTable columns={tableColumns} rows={tableRows} footer={tableFooter} variant="pharmacy" />
 
           <ReceiptNotice
             variant="warning"
             title="Collection instructions"
             titleTe="సేకరణ సూచనలు"
+            tone="pharmacy"
           >
             <p className="mb-2">
               Present this receipt at the <strong>in-hospital medical shop</strong> with your valid prescription
@@ -285,7 +287,7 @@ const PharmacyReceipt = () => {
               ఈ రసీదును ఆసుపత్రి మెడికల్ షాప్‌లో చూపించండి. Rx మందులకు డాక్టర్ రిసెప్షన్ తప్పనిసరి.
             </p>
             {hasRx && (
-              <p className="mt-2 font-semibold text-amber-900">
+              <p className="mt-2 font-semibold text-amber-900 dark:text-amber-200">
                 {order.rxCount} prescription-controlled item(s) on this request.
               </p>
             )}
@@ -300,19 +302,19 @@ const PharmacyReceipt = () => {
             ]}
           />
 
-          <div className="mt-8 pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-xs text-slate-600 max-w-sm text-center sm:text-left">
-              Show reference <strong className="font-mono text-slate-900">{order.token}</strong> at the counter.
+          <div className="mt-8 pt-6 border-t border-theme flex flex-col sm:flex-row items-center justify-between gap-4 print:mt-4 print:pt-4">
+            <p className="text-xs text-theme-muted max-w-sm text-center sm:text-left print:text-slate-600">
+              Show reference <strong className="font-mono text-theme">{order.token}</strong> at the counter.
               Keep a printed or PDF copy for your records.
             </p>
             {order.token && (
-              <div className="flex flex-col items-center gap-1 shrink-0">
+              <div className="receipt-qr-block flex flex-col items-center gap-1 shrink-0">
                 <img
                   src={`https://api.qrserver.com/v1/create-qr-code/?size=96x96&data=${encodeURIComponent(order.token)}`}
                   alt=""
-                  className="w-20 h-20 rounded-lg border border-slate-200 bg-white p-1"
+                  className="w-20 h-20 rounded-lg border border-theme bg-white p-1 print:border-slate-200"
                 />
-                <span className="text-[9px] font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                <span className="text-[9px] font-semibold uppercase tracking-wider text-theme-muted flex items-center gap-1 print:text-slate-500">
                   <QrCode size={10} /> Scan at counter
                 </span>
               </div>
@@ -321,20 +323,18 @@ const PharmacyReceipt = () => {
         </MedicalReceiptLayout>
       </motion.div>
 
-      <div className="receipt-actions mt-8 flex flex-wrap gap-3 print:hidden">
-        <button type="button" onClick={handleDownloadPdf} className="btn-clinical px-6 py-3 rounded-lg text-sm">
+      <div className="receipt-no-print receipt-actions mt-8 flex flex-wrap gap-3">
+        <button type="button" onClick={handleDownloadPdf} className="px-6 py-3 bg-teal-700 text-white rounded-lg text-sm font-semibold hover:bg-teal-800">
           Download PDF
         </button>
         <button
           type="button"
           onClick={handlePrint}
-          className="px-6 py-3 bg-white border border-slate-200 rounded-lg text-sm font-semibold text-slate-800 hover:bg-slate-50"
+          className="px-6 py-3 bg-theme-card border border-theme rounded-lg text-sm font-semibold text-theme hover:opacity-90"
         >
           Print receipt
         </button>
       </div>
-
-      <style dangerouslySetInnerHTML={{ __html: receiptPrintStyles('pharmacy-receipt-content') }} />
     </div>
   );
 };

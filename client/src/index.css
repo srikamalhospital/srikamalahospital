@@ -141,6 +141,15 @@
   min-width: 0;
 }
 
+/* Home page — tighter cards without affecting other routes */
+.home-compact .pro-card:not([class*='!p-']) {
+  @apply rounded-xl p-3 sm:p-4 shadow-sm;
+}
+
+.home-compact .pro-ai-panel {
+  @apply p-3 rounded-xl;
+}
+
 .pro-badge {
   @apply inline-flex px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide;
 }

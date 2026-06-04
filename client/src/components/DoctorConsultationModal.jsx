@@ -1,43 +1,72 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { X, Send, Sparkles, Phone, CalendarCheck, Stethoscope } from 'lucide-react';
 import { doctorConsultAI } from '../utils/api';
 import { getAIResponseText, fallbackAI, HOSPITAL_PHONE_TEL } from '../utils/aiHelpers';
+import useSiteConfig from '../hooks/useSiteConfig';
 import BilingualAIBlock from './BilingualAIBlock';
+import DoctorSuggestionChips from './DoctorSuggestionChips';
+import {
+    buildChatHistory,
+    deriveSyncedSuggestions,
+    displayText,
+    getInitialSuggestions,
+    getWelcomeMessage,
+    parseDoctorConsultResponse,
+} from '../utils/kiranDoctorAI';
 
 const DoctorConsultationModal = ({ isOpen, onClose, doctor }) => {
+    const { config } = useSiteConfig();
     const [messages, setMessages] = useState([]);
+    const [suggestions, setSuggestions] = useState([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [language, setLanguage] = useState('te');
     const endRef = useRef(null);
 
-    const suggestions = [
-        'ఛాతీ నొప్పి ఉంది',
-        'జ్వరం మరియు తలనొప్పి',
-        'డాక్టర్ అపాయింట్‌మెంట్',
-        'ఆసుపత్రి సమయాలు',
-    ];
+    const schedule = useMemo(() => {
+        if (!doctor) return {};
+        return config.doctorSchedule?.[doctor.id] || config.doctorSchedule?.dr_kiran || {};
+    }, [config, doctor]);
+
+    const doctorAvailable = schedule.available !== false;
+
+    const initChat = () => {
+        if (!doctor) return;
+        const welcome = getWelcomeMessage(language, schedule);
+        setMessages([{
+            id: Date.now(),
+            sender: 'ai',
+            text: displayText(welcome, language),
+            rawText: welcome,
+            bilingual: welcome,
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        }]);
+        setSuggestions(getInitialSuggestions(language, schedule));
+        setInput('');
+    };
 
     useEffect(() => {
-        if (isOpen && doctor) {
-            const fb = fallbackAI(
-                `నమస్కారం! నేను ${doctor.name} గారి AI సహాయకుడిని. లక్షణాలు లేదా అపాయింట్‌మెంట్ గురించి అడగండి.`,
-                `Hello! I'm the AI assistant for ${doctor.name}. Ask about symptoms or booking a visit.`
-            );
-            setMessages([{
-                id: Date.now(),
-                sender: 'ai',
-                text: `${fb.te} ||| ${fb.en}`,
-                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            }]);
-            setInput('');
-        }
-    }, [isOpen, doctor]);
+        if (isOpen && doctor) initChat();
+    }, [isOpen, doctor, language]);
 
     useEffect(() => {
         endRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages, isLoading]);
+    }, [messages, isLoading, suggestions]);
+
+    const syncSuggestions = (replyRaw, apiSuggestions, userTurn) => {
+        const fromApi = (apiSuggestions || []).map((s) => ({
+            te: s.te || s.en,
+            en: s.en || s.te,
+            label: language === 'en' ? (s.en || s.te) : (s.te || s.en),
+        }));
+        if (fromApi.length) {
+            setSuggestions(fromApi);
+            return;
+        }
+        setSuggestions(deriveSyncedSuggestions(replyRaw, language, userTurn));
+    };
 
     const sendMessage = async (manualText = null) => {
         const textToSend = (manualText || input).trim();
@@ -47,41 +76,60 @@ const DoctorConsultationModal = ({ isOpen, onClose, doctor }) => {
             id: Date.now(),
             sender: 'user',
             text: textToSend,
+            rawText: textToSend,
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         };
         setMessages((prev) => [...prev, userMsg]);
         setInput('');
+        setSuggestions([]);
         setIsLoading(true);
 
         try {
-            const resp = await doctorConsultAI(textToSend, doctor);
-            const raw = getAIResponseText(resp);
-            const reply = raw || `${fallbackAI().te} ||| ${fallbackAI().en}`;
+            const history = buildChatHistory([...messages, userMsg]);
+            const resp = await doctorConsultAI(textToSend, doctor, {
+                history,
+                language,
+                opHours: schedule.opHours || config.opTimings,
+                doctorAvailable,
+            });
+
+            const { reply, suggestions: apiSug } = parseDoctorConsultResponse(resp.data);
+            const raw = reply || getAIResponseText(resp) || `${fallbackAI().te} ||| ${fallbackAI().en}`;
+
             setMessages((prev) => [...prev, {
                 id: Date.now() + 1,
                 sender: 'ai',
-                text: reply,
+                text: displayText(raw, language),
+                rawText: raw,
+                bilingual: raw.includes('|||') ? raw : null,
                 time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             }]);
+            syncSuggestions(raw, resp.data?.suggestions || apiSug, messages.filter((m) => m.sender === 'user').length + 1);
         } catch (err) {
             const raw = err.response?.data?.response;
             if (raw) {
                 setMessages((prev) => [...prev, {
                     id: Date.now() + 1,
                     sender: 'ai',
-                    text: raw,
+                    text: displayText(raw, language),
+                    rawText: raw,
+                    bilingual: raw.includes('|||') ? raw : null,
                     time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 }]);
-                setIsLoading(false);
-                return;
+                syncSuggestions(raw, err.response?.data?.suggestions, 0);
+            } else {
+                const fb = fallbackAI();
+                const combined = `${fb.te} ||| ${fb.en}`;
+                setMessages((prev) => [...prev, {
+                    id: Date.now() + 1,
+                    sender: 'ai',
+                    text: displayText(combined, language),
+                    rawText: combined,
+                    bilingual: combined,
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                }]);
+                setSuggestions(getInitialSuggestions(language, schedule));
             }
-            const fb = fallbackAI();
-            setMessages((prev) => [...prev, {
-                id: Date.now() + 1,
-                sender: 'ai',
-                text: `${fb.te} ||| ${fb.en}`,
-                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            }]);
         } finally {
             setIsLoading(false);
         }
@@ -104,93 +152,93 @@ const DoctorConsultationModal = ({ isOpen, onClose, doctor }) => {
                         initial={{ opacity: 0, y: 24, scale: 0.96 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 16, scale: 0.98 }}
-                        className="fixed bottom-4 right-4 md:bottom-8 md:right-8 w-[min(100vw-2rem,400px)] h-[min(85vh,560px)] bg-white rounded-2xl shadow-2xl z-[160] flex flex-col border border-slate-200 overflow-hidden"
+                        className="ai-chat-panel fixed inset-x-0 bottom-[var(--emergency-bar-h)] sm:inset-x-auto sm:bottom-8 sm:right-6 w-full sm:w-[min(calc(100vw-1.5rem),400px)] max-h-[min(88dvh,calc(100dvh-var(--emergency-bar-h)-0.5rem))] sm:max-h-[min(85vh,560px)] bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl z-[160] flex flex-col border border-slate-200 overflow-hidden safe-area-pb"
                     >
-                        <div className="bg-hospital-dark px-4 py-4 flex items-center gap-3 shrink-0">
-                            <div className="w-12 h-12 rounded-xl overflow-hidden border-2 border-hospital-primary/40">
+                        <div className="bg-hospital-dark px-3 py-3 sm:px-4 flex items-center gap-3 shrink-0 min-w-0">
+                            <div className="w-11 h-11 rounded-xl overflow-hidden border-2 border-hospital-primary/40 shrink-0">
                                 <img src={doctor.img} alt={doctor.name} className="w-full h-full object-cover" />
                             </div>
                             <div className="flex-1 min-w-0">
                                 <h3 className="text-sm font-bold text-white truncate">{doctor.name}</h3>
-                                <p className="text-xs text-slate-300 flex items-center gap-1 mt-0.5">
-                                    <Sparkles size={12} className="text-hospital-secondary" />
-                                    AI Clinical Assistant
+                                <p className="text-[10px] text-slate-300 flex items-center gap-1 mt-0.5 truncate">
+                                    <Sparkles size={11} className="text-hospital-secondary shrink-0" />
+                                    {doctorAvailable ? 'Virtual OP · preliminary advice' : 'On leave · call hospital'}
                                 </p>
                             </div>
-                            <button type="button" onClick={onClose} className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10">
+                            <button
+                                type="button"
+                                onClick={() => setLanguage((l) => (l === 'te' ? 'en' : 'te'))}
+                                className="shrink-0 text-[9px] font-bold uppercase px-2 py-1 rounded-full bg-white/10 text-white border border-white/20"
+                            >
+                                {language === 'te' ? 'TE' : 'EN'}
+                            </button>
+                            <button type="button" onClick={onClose} className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 shrink-0">
                                 <X size={18} />
                             </button>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto p-4 bg-slate-50 space-y-3">
+                        <div className="ai-chat-messages flex-1 overflow-y-auto p-3 sm:p-4 bg-slate-50 space-y-3 min-h-0">
                             {messages.map((msg) => (
-                                <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                    <div className={`max-w-[90%] rounded-2xl px-4 py-3 text-sm shadow-sm ${
+                                <div key={msg.id} className={`flex min-w-0 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                    <div className={`ai-bubble max-w-[min(92%,calc(100vw-2.5rem))] rounded-2xl px-3 py-2.5 sm:px-4 sm:py-3 text-sm shadow-sm ${
                                         msg.sender === 'user'
                                             ? 'bg-hospital-primary text-white rounded-br-md'
                                             : 'bg-white border border-slate-200 text-slate-800 rounded-bl-md'
                                     }`}>
-                                        {msg.sender === 'ai' ? (
-                                            <BilingualAIBlock text={msg.text} />
+                                        {msg.sender === 'ai' && msg.bilingual ? (
+                                            <BilingualAIBlock text={msg.bilingual} />
+                                        ) : msg.sender === 'ai' ? (
+                                            <BilingualAIBlock text={msg.rawText || msg.text} />
                                         ) : (
-                                            <p>{msg.text}</p>
+                                            <p className="break-words">{msg.text}</p>
                                         )}
                                         <p className={`text-[10px] mt-2 ${msg.sender === 'user' ? 'text-white/70' : 'text-slate-400'}`}>{msg.time}</p>
                                     </div>
                                 </div>
                             ))}
                             {isLoading && (
-                                <div className="flex gap-1.5 px-4 py-2">
-                                    {[0, 0.15, 0.3].map((d) => (
-                                        <span key={d} className="w-2 h-2 bg-hospital-primary/40 rounded-full animate-bounce" style={{ animationDelay: `${d}s` }} />
-                                    ))}
-                                </div>
+                                <p className="text-xs text-slate-500 italic px-1">
+                                    {language === 'te' ? `${doctor.name} సమాధానం రాస్తున్నారు…` : `${doctor.name} is typing…`}
+                                </p>
                             )}
                             <div ref={endRef} />
                         </div>
 
-                        <div className="p-4 bg-white border-t border-slate-200 shrink-0">
-                            {messages.length < 4 && !isLoading && (
-                                <div className="flex flex-wrap gap-2 mb-3">
-                                    {suggestions.map((s) => (
-                                        <button
-                                            key={s}
-                                            type="button"
-                                            onClick={() => sendMessage(s)}
-                                            className="text-xs px-3 py-1.5 rounded-full bg-slate-100 text-slate-700 hover:bg-hospital-primary/10 hover:text-hospital-primary border border-slate-200"
-                                        >
-                                            {s}
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                            <div className="flex gap-2 items-center pro-input p-1.5 pr-1.5">
+                        <DoctorSuggestionChips
+                            suggestions={suggestions}
+                            language={language}
+                            onPick={sendMessage}
+                            disabled={isLoading}
+                        />
+
+                        <div className="p-3 sm:p-4 bg-white border-t border-slate-200 shrink-0 min-w-0">
+                            <div className="ai-chat-input-row flex gap-2 items-center pro-input p-1.5 pr-1.5 min-w-0">
                                 <input
                                     value={input}
                                     onChange={(e) => setInput(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-                                    placeholder="Type your question..."
-                                    className="flex-1 border-0 focus:ring-0 bg-transparent py-2"
+                                    placeholder={language === 'te' ? 'మీ లక్షణం లేదా ప్రశ్న…' : 'Your symptom or question…'}
+                                    className="flex-1 min-w-0 border-0 focus:ring-0 bg-transparent py-2 text-base sm:text-sm"
                                 />
                                 <button
                                     type="button"
                                     onClick={() => sendMessage()}
                                     disabled={!input.trim() || isLoading}
-                                    className="p-2.5 rounded-xl bg-hospital-primary text-white disabled:opacity-40"
+                                    className="p-2.5 rounded-xl bg-hospital-primary text-white disabled:opacity-40 shrink-0"
                                 >
                                     <Send size={16} />
                                 </button>
                             </div>
-                            <div className="flex items-center justify-between mt-3 text-xs text-slate-500">
-                                <span className="flex items-center gap-1">
-                                    <Stethoscope size={12} /> Preliminary guidance only
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mt-3 text-xs text-slate-500">
+                                <span className="flex items-center gap-1 shrink-0">
+                                    <Stethoscope size={12} /> Not a final diagnosis
                                 </span>
-                                <div className="flex gap-3">
+                                <div className="flex flex-wrap gap-3 shrink-0">
                                     <a href={HOSPITAL_PHONE_TEL} className="text-hospital-primary font-semibold flex items-center gap-1">
                                         <Phone size={12} /> Call
                                     </a>
                                     <Link to="/book" onClick={onClose} className="text-hospital-secondary font-semibold flex items-center gap-1">
-                                        <CalendarCheck size={12} /> Book
+                                        <CalendarCheck size={12} /> Book OP
                                     </Link>
                                 </div>
                             </div>

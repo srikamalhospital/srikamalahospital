@@ -123,13 +123,17 @@ export const analyzeOCR = (image) => api.post('/ai/ocr', { image });
 export const chatWithAI = (query, options = {}) =>
   api.post('/ai/chat', { query, ...options }, { timeout: 45000 });
 
-/** Doctor assistant — uses dedicated mode on backend */
-export const doctorConsultAI = (message, doctor) =>
+/** Dr. Kiran virtual consult — history + synced suggestion chips from server */
+export const doctorConsultAI = (message, doctor, options = {}) =>
   api.post('/ai/chat', {
     query: message,
     mode: 'doctor',
     doctorName: doctor?.name || 'Dr. D. Kiran',
-    specialty: doctor?.specialty || 'General Medicine',
+    specialty: doctor?.specialty || 'General Medicine (MD)',
+    history: options.history || [],
+    language: options.language || 'te',
+    opHours: options.opHours,
+    doctorAvailable: options.doctorAvailable,
   }, { timeout: 45000 });
 export const discoverMedicines = (keyword) => api.post('/ai/medicine-discovery', { keyword });
 export const savePatientClinicalNote = (data) => api.post('/admin/patient-clinical-note', data);

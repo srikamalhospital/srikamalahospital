@@ -30,15 +30,15 @@ svg {
   padding-bottom: max(5rem, calc(env(safe-area-inset-bottom) + 4.5rem));
 }
 
-/* Main content clears fixed nav + emergency bar + chat */
+/* Main content clears fixed nav + emergency ticker + chat */
 .main-wrapper {
-  padding-bottom: max(6.5rem, calc(env(safe-area-inset-bottom) + 5.5rem));
+  padding-bottom: max(5.25rem, calc(env(safe-area-inset-bottom) + var(--emergency-bar-h, 2.75rem) + 2.75rem));
   min-width: 0;
 }
 
 @media (min-width: 640px) {
   .main-wrapper {
-    padding-bottom: max(5rem, calc(env(safe-area-inset-bottom) + 4rem));
+    padding-bottom: max(4.75rem, calc(env(safe-area-inset-bottom) + var(--emergency-bar-h, 2.75rem) + 2rem));
   }
 }
 

@@ -1,0 +1,88 @@
+/* Receipt routes: print only the document, one A4 page, no site chrome */
+
+body.receipt-route {
+  background-color: var(--page-bg);
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 8mm;
+  }
+
+  html,
+  body.receipt-route {
+    background: #fff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body.receipt-route .receipt-no-print,
+  body.receipt-route .receipt-staff-only {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  body.receipt-route main,
+  body.receipt-route .receipt-page-root {
+    padding: 0 !important;
+    margin: 0 !important;
+    min-height: 0 !important;
+  }
+
+  body.receipt-route .receipt-print-wrap {
+    padding: 0 !important;
+    margin: 0 !important;
+    min-height: 0 !important;
+    background: transparent !important;
+  }
+
+  body.receipt-route .receipt-print-target {
+    display: block !important;
+    visibility: visible !important;
+    position: relative !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 0 !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    overflow: visible !important;
+    background: #fff !important;
+    color: #0f172a !important;
+  }
+
+  body.receipt-route .medical-receipt__body {
+    padding: 10px 14px !important;
+  }
+
+  body.receipt-route .medical-receipt__header {
+    padding: 10px 14px 8px !important;
+  }
+
+  body.receipt-route .medical-receipt__footer {
+    padding: 8px 14px !important;
+    background: #f8fafc !important;
+    color: #475569 !important;
+  }
+
+  body.receipt-route .receipt-qr-block img {
+    width: 72px !important;
+    height: 72px !important;
+  }
+
+  body.receipt-route .medical-receipt--op .receipt-accent-bar {
+    background: #0284c7 !important;
+  }
+
+  body.receipt-route .medical-receipt--pharmacy .receipt-accent-bar {
+    background: #0f766e !important;
+  }
+}

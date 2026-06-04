@@ -1,0 +1,82 @@
+/* AI chat panels & emergency ticker — mobile-first, no overflow */
+
+:root {
+  --emergency-bar-h: 2.75rem;
+  --health-bot-offset: calc(var(--emergency-bar-h) + 0.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+.emergency-ticker {
+  touch-action: manipulation;
+}
+
+.emergency-ticker-slide a,
+.emergency-ticker-slide span {
+  max-width: min(100%, 20rem);
+}
+
+@media (min-width: 640px) {
+  .emergency-ticker-slide a,
+  .emergency-ticker-slide span {
+    max-width: none;
+  }
+}
+
+/* Bubbles & bilingual blocks */
+.ai-bubble,
+.ai-bubble p,
+.bilingual-ai-block,
+.bilingual-ai-block p {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.ai-chat-panel {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.ai-chat-messages {
+  min-width: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.ai-chat-input-row {
+  min-width: 0;
+}
+
+.ai-chat-input-row input {
+  min-width: 0;
+}
+
+/* Symptom checker result grid on narrow screens */
+.ai-result-grid {
+  min-width: 0;
+}
+
+.ai-result-grid > div {
+  min-width: 0;
+}
+
+@media (max-width: 639px) {
+  .pro-tabs-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    justify-content: flex-start;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 0.25rem;
+  }
+
+  .pro-tabs-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .pro-tabs-row .pro-tab {
+    flex: 0 0 auto;
+    min-width: 5.5rem;
+  }
+}

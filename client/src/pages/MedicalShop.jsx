@@ -315,21 +315,21 @@ const MedicalShop = () => {
           )}
         </header>
 
-        <div className="grid lg:grid-cols-3 gap-8 mb-10">
-          <div className="lg:col-span-2 pro-ai-panel">
+        <div className="grid lg:grid-cols-3 gap-6 lg:gap-8 mb-10 min-w-0">
+          <div className="lg:col-span-2 pro-ai-panel min-w-0 overflow-hidden">
             <p className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
-              <Sparkles size={16} className="text-hospital-primary" /> Pharmacy AI search
+              <Sparkles size={16} className="text-hospital-primary shrink-0" /> Pharmacy AI search
             </p>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2 min-w-0">
               <input
                 value={aiInput}
                 onChange={(e) => setAiInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAiAsk()}
                 type="text"
-                placeholder="Search medicine name (e.g. Pantoprazole, Insulin)..."
-                className="pro-input flex-1"
+                placeholder="Search medicine (e.g. Pantoprazole)..."
+                className="pro-input flex-1 min-w-0 w-full"
               />
-              <button type="button" onClick={handleAiAsk} disabled={isAiLoading} className="pro-btn-primary shrink-0 px-4">
+              <button type="button" onClick={handleAiAsk} disabled={isAiLoading} className="pro-btn-primary shrink-0 px-4 w-full sm:w-auto">
                 {isAiLoading ? (
                   <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block" />
                 ) : (
@@ -338,7 +338,7 @@ const MedicalShop = () => {
               </button>
             </div>
             {aiInsight && (
-              <div className="mt-4 p-4 bg-white rounded-xl border border-slate-200">
+              <div className="mt-4 p-3 sm:p-4 bg-white rounded-xl border border-slate-200 min-w-0 overflow-hidden">
                 <BilingualAIBlock text={aiInsight} />
               </div>
             )}

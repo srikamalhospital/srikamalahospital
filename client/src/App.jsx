@@ -31,6 +31,23 @@ const ScrollToTop = () => {
 const Layout = ({ children }) => {
     const { pathname } = useLocation();
     const isAdmin = pathname === '/6665' || pathname === '/lab-admin';
+    const isReceipt = pathname === '/receipt' || pathname === '/pharmacy-receipt';
+    const isMinimal = isAdmin || isReceipt;
+
+    useEffect(() => {
+        if (isReceipt) document.body.classList.add('receipt-route');
+        else document.body.classList.remove('receipt-route');
+        return () => document.body.classList.remove('receipt-route');
+    }, [isReceipt]);
+
+    if (isReceipt) {
+        return (
+            <div className="site-shell min-h-screen min-h-[100dvh] bg-[var(--page-bg)] text-theme">
+                <ScrollToTop />
+                <main className="receipt-page-root relative z-10">{children}</main>
+            </div>
+        );
+    }
 
     return (
         <div className="site-shell relative selection:bg-hospital-primary selection:text-white overflow-x-clip min-h-screen min-h-[100dvh] scan-effect">
@@ -38,12 +55,12 @@ const Layout = ({ children }) => {
             <CustomCursor />
             <BackgroundIcons />
             
-            {!isAdmin && <Navbar />}
+            {!isMinimal && <Navbar />}
             
-            <main className={`${!isAdmin ? 'main-wrapper' : ''} min-h-screen relative z-10 antialiased`}>
+            <main className={`${!isMinimal ? 'main-wrapper' : ''} min-h-screen relative z-10 antialiased`}>
                 {children}
                 
-                {!isAdmin && (
+                {!isMinimal && (
                     <>
                         <HealthBot />
                         <Footer />

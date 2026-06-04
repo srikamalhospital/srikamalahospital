@@ -8,7 +8,6 @@ import {
   MedicalReceiptLayout,
   ReceiptFieldGrid,
   ReceiptNotice,
-  receiptPrintStyles,
 } from '../components/MedicalReceiptLayout';
 
 const formatDate = (value) => {
@@ -59,7 +58,7 @@ const Receipt = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen flex items-center justify-center bg-[var(--page-bg)]">
         <div className="w-8 h-8 border-2 border-sky-600 border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -67,10 +66,10 @@ const Receipt = () => {
 
   if (!appointment) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-6 nav-offset">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[var(--page-bg)] p-6">
         <Activity size={40} className="text-sky-600 mb-4 opacity-30" />
-        <h2 className="text-xl font-bold text-slate-900 mb-2">Token not found</h2>
-        <p className="text-slate-600 mb-6 text-sm text-center max-w-md">
+        <h2 className="text-xl font-bold text-theme mb-2">Token not found</h2>
+        <p className="text-theme-muted mb-6 text-sm text-center max-w-md">
           We could not locate this appointment. Check the token or book again.
         </p>
         <button type="button" onClick={() => navigate('/')} className="btn-clinical px-6 py-3 rounded-lg">
@@ -95,12 +94,12 @@ const Receipt = () => {
   const paymentStatus = appointment.paymentStatus || 'Pay at hospital';
 
   return (
-    <div className="min-h-screen min-h-[100dvh] bg-slate-100/80 px-4 py-6 sm:p-8 font-sans flex flex-col items-center nav-offset safe-area-pb">
-      <header className="receipt-toolbar w-full max-w-3xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-6">
+    <div className="receipt-print-wrap min-h-screen min-h-[100dvh] px-4 py-6 sm:p-8 font-sans flex flex-col items-center safe-area-pb">
+      <header className="receipt-no-print receipt-toolbar w-full max-w-3xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-6">
         <button
           type="button"
           onClick={() => navigate('/')}
-          className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-900"
+          className="inline-flex items-center gap-2 text-sm font-medium text-theme-muted hover:text-theme"
         >
           <ArrowLeft size={16} />
           Back to home
@@ -119,6 +118,7 @@ const Receipt = () => {
         <MedicalReceiptLayout
           id="receipt-content"
           config={config}
+          variant="op"
           documentTitle="Out-patient appointment"
           documentSubtitle="OP registration confirmation"
           token={appointment.token}
@@ -129,19 +129,19 @@ const Receipt = () => {
         >
           <ReceiptFieldGrid fields={fields} />
 
-          <div className="rounded-lg border border-sky-200 bg-sky-50/60 px-5 py-4 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="rounded-lg border border-sky-200 dark:border-sky-800 bg-sky-50/80 dark:bg-sky-950/30 px-5 py-4 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 print:bg-sky-50 print:border-sky-200">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-sky-800 mb-1">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-sky-800 dark:text-sky-300 mb-1 print:text-sky-800">
                 Consultation fee (indicative)
               </p>
-              <p className="text-2xl font-bold text-slate-900">₹100.00</p>
+              <p className="text-2xl font-bold text-theme print:text-slate-900">₹100.00</p>
             </div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-sky-800 sm:text-right">
+            <p className="text-xs font-semibold uppercase tracking-wide text-sky-800 dark:text-sky-300 sm:text-right print:text-sky-800">
               Payment at hospital reception
             </p>
           </div>
 
-          <ReceiptNotice title="Important" titleTe="ముఖ్యమైనది" variant="info">
+          <ReceiptNotice title="Important" titleTe="ముఖ్యమైనది" variant="info" tone="op">
             <p className="mb-2">
               Please show this confirmation at <strong>reception</strong> on your visit date. Your token number
               determines queue order.
@@ -151,18 +151,18 @@ const Receipt = () => {
             </p>
           </ReceiptNotice>
 
-          <div className="mt-8 pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-xs text-slate-600 text-center sm:text-left">
-              Reference <strong className="font-mono">{appointment.token}</strong> — scan at reception if needed.
+          <div className="mt-8 pt-6 border-t border-theme flex flex-col sm:flex-row items-center justify-between gap-4 print:mt-4 print:pt-4">
+            <p className="text-xs text-theme-muted text-center sm:text-left print:text-slate-600">
+              Reference <strong className="font-mono text-theme">{appointment.token}</strong> — scan at reception if needed.
             </p>
             {appointment.token && (
-              <div className="flex flex-col items-center gap-1 shrink-0">
+              <div className="receipt-qr-block flex flex-col items-center gap-1 shrink-0">
                 <img
                   src={`https://api.qrserver.com/v1/create-qr-code/?size=96x96&data=${encodeURIComponent(appointment.token)}`}
                   alt=""
-                  className="w-20 h-20 rounded-lg border border-slate-200 bg-white p-1"
+                  className="w-20 h-20 rounded-lg border border-theme bg-white p-1 print:border-slate-200"
                 />
-                <span className="text-[9px] font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                <span className="text-[9px] font-semibold uppercase tracking-wider text-theme-muted flex items-center gap-1 print:text-slate-500">
                   <QrCode size={10} /> Reception scan
                 </span>
               </div>
@@ -171,20 +171,18 @@ const Receipt = () => {
         </MedicalReceiptLayout>
       </motion.div>
 
-      <div className="receipt-actions mt-8 flex gap-3 print:hidden">
+      <div className="receipt-no-print receipt-actions mt-8 flex gap-3">
         <button type="button" onClick={handlePrint} className="btn-clinical px-6 py-3 rounded-lg text-sm">
           Print receipt
         </button>
         <button
           type="button"
           onClick={() => navigate('/')}
-          className="px-6 py-3 bg-white border border-slate-200 rounded-lg text-sm font-semibold text-slate-800"
+          className="px-6 py-3 bg-theme-card border border-theme rounded-lg text-sm font-semibold text-theme"
         >
           Close
         </button>
       </div>
-
-      <style dangerouslySetInnerHTML={{ __html: receiptPrintStyles('receipt-content') }} />
     </div>
   );
 };

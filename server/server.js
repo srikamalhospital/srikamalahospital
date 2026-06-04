@@ -478,9 +478,27 @@ app.post('/api/ai/quality-check', async (req, res) => {
     }
 });
 
+const parseDoctorAIJson = (raw) => {
+    if (!raw || typeof raw !== 'string') return null;
+    const trimmed = raw.trim();
+    const block = trimmed.match(/\{[\s\S]*\}/);
+    if (!block) return null;
+    try {
+        const parsed = JSON.parse(block[0]);
+        if (parsed.reply) return parsed;
+    } catch (_) { /* ignore */ }
+    return null;
+};
+
+const defaultDoctorSuggestions = () => ([
+    { te: 'మూడు రోజుల నుండి లక్షణం', en: 'Symptoms for 3 days' },
+    { te: 'అపాయింట్‌మెంట్ బుక్ చేయండి', en: 'Book OP appointment' },
+    { te: 'ఆసుపత్రికి ఎప్పుడు రావాలి?', en: 'When should I visit?' },
+]);
+
 app.post('/api/ai/chat', async (req, res) => {
     try {
-        const { query, mode, doctorName, specialty } = req.body;
+        const { query, mode, doctorName, specialty, history, language, opHours, doctorAvailable } = req.body;
         if (!query || !String(query).trim()) {
             return res.status(400).json({ success: false, message: 'Message required' });
         }
@@ -489,31 +507,80 @@ app.post('/api/ai/chat', async (req, res) => {
 
         if (mode === 'doctor') {
             const doc = doctorName || 'Dr. D. Kiran';
-            const spec = specialty || 'General Medicine';
-            systemContent = `You are the digital clinical assistant for ${doc} (${spec}) at Sri Kamala Hospital, Suryapet.
-Rules:
-1. Triage only — not a final diagnosis. Encourage in-person visit when needed.
-2. Max 2-3 short sentences per language.
-3. For chest pain, breathing difficulty, stroke signs, severe bleeding, or high fever — urge immediate hospital visit or call 99480 76665.
-4. FORMAT EXACTLY: [Telugu text] ||| [English text]
-Hospital: Open 24h. Website: ${SITE_URL}`;
+            const spec = specialty || 'General Medicine (MD)';
+            const lang = language === 'en' ? 'English' : 'Telugu';
+            const avail = doctorAvailable !== false;
+            const hours = opHours || 'Open 24 hours';
+            systemContent = `You ARE ${doc}, ${spec}, consulting a patient online for Sri Kamala Hospital, Suryapet — behave like a real OP doctor (warm, attentive, one clarifying question when needed).
+
+Clinical rules:
+- Preliminary triage only; never give a final diagnosis.
+- 2-3 short sentences in reply (both languages).
+- Chest pain, breathlessness, stroke signs, severe bleeding, very high fever → tell them to come immediately or call 99480 76665.
+- ${avail ? `You are available for OP today. OP hours: ${hours}.` : 'You are on leave today — urgent cases must go to hospital emergency.'}
+- Hospital 24/7. Lab/diagnostics: 9866895634. Website: ${SITE_URL}
+- Prefer ${lang} tone in "reply" but always include both Telugu and English separated by |||
+
+OUTPUT ONLY valid JSON (no markdown):
+{
+  "reply": "Telugu sentences ||| English sentences",
+  "suggestions": [
+    { "te": "short natural reply patient might tap next in Telugu", "en": "same in English" },
+    ...exactly 3 or 4 items, each synced to YOUR last reply (follow-up answers, not doctor questions)
+  ]
+}`;
         }
 
-        const msg = [
-            { role: "system", content: systemContent },
-            { role: "user", content: String(query).trim() }
-        ];
-        const responseText = await getChatAI(msg, ['meta/llama-3.1-70b-instruct', 'meta/llama3-70b-instruct', 'meta/llama-3.2-3b-instruct']);
-        const fallback = mode === 'doctor'
-            ? `దయచేసి ఆసుపత్రికి సంప్రదించండి: 99480 76665 ||| Please contact the hospital: 99480 76665`
-            : 'I am currently offline. Call +91 99480 76665.';
+        const msg = [{ role: 'system', content: systemContent }];
+        if (mode === 'doctor' && Array.isArray(history)) {
+            history.slice(-10).forEach((h) => {
+                const role = h.role === 'assistant' ? 'assistant' : 'user';
+                const content = String(h.content || '').trim();
+                if (content) msg.push({ role, content });
+            });
+        }
+        msg.push({ role: 'user', content: String(query).trim() });
+
+        const tokens = mode === 'doctor' ? 900 : 1024;
+        const responseText = await getChatAI(msg, ['meta/llama-3.1-70b-instruct', 'meta/llama3-70b-instruct', 'meta/llama-3.2-3b-instruct'], tokens);
+
+        if (mode === 'doctor') {
+            const parsed = parseDoctorAIJson(responseText);
+            if (parsed?.reply) {
+                const suggestions = Array.isArray(parsed.suggestions) && parsed.suggestions.length
+                    ? parsed.suggestions.slice(0, 4)
+                    : defaultDoctorSuggestions();
+                return res.json({
+                    success: true,
+                    response: String(parsed.reply).trim(),
+                    suggestions,
+                });
+            }
+            const fallbackReply = responseText && String(responseText).includes('|||')
+                ? String(responseText).trim()
+                : 'మీ వివరాలు స్వీకరించాను. దయచేసి ఆసుపత్రికి రండి లేదా 99480 76665 కి కాల్ చేయండి. ||| I have noted your concern. Please visit the hospital or call 99480 76665.';
+            return res.json({
+                success: true,
+                response: fallbackReply,
+                suggestions: defaultDoctorSuggestions(),
+            });
+        }
+
+        const fallback = 'I am currently offline. Call +91 99480 76665.';
         res.json({ success: true, response: responseText || fallback });
     } catch (err) {
         console.error('AI chat error:', err.message);
-        res.status(500).json({
+        const isDoctor = req.body?.mode === 'doctor';
+        const doctorFallback = {
             success: false,
             message: 'Clinical AI is temporarily unavailable. Call +91 99480 76665.',
-            response: 'క్షమించండి, AI అందుబాటులో లేదు. 99480 76665 కి కాల్ చేయండి. ||| Sorry, AI is unavailable. Please call 99480 76665.'
+            response: 'క్షమించండి, ఇప్పుడు కనెక్ట్ కాలేదు. 99480 76665 కి కాల్ చేయండి. ||| Sorry, connection failed. Please call 99480 76665.',
+            suggestions: defaultDoctorSuggestions(),
+        };
+        res.status(500).json(isDoctor ? doctorFallback : {
+            success: false,
+            message: doctorFallback.message,
+            response: doctorFallback.response,
         });
     }
 });

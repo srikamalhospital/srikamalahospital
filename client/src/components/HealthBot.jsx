@@ -1,13 +1,28 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { MessageCircle, X, Send, Bot, User, Trash2, ArrowUpRight, Plus, Sparkles, Activity, ShieldCheck, Phone, MessageSquarePlus, Scissors, Syringe, Droplets, Pill, Download, Globe, Languages, LogOut } from 'lucide-react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { X, Send, Bot, User, Download, Globe, LogOut, Stethoscope } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { jsPDF } from 'jspdf';
-import { bookAppointment, getConfig } from '../utils/api';
+import { bookAppointment, doctorConsultAI, getConfig } from '../utils/api';
+import useSiteConfig from '../hooks/useSiteConfig';
+import DoctorSuggestionChips from './DoctorSuggestionChips';
+import BilingualAIBlock from './BilingualAIBlock';
+import {
+  DR_KIRAN,
+  buildChatHistory,
+  deriveSyncedSuggestions,
+  displayText,
+  getBookingSuggestions,
+  getInitialSuggestions,
+  getWelcomeMessage,
+  parseDoctorConsultResponse,
+} from '../utils/kiranDoctorAI';
 
 const HealthBot = () => {
+    const { config } = useSiteConfig();
     const [isOpen, setIsOpen] = useState(false);
-    const [language, setLanguage] = useState('te'); // te or en
+    const [language, setLanguage] = useState('te');
     const [messages, setMessages] = useState([]);
+    const [suggestions, setSuggestions] = useState([]);
     const [input, setInput] = useState('');
     const [isTyping, setIsTyping] = useState(false);
     const [bookingState, setBookingState] = useState({ active: false, step: 0, data: {} });
@@ -15,14 +30,17 @@ const HealthBot = () => {
     const [isDismissed, setIsDismissed] = useState(false);
     const scrollRef = useRef(null);
 
-    const steps = [
-        { key: 'name', q: { te: "దయచేసి మీ పూర్తి పేరు తెలియజేయండి?", en: "Please provide your full name?" } },
-        { key: 'phone', q: { te: "మీ ఫోన్ నంబర్ ఎంత?", en: "What is your phone number?" } },
-        { key: 'age', q: { te: "మీ వయస్సు ఎంత?", en: "How old are you?" } },
-        { key: 'gender', q: { te: "మీ లింగం? (పురుషుడు/స్త్రీ/ఇతరము)", en: "Your gender? (Male/Female/Other)" } },
-        { key: 'department', q: { te: "ఏ విభాగంలో పరీక్ష చేయించుకోవాలి? (General, Cardiology, etc.)", en: "Which department would you like to visit? (General, Cardiology, etc.)" } },
-        { key: 'paymentMethod', q: { te: "చెల్లింపు విధానం? (Online/ఆసుపత్రిలో)", en: "Payment Method? (Online/Pay at Hospital)" } }
-    ].filter(s => s.key !== 'paymentMethod' || allowOnlinePayment);
+    const schedule = config.doctorSchedule?.dr_kiran || config.doctorSchedule?.[DR_KIRAN.id] || {};
+    const doctorAvailable = schedule.available !== false;
+
+    const steps = useMemo(() => [
+        { key: 'name', q: { te: 'మీ పూర్తి పేరు ఏమిటి?', en: 'What is your full name?' } },
+        { key: 'phone', q: { te: 'మీ మొబైల్ నంబర్?', en: 'Your mobile number?' } },
+        { key: 'age', q: { te: 'మీ వయస్సు?', en: 'Your age?' } },
+        { key: 'gender', q: { te: 'లింగం? (పురుషుడు / స్త్రీ)', en: 'Gender? (Male / Female)' } },
+        { key: 'department', q: { te: 'ఏ విభాగం? (General Medicine సూచన)', en: 'Department? (General Medicine suggested)' } },
+        { key: 'paymentMethod', q: { te: 'చెల్లింపు: ఆసుపత్రిలో లేదా Online?', en: 'Payment: at hospital or online?' } },
+    ].filter(s => s.key !== 'paymentMethod' || allowOnlinePayment), [allowOnlinePayment]);
 
     useEffect(() => {
         getConfig().then(resp => {
@@ -32,53 +50,69 @@ const HealthBot = () => {
         });
     }, []);
 
+    const resetConsult = () => {
+        const welcomeText = getWelcomeMessage(language, schedule);
+        setMessages([{
+            id: 'welcome',
+            text: welcomeText,
+            rawText: welcomeText,
+            sender: 'bot',
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        }]);
+        setSuggestions(getInitialSuggestions(language, schedule));
+    };
+
     useEffect(() => {
-        if (isOpen && messages.length === 0) {
-            const welcome = {
-                id: 'welcome',
-                text: language === 'te' 
-                    ? "శ్రీ కమల హాస్పిటల్ క్లినికల్ AI కోర్ కు స్వాగతం. నేను డాక్టర్ కిరణ్ AI. మీకు ఎలా సహాయపడగలను?" 
-                    : "Welcome to Sri Kamala Hospital Clinical AI Core. I am Dr. Kiran AI. How can I assist you today?",
-                sender: 'bot',
-                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            };
-            setMessages([welcome]);
-        }
+        if (isOpen && messages.length === 0) resetConsult();
     }, [language, isOpen]);
 
     useEffect(() => {
         if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }, [messages, isTyping]);
+    }, [messages, isTyping, suggestions]);
+
+    useEffect(() => {
+        if (!isOpen) return undefined;
+        const prev = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        return () => { document.body.style.overflow = prev; };
+    }, [isOpen]);
 
     const toggleLanguage = () => setLanguage(prev => prev === 'te' ? 'en' : 'te');
 
+    const syncSuggestions = (replyRaw, apiSuggestions, userTurn) => {
+        const fromApi = (apiSuggestions || []).map((s) => ({
+            te: s.te || s.en,
+            en: s.en || s.te,
+            label: language === 'en' ? (s.en || s.te) : (s.te || s.en),
+        }));
+        if (fromApi.length) {
+            setSuggestions(fromApi);
+            return;
+        }
+        setSuggestions(deriveSyncedSuggestions(replyRaw, language, userTurn));
+    };
+
     const generateReceiptPDF = (data) => {
         const doc = new jsPDF();
-        
         doc.setFillColor(248, 250, 252);
         doc.rect(0, 0, 210, 297, 'F');
-        
         doc.setTextColor(0, 204, 204);
         doc.setFontSize(24);
-        doc.text("SRI KAMALA HOSPITAL", 105, 40, { align: 'center' });
-        
+        doc.text('SRI KAMALA HOSPITAL', 105, 40, { align: 'center' });
         doc.setTextColor(15, 23, 42);
         doc.setFontSize(10);
-        doc.text("CLINICAL APPOINTMENT RECEIPT", 105, 50, { align: 'center' });
-        
+        doc.text('CLINICAL APPOINTMENT RECEIPT', 105, 50, { align: 'center' });
         doc.setDrawColor(15, 23, 42, 0.1);
         doc.line(20, 60, 190, 60);
-        
         const details = [
-            ["Token", data.token || "PENDING"],
-            ["Patient", data.name],
-            ["Phone", data.phone],
-            ["Age/Gender", `${data.age} / ${data.gender}`],
-            ["Clinical Node", data.department],
-            ["Payment", data.paymentMethod || "Institutional Credit"],
-            ["Verification", "VERIFIED BY AI CORE"]
+            ['Token', data.token || 'PENDING'],
+            ['Patient', data.name],
+            ['Phone', data.phone],
+            ['Age/Gender', `${data.age} / ${data.gender}`],
+            ['Doctor', DR_KIRAN.name],
+            ['Department', data.department],
+            ['Payment', data.paymentMethod || 'Pay at hospital'],
         ];
-        
         let y = 80;
         details.forEach(([label, val]) => {
             doc.setTextColor(100, 116, 139);
@@ -87,54 +121,74 @@ const HealthBot = () => {
             doc.text(String(val), 120, y);
             y += 15;
         });
-        
-        doc.setTextColor(0, 204, 204, 0.5);
-        doc.setFontSize(8);
-        doc.text("Powered by Kiran AI Core v5.0", 105, 250, { align: 'center' });
-        
         doc.save(`Receipt_${data.name}.pdf`);
     };
+
+    const userTurnCount = messages.filter((m) => m.sender === 'user').length;
 
     const handleSend = async (manualText = null) => {
         const text = manualText || input;
         if (!text.trim()) return;
 
-        const userMsg = { id: Date.now(), text, sender: 'user', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
+        const userMsg = {
+            id: Date.now(),
+            text,
+            rawText: text,
+            sender: 'user',
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        };
         setMessages(prev => [...prev, userMsg]);
         setInput('');
+        setSuggestions([]);
 
         if (bookingState.active) {
             const currentStep = steps[bookingState.step];
             const updatedData = { ...bookingState.data, [currentStep.key]: text };
-            
+
             if (bookingState.step < steps.length - 1) {
-                setBookingState({ ...bookingState, step: bookingState.step + 1, data: updatedData });
-                const nextQ = steps[bookingState.step + 1].q[language];
+                const nextStep = bookingState.step + 1;
+                setBookingState({ ...bookingState, step: nextStep, data: updatedData });
+                const nextQ = steps[nextStep].q[language];
                 setTimeout(() => {
-                    setMessages(prev => [...prev, { id: Date.now() + 1, text: nextQ, sender: 'bot', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
+                    setMessages(prev => [...prev, {
+                        id: Date.now() + 1,
+                        text: nextQ,
+                        rawText: nextQ,
+                        sender: 'bot',
+                        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    }]);
+                    setSuggestions(getBookingSuggestions(steps[nextStep].key, language));
                 }, 300);
             } else {
                 try {
-                    const bookingPayload = { ...updatedData };
+                    const bookingPayload = { ...updatedData, department: updatedData.department || 'General Medicine' };
                     if (!allowOnlinePayment) bookingPayload.paymentMethod = 'ఆసుపత్రిలో';
                     const resp = await bookAppointment(bookingPayload);
-                    const finalData = resp.data.success ? resp.data.appointment : { ...bookingPayload, token: 'ERR-NODE' };
-                    
+                    const finalData = resp.data.success ? resp.data.appointment : { ...bookingPayload, token: 'ERR' };
+
                     const successMsg = language === 'te'
-                        ? `నియామకం విజయవంతంగా బుక్ చేయబడింది! మీ టోకెన్: ${finalData.token}. రసీదును డౌన్‌లోడ్ చేయండి.`
-                        : `Appointment booked! Your Token: ${finalData.token}. Access receipt below.`;
-                    
-                    setMessages(prev => [...prev, { 
-                        id: Date.now() + 2, 
-                        text: successMsg, 
-                        sender: 'bot', 
-                        isReceipt: true, 
+                        ? `మీ అపాయింట్‌మెంట్ బుక్ అయింది. టోకెన్: ${finalData.token}. రిసెప్షన్‌లో చూపించండి.`
+                        : `Appointment booked. Token: ${finalData.token}. Show this at reception.`;
+
+                    setMessages(prev => [...prev, {
+                        id: Date.now() + 2,
+                        text: successMsg,
+                        rawText: successMsg,
+                        sender: 'bot',
+                        isReceipt: true,
                         receiptData: finalData,
-                        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
+                        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                     }]);
                     setBookingState({ active: false, step: 0, data: {} });
-                } catch (err) {
-                    setMessages(prev => [...prev, { id: Date.now() + 2, text: "Clinical link error. Please try again.", sender: 'bot' }]);
+                    setSuggestions([
+                        { te: 'ధన్యవాదాలు', en: 'Thank you', label: language === 'en' ? 'Thank you' : 'ధన్యవాదాలు' },
+                    ]);
+                } catch {
+                    setMessages(prev => [...prev, {
+                        id: Date.now() + 2,
+                        text: language === 'te' ? 'బుకింగ్ విఫలమైంది — 99480 76665 కి కాల్ చేయండి.' : 'Booking failed — call 99480 76665.',
+                        sender: 'bot',
+                    }]);
                 } finally {
                     setIsTyping(false);
                 }
@@ -142,32 +196,63 @@ const HealthBot = () => {
             return;
         }
 
+        const lText = text.toLowerCase();
+        if (lText.includes('book') || lText.includes('appointment') || lText.includes('బుక్') || lText.includes('అపాయింట్')) {
+            setBookingState({ active: true, step: 0, data: {} });
+            const startQ = steps[0].q[language];
+            setTimeout(() => {
+                setMessages(prev => [...prev, {
+                    id: Date.now() + 1,
+                    text: language === 'te'
+                        ? `${DR_KIRAN.name} గారి OP బుకింగ్ ప్రారంభిస్తాను. ${startQ}`
+                        : `Starting OP booking with ${DR_KIRAN.name}. ${startQ}`,
+                    rawText: startQ,
+                    sender: 'bot',
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                }]);
+                setSuggestions(getBookingSuggestions('name', language));
+                setIsTyping(false);
+            }, 400);
+            return;
+        }
+
         setIsTyping(true);
         try {
-            const { chatWithAI } = await import('../utils/api');
-            const lText = text.toLowerCase();
-            if (lText.includes('book') || lText.includes('appointment') || lText.includes('బుకింగ్') || lText.includes('అపాయింట్‌మెంట్')) {
-                setBookingState({ active: true, step: 0, data: {} });
-                setTimeout(() => {
-                    setMessages(prev => [...prev, { id: Date.now() + 1, 
-                        text: language === 'te' ? "మీ నియామకం ప్రారంభిస్తున్నాను. మీ పేరు చెప్పండి?" : "Starting booking. May I have your name?", 
-                        sender: 'bot', 
-                        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
-                    }]);
-                    setIsTyping(false);
-                }, 400);
-                return;
-            }
+            const history = buildChatHistory([...messages, userMsg]);
+            const resp = await doctorConsultAI(text, DR_KIRAN, {
+                history,
+                language,
+                opHours: schedule.opHours || config.opTimings,
+                doctorAvailable,
+            });
 
-            const prompt = `You are Dr. Kiran, AI focal point for Sri Kamala Hospital. 
-                Respond in ${language === 'te' ? 'Telugu' : 'English'}. Concise info (1-2 sentences). 
-                User: "${text}"`;
-            
-            const resp = await chatWithAI(prompt);
-            const botResponse = resp.data.success ? resp.data.response : "NODE ERROR: Link severed.";
-            setMessages(prev => [...prev, { id: Date.now() + 1, text: botResponse, sender: 'bot', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
-        } catch (err) {
-            setMessages(prev => [...prev, { id: Date.now() + 1, text: "Link failure.", sender: 'bot' }]);
+            const { reply, suggestions: apiSug } = parseDoctorConsultResponse(resp.data);
+            const replyText = reply || resp.data?.response || '';
+            const fallback = language === 'te'
+                ? 'దయచేసి మీ లక్షణాన్ని మరోసారి వివరించండి.'
+                : 'Please describe your symptom again.';
+
+            const botMsg = {
+                id: Date.now() + 1,
+                text: displayText(replyText || fallback, language),
+                rawText: replyText || fallback,
+                sender: 'bot',
+                bilingual: replyText.includes('|||') ? replyText : null,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            };
+            setMessages(prev => [...prev, botMsg]);
+            syncSuggestions(replyText, resp.data?.suggestions || apiSug, userTurnCount + 1);
+        } catch {
+            const errText = 'క్షమించండి, ఇప్పుడు సమాధానం ఇవ్వలేకపోయాను. 99480 76665 ||| Sorry, I could not respond. Call 99480 76665.';
+            setMessages(prev => [...prev, {
+                id: Date.now() + 1,
+                text: displayText(errText, language),
+                rawText: errText,
+                bilingual: errText,
+                sender: 'bot',
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            }]);
+            setSuggestions(getInitialSuggestions(language, schedule));
         } finally {
             setIsTyping(false);
         }
@@ -180,131 +265,168 @@ const HealthBot = () => {
 
     if (isDismissed) return null;
 
+    const fabBottom = 'bottom-[var(--health-bot-offset)]';
+
     return (
-        <div className="fixed bottom-[4.75rem] right-3 sm:bottom-6 sm:right-6 z-[55] safe-area-pb">
-            <AnimatePresence>
-                {!isOpen && (
-                  <div className="relative group">
-                    <motion.button initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
-                        onClick={() => setIsOpen(true)}
-                        className="w-12 h-12 sm:w-11 sm:h-11 bg-white text-hospital-primary rounded-full shadow-xl flex items-center justify-center border border-black/5 hover:scale-105 transition-all">
-                        <Bot size={24} className="relative z-10" />
-                    </motion.button>
-                    
-                    {/* Tiny Dismiss Button */}
-                    <button 
-                        onClick={handleDismiss}
-                        className="absolute -top-2 -right-2 w-5 h-5 bg-white border border-black/5 rounded-full flex items-center justify-center text-slate-400 hover:text-red-500 shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                        <X size={10} />
-                    </button>
+        <>
+            {isOpen && (
+                <button
+                    type="button"
+                    aria-label="Close chat backdrop"
+                    className="fixed inset-0 z-[54] bg-slate-900/30 sm:bg-transparent sm:pointer-events-none"
+                    onClick={() => setIsOpen(false)}
+                />
+            )}
 
-                    <div className="absolute right-14 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-white border border-black/5 rounded-lg shadow-lg hidden md:block pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
-                        <p className="text-[7px] font-black uppercase tracking-[0.4em] whitespace-nowrap text-slate-400 italic">Kiran AI Dispatch</p>
-                    </div>
-                  </div>
-                )}
-            </AnimatePresence>
+            <div className={`fixed right-3 sm:right-5 z-[55] ${fabBottom} safe-area-pb pointer-events-none`}>
+                <div className="pointer-events-auto">
+                    <AnimatePresence>
+                        {!isOpen && (
+                          <div className="relative group">
+                            <motion.button
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                exit={{ scale: 0 }}
+                                type="button"
+                                onClick={() => setIsOpen(true)}
+                                aria-label="Chat with Dr. Kiran"
+                                className="w-12 h-12 bg-white text-hospital-primary rounded-full shadow-xl flex items-center justify-center border border-black/5 hover:scale-105 transition-all"
+                            >
+                                <Stethoscope size={20} />
+                            </motion.button>
+                            <button
+                                type="button"
+                                onClick={handleDismiss}
+                                aria-label="Hide assistant"
+                                className="absolute -top-1 -right-1 w-5 h-5 bg-white border border-black/5 rounded-full flex items-center justify-center text-slate-400 hover:text-red-500 shadow-md"
+                            >
+                                <X size={10} />
+                            </button>
+                          </div>
+                        )}
+                    </AnimatePresence>
 
-            <AnimatePresence>
-                {isOpen && (
-                    <motion.div 
-                        initial={{ opacity: 0, scale: 0.9, y: 30 }} 
-                        animate={{ opacity: 1, scale: 1, y: 0 }} 
-                        exit={{ opacity: 0, scale: 0.9, y: 30 }}
-                        className="fixed inset-x-3 bottom-[4.5rem] sm:static sm:inset-auto w-auto sm:w-[260px] h-[min(70dvh,520px)] sm:h-[380px] max-h-[calc(100dvh-6rem)] bg-white rounded-2xl sm:rounded-[24px] shadow-4xl flex flex-col overflow-hidden border border-black/5 backdrop-blur-3xl relative"
-                    >
-                        {/* Transparent Logo Background Decor */}
-                        <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none select-none">
-                            <img src="/logo.png" className="w-[80%] h-auto object-contain" alt="Background Watermark" />
-                        </div>
-
-                        {/* High Fidelity Header */}
-                        <div className="p-4 px-6 bg-slate-50 text-slate-900 border-b border-black/5 relative z-10 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 p-1.5 bg-white border border-black/5 rounded-xl relative shadow-md">
-                                     <img src="/logo.png" className="w-full h-full object-contain relative z-10" />
-                                </div>
-                                <div className="text-left">
-                                    <h3 className="text-[10px] font-black tracking-widest uppercase italic leading-none whitespace-nowrap">KIRAN CORE <span className="text-hospital-primary font-serif">v5.0</span></h3>
-                                    <div className="flex items-center gap-2 mt-1.5">
-                                        <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse shadow-neon-mint"></div>
-                                        <span className="text-[6px] uppercase font-black tracking-[0.3em] text-slate-300">Surveillance: Active</span>
+                    <AnimatePresence>
+                        {isOpen && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 16 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: 16 }}
+                                className="ai-chat-panel fixed left-2 right-2 sm:left-auto sm:right-0 bottom-[calc(var(--health-bot-offset)+3.25rem)] sm:bottom-[calc(var(--health-bot-offset)+0.25rem)] w-auto sm:w-[min(calc(100vw-1rem),400px)] max-h-[min(82dvh,calc(100dvh-var(--health-bot-offset)-4rem))] bg-white rounded-2xl shadow-2xl flex flex-col border border-black/5 overflow-hidden"
+                            >
+                                <div className="px-3 py-3 sm:px-4 bg-slate-50 border-b border-black/5 flex items-center gap-2 shrink-0 min-w-0">
+                                    <div className="w-9 h-9 p-1 bg-white border border-black/5 rounded-lg shrink-0">
+                                         <img src="/logo.png" alt="" className="w-full h-full object-contain" />
                                     </div>
-                                </div>
-                            </div>
-                            
-                            <div className="flex items-center gap-3">
-                                <button onClick={toggleLanguage} className="px-3 py-1.5 bg-white border border-black/5 rounded-full text-[7px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-slate-50 transition-all text-hospital-secondary group">
-                                    <Globe size={10} /> {language === 'te' ? 'TE' : 'EN'}
-                                </button>
-                                <button onClick={() => setIsOpen(false)} className="w-8 h-8 bg-white rounded-xl flex items-center justify-center hover:bg-slate-50 text-slate-400 border border-black/5 transition-all">
-                                    <X size={14} />
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Messaging Stream */}
-                        <div ref={scrollRef} className="flex-1 overflow-y-auto p-5 space-y-6 relative z-10 scrollbar-hide">
-                            {messages.map((m, i) => (
-                                <motion.div key={m.id} initial={{ x: m.sender === 'user' ? 20 : -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }}
-                                    className={`flex items-end gap-3 ${m.sender === 'user' ? 'flex-row-reverse' : ''}`}>
-                                    <div className={`w-7 h-7 flex-shrink-0 rounded-lg flex items-center justify-center border border-black/5 shadow-md bg-slate-50`}>
-                                        {m.sender === 'user' ? <User size={12} className="text-slate-400" /> : <img src="/logo.png" className="w-4 h-4 object-contain" />}
-                                    </div>
-                                    <div className={`max-w-[85%] text-left rounded-[24px] px-5 py-3.5 text-[11px] shadow-lg relative ${m.sender === 'user' ? 'bg-hospital-primary text-black rounded-br-none' : 'bg-slate-50 text-slate-900 rounded-bl-none border border-black/5'}`}>
-                                        <p className={`font-bold italic tracking-tight leading-relaxed ${language === 'te' ? "font-['Noto_Sans_Telugu']" : ""}`}>
-                                            {m.text}
+                                    <div className="flex-1 min-w-0 text-left">
+                                        <h3 className="text-[11px] font-bold text-slate-900 truncate">{DR_KIRAN.name}</h3>
+                                        <p className="text-[9px] text-slate-500 flex items-center gap-1 truncate">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                                            {doctorAvailable ? 'OP assistant · online' : 'On leave · emergency only'}
                                         </p>
-                                        
-                                        {m.isReceipt && (
-                                            <div className="mt-4 space-y-4 pt-4 border-t border-black/5">
-                                                <button onClick={() => generateReceiptPDF(m.receiptData)} className="w-full py-3 bg-[#0f172a] text-white rounded-xl font-black text-[8px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg">
-                                                    <Download size={10} /> Download Receipt
-                                                </button>
+                                    </div>
+                                    <button type="button" onClick={toggleLanguage} className="shrink-0 px-2 py-1 bg-white border border-black/5 rounded-full text-[9px] font-bold uppercase flex items-center gap-1">
+                                        <Globe size={10} /> {language === 'te' ? 'TE' : 'EN'}
+                                    </button>
+                                    <button type="button" onClick={() => setIsOpen(false)} aria-label="Close" className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 border border-black/5 bg-white">
+                                        <X size={14} />
+                                    </button>
+                                </div>
+
+                                <div ref={scrollRef} className="ai-chat-messages flex-1 p-3 sm:p-4 space-y-3 min-h-0">
+                                    {messages.map((m) => (
+                                        <div key={m.id} className={`flex items-end gap-2 min-w-0 ${m.sender === 'user' ? 'flex-row-reverse' : ''}`}>
+                                            <div className="w-6 h-6 shrink-0 rounded-md flex items-center justify-center border border-black/5 bg-slate-50">
+                                                {m.sender === 'user' ? <User size={11} className="text-slate-400" /> : <Bot size={11} className="text-hospital-primary" />}
                                             </div>
+                                            <div className={`ai-bubble max-w-[min(88%,calc(100vw-5rem))] rounded-2xl px-3 py-2.5 text-[11px] sm:text-xs shadow-sm ${
+                                                m.sender === 'user'
+                                                    ? 'bg-hospital-primary text-slate-900 rounded-br-sm'
+                                                    : 'bg-slate-50 text-slate-900 rounded-bl-sm border border-black/5'
+                                            }`}>
+                                                {m.sender === 'bot' && m.bilingual ? (
+                                                    <BilingualAIBlock text={m.bilingual} className="text-[11px] sm:text-xs" />
+                                                ) : (
+                                                    <p className={`font-medium leading-relaxed ${language === 'te' ? "font-['Noto_Sans_Telugu']" : ''}`}>
+                                                        {m.text}
+                                                    </p>
+                                                )}
+                                                {m.isReceipt && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => generateReceiptPDF(m.receiptData)}
+                                                        className="mt-2 w-full py-2 bg-slate-900 text-white rounded-lg text-[9px] font-bold uppercase flex items-center justify-center gap-1"
+                                                    >
+                                                        <Download size={10} /> Receipt
+                                                    </button>
+                                                )}
+                                                <p className="text-[9px] mt-1 opacity-50">{m.time}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+
+                                    {isTyping && (
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-6 h-6 rounded-md bg-slate-50 border border-black/5 flex items-center justify-center">
+                                                <Bot size={12} className="text-hospital-primary animate-pulse" />
+                                            </div>
+                                            <p className="text-[10px] text-slate-400 italic">
+                                                {language === 'te' ? 'డాక్టర్ కిరణ్ టైప్ చేస్తున్నారు…' : 'Dr. Kiran is typing…'}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <DoctorSuggestionChips
+                                    suggestions={suggestions}
+                                    language={language}
+                                    onPick={(label) => handleSend(label)}
+                                    disabled={isTyping}
+                                />
+
+                                <div className="p-3 bg-slate-50 border-t border-black/5 shrink-0 min-w-0">
+                                    <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="ai-chat-input-row flex items-center gap-2">
+                                        <input
+                                            type="text"
+                                            placeholder={bookingState.active
+                                                ? (language === 'te' ? 'మీ సమాధానం…' : 'Your answer…')
+                                                : (language === 'te' ? 'లక్షణం లేదా ప్రశ్న…' : 'Symptom or question…')}
+                                            value={input}
+                                            onChange={(e) => setInput(e.target.value)}
+                                            className="flex-1 min-w-0 bg-white border border-black/5 focus:border-hospital-primary px-3 py-2.5 rounded-xl outline-none text-sm sm:text-xs"
+                                        />
+                                        <button
+                                            type="submit"
+                                            disabled={!input.trim() || isTyping}
+                                            className="shrink-0 w-10 h-10 rounded-xl bg-hospital-primary text-slate-900 flex items-center justify-center disabled:opacity-30"
+                                        >
+                                            <Send size={16} />
+                                        </button>
+                                        {bookingState.active && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setBookingState({ active: false, step: 0, data: {} });
+                                                    resetConsult();
+                                                }}
+                                                className="shrink-0 w-10 h-10 bg-red-50 text-red-600 rounded-xl flex items-center justify-center border border-red-100"
+                                            >
+                                                <LogOut size={14} />
+                                            </button>
                                         )}
-  
-                                        <p className={`text-[6px] mt-1.5 font-black uppercase opacity-20 italic absolute ${m.sender === 'user' ? '-left-12 bottom-1' : '-right-12 bottom-1'}`}>{m.time}</p>
-                                    </div>
-                                </motion.div>
-                            ))}
-
-                            {isTyping && (
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-xl bg-slate-50 border border-black/5 flex items-center justify-center animate-pulse"><Bot size={14} className="text-hospital-primary" /></div>
-                                    <div className="bg-slate-50 border border-black/5 px-4 py-3 rounded-[24px] rounded-bl-none shadow-sm flex gap-1">
-                                        {[1, 2, 3].map(d => <motion.div key={d} animate={{ scale: [1, 1.5, 1], opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1, delay: d * 0.2 }} className="w-1 h-1 bg-hospital-primary rounded-full"></motion.div>)}
-                                    </div>
+                                    </form>
+                                    {bookingState.active && (
+                                        <p className="text-[9px] text-slate-400 mt-1.5 text-center">
+                                            {language === 'te' ? 'బుకింగ్' : 'Booking'} · {bookingState.step + 1}/{steps.length}
+                                        </p>
+                                    )}
                                 </div>
-                            )}
-                        </div>
-
-                        {/* Input Core */}
-                        <div className="p-4 bg-slate-50 border-t border-black/5 space-y-2 relative z-10 text-left">
-                            <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex items-center gap-2">
-                                <div className="flex-1 relative group">
-                                    <input type="text" placeholder={bookingState.active ? "Fill indexing..." : "Query Kiran..."} value={input} onChange={(e) => setInput(e.target.value)}
-                                        className="w-full bg-white border border-black/5 focus:border-hospital-primary px-4 py-3 rounded-2xl outline-none text-[11px] font-bold transition-all text-slate-900 placeholder:text-slate-200 shadow-inner italic" />
-                                    <button type="submit" className={`absolute right-3 top-1/2 -translate-y-1/2 text-hospital-primary hover:scale-110 active:scale-90 transition-all ${!input.trim() ? 'opacity-20 pointer-events-none' : 'opacity-100'}`}>
-                                        <Send size={16} strokeWidth={2.5} />
-                                    </button>
-                                </div>
-                                {bookingState.active && (
-                                    <button onClick={() => setBookingState({ active: false, step: 0, data: {} })} className="w-10 h-10 bg-red-50 border border-red-100 text-red-500 rounded-xl flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-md">
-                                        <LogOut size={16} />
-                                    </button>
-                                )}
-                            </form>
-                            <div className="flex items-center justify-between text-[7px] font-black uppercase tracking-[0.4em] text-slate-300 italic">
-                                <span>HIPAA Secured Node</span>
-                                <span className={bookingState.active ? "text-hospital-secondary animate-pulse" : ""}>{bookingState.active ? `Step ${bookingState.step + 1}/${steps.length}` : 'AI Tracking active'}</span>
-                            </div>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+            </div>
+        </>
     );
 };
 

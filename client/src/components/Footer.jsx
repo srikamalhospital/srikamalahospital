@@ -5,7 +5,7 @@ import { SITE_URL, SITE_DOMAIN } from '../config/site';
 import useSiteConfig from '../hooks/useSiteConfig';
 import ThemeToggle from './ThemeToggle';
 import HospitalLocationMap from './HospitalLocationMap';
-import { getMapsDirectionsUrl } from '../utils/maps';
+import { getMapsDirectionsUrl, getMapsPlaceUrl } from '../utils/maps';
 
 const Footer = () => {
     const { config, hospitalTel, diagnosticsTel } = useSiteConfig();
@@ -84,14 +84,24 @@ const Footer = () => {
                                     <p className="text-base font-black text-hospital-dark font-['Noto_Sans_Telugu'] leading-tight mb-1">మహాత్మా గాంధీ రోడ్డు, సూర్యాపేట</p>
                                     <p className="text-[9px] uppercase font-black tracking-[0.3em] text-hospital-slate/40 mb-2">M.G. Road, Suryapet</p>
                                     <p className="text-xs text-theme-muted leading-relaxed">{config.hospitalAddress}</p>
-                                    <a
-                                        href={getMapsDirectionsUrl(config.hospitalAddress)}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-1.5 mt-2 text-[10px] font-bold uppercase tracking-wider text-hospital-primary hover:text-hospital-secondary"
-                                    >
-                                        Get directions <ArrowUpRight size={12} />
-                                    </a>
+                                    <div className="flex flex-wrap gap-3 mt-2">
+                                        <a
+                                            href={getMapsDirectionsUrl()}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-hospital-primary hover:text-hospital-secondary"
+                                        >
+                                            Directions <ArrowUpRight size={12} />
+                                        </a>
+                                        <a
+                                            href={getMapsPlaceUrl()}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-theme-muted hover:text-hospital-primary"
+                                        >
+                                            Google Maps <ArrowUpRight size={12} />
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
 

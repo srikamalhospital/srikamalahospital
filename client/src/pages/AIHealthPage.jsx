@@ -129,7 +129,7 @@ const AIHealthPage = () => {
           ))}
         </div>
 
-        <div className="pro-card min-h-0 sm:min-h-[400px]">
+        <div className="pro-card min-h-0 sm:min-h-[400px] overflow-hidden min-w-0">
           <p className="text-xs font-semibold text-hospital-primary uppercase tracking-wider mb-6 pb-4 border-b border-theme">
             {active?.labelEn} — {active?.hint}
           </p>
@@ -154,14 +154,14 @@ const AIHealthPage = () => {
                   <p className="pro-subtitle !mt-0 mb-4">
                     Upload a clear photo of a prescription or lab report. Results come from our OCR + AI service in real time.
                   </p>
-                  <label className="theme-upload-zone block w-full min-h-[280px] cursor-pointer">
+                  <label className="theme-upload-zone block w-full min-h-[200px] sm:min-h-[280px] cursor-pointer">
                     {isOcrLoading ? (
-                      <div className="flex flex-col items-center justify-center h-full min-h-[280px] gap-4">
+                      <div className="flex flex-col items-center justify-center h-full min-h-[200px] sm:min-h-[280px] gap-4">
                         <div className="w-12 h-12 border-2 border-hospital-primary border-t-transparent rounded-full animate-spin" />
                         <p className="text-sm text-theme-muted">Reading document…</p>
                       </div>
                     ) : (
-                      <div className="flex flex-col items-center justify-center min-h-[280px] gap-4 p-6 text-center">
+                      <div className="flex flex-col items-center justify-center min-h-[200px] sm:min-h-[280px] gap-4 p-6 text-center">
                         <Scan size={40} className="text-hospital-primary" />
                         <p className="font-bold text-theme">Drop or tap to upload</p>
                         <p className="text-xs text-theme-muted">JPG, PNG</p>
@@ -170,7 +170,7 @@ const AIHealthPage = () => {
                     <input type="file" className="hidden" accept="image/*" onChange={handleOCR} />
                   </label>
                 </div>
-                <div className="theme-panel rounded-2xl p-6 min-h-[280px]">
+                <div className="theme-panel rounded-2xl p-4 sm:p-6 min-h-[200px] sm:min-h-[280px] min-w-0 overflow-hidden">
                   {ocrResult?.error ? (
                     <p className="text-sm text-red-500">{ocrResult.error}</p>
                   ) : ocrResult ? (
@@ -243,19 +243,19 @@ const AIHealthPage = () => {
                       setDragOver(false);
                       analyzeSkin(e.dataTransfer.files[0]);
                     }}
-                    className={`theme-upload-zone block w-full min-h-[280px] cursor-pointer ${dragOver ? 'ring-2 ring-hospital-primary' : ''}`}
+                    className={`theme-upload-zone block w-full min-h-[200px] sm:min-h-[280px] cursor-pointer ${dragOver ? 'ring-2 ring-hospital-primary' : ''}`}
                   >
                     {isSkinLoading ? (
-                      <div className="flex flex-col items-center justify-center min-h-[280px] gap-4">
+                      <div className="flex flex-col items-center justify-center min-h-[200px] sm:min-h-[280px] gap-4">
                         <div className="w-12 h-12 border-2 border-hospital-primary border-t-transparent rounded-full animate-spin" />
                         <p className="text-sm text-theme-muted">Analyzing…</p>
                       </div>
                     ) : skinImage ? (
-                      <div className="flex items-center justify-center min-h-[280px] p-4">
-                        <img src={skinImage} alt="Upload preview" className="max-h-64 rounded-xl object-contain" />
+                      <div className="flex items-center justify-center min-h-[200px] sm:min-h-[280px] p-4">
+                        <img src={skinImage} alt="Upload preview" className="max-h-48 sm:max-h-64 rounded-xl object-contain max-w-full" />
                       </div>
                     ) : (
-                      <div className="flex flex-col items-center justify-center min-h-[280px] gap-4">
+                      <div className="flex flex-col items-center justify-center min-h-[200px] sm:min-h-[280px] gap-4">
                         <Microscope size={40} className="text-hospital-primary" />
                         <p className="font-bold text-theme">Upload skin lesion photo</p>
                       </div>
@@ -263,7 +263,7 @@ const AIHealthPage = () => {
                     <input type="file" className="hidden" accept="image/*" onChange={(e) => analyzeSkin(e.target.files[0])} />
                   </label>
                 </div>
-                <div className="theme-panel rounded-2xl p-6 min-h-[280px] flex flex-col justify-center">
+                <div className="theme-panel rounded-2xl p-4 sm:p-6 min-h-[200px] sm:min-h-[280px] flex flex-col justify-center min-w-0 overflow-hidden">
                   {skinResult?.error ? (
                     <p className="text-sm text-red-500">{skinResult.error}</p>
                   ) : skinResult ? (

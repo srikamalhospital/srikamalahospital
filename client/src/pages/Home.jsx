@@ -18,24 +18,24 @@ function Home() {
     <div className="bg-hospital-surface min-h-screen selection:bg-hospital-primary selection:text-white overflow-x-clip grainy font-['Plus_Jakarta_Sans'] nav-offset">
       <div className="logo-bg-overlay" />
 
-      <main className="relative z-10">
+      <main className="relative z-10 home-compact">
         <section id="hero" className="relative">
           <Hero />
         </section>
 
-        <section id="actions" className="relative -mt-24 md:-mt-32 px-6 z-20">
+        <section id="actions" className="relative -mt-16 md:-mt-24 px-4 sm:px-6 z-20">
           <QuickActionGrid />
         </section>
 
-        <section id="doctors" className="relative py-8 px-6">
-          <Doctors />
+        <section id="doctors" className="relative py-5 px-4 sm:px-6">
+          <Doctors compact />
         </section>
 
-        <section id="location" className="relative py-10 px-4 sm:px-6">
-          <HospitalLocationMap />
+        <section id="location" className="relative py-6 px-4 sm:px-6">
+          <HospitalLocationMap compact />
         </section>
 
-        <section id="reviews" className="relative py-8">
+        <section id="reviews" className="relative py-5">
           <PatientReviews compact limit={4} />
         </section>
       </main>

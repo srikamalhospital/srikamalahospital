@@ -43,10 +43,10 @@ const PatientReviews = ({ showSubmitForm = false, compact = false, limit = 8 }) 
   const shown = reviews.slice(0, limit);
 
   return (
-    <section className={`px-6 bg-hospital-surface ${compact ? 'py-8' : 'py-16'} grainy`}>
-      <div className="page-container max-w-6xl">
-        <div className={`flex items-center justify-between gap-4 ${compact ? 'mb-6' : 'mb-12'}`}>
-          <h2 className={`font-bold text-hospital-dark font-['Noto_Sans_Telugu'] ${compact ? 'text-xl' : 'heading-clinical'}`}>
+    <section className={`px-4 sm:px-6 bg-hospital-surface ${compact ? 'py-5' : 'py-16'} grainy`}>
+      <div className={`page-container ${compact ? 'max-w-4xl' : 'max-w-6xl'}`}>
+        <div className={`flex items-center justify-between gap-4 ${compact ? 'mb-4' : 'mb-12'}`}>
+          <h2 className={`font-bold text-hospital-dark font-['Noto_Sans_Telugu'] ${compact ? 'text-base' : 'heading-clinical'}`}>
             రోగి అభిప్రాయాలు {!compact && <span className="text-hospital-secondary italic">Patient reviews</span>}
           </h2>
           {!compact && (
@@ -56,14 +56,18 @@ const PatientReviews = ({ showSubmitForm = false, compact = false, limit = 8 }) 
           )}
         </div>
 
-        <div className={`grid grid-cols-1 md:grid-cols-2 ${compact ? 'lg:grid-cols-2 gap-4' : 'lg:grid-cols-4 gap-10'}`}>
+        <div className={`grid grid-cols-1 md:grid-cols-2 ${compact ? 'lg:grid-cols-2 gap-2.5 sm:gap-3' : 'lg:grid-cols-4 gap-10'}`}>
           {shown.map((rev, i) => (
             <motion.div
               key={rev.id || i}
               initial={{ opacity: 0, y: 8 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className={compact ? 'pro-card p-5' : 'premium-card group p-12 flex flex-col min-h-[280px] border-white/80'}
+              className={
+                compact
+                  ? 'pro-card !p-3 sm:!p-3.5 rounded-xl min-h-0'
+                  : 'premium-card group p-12 flex flex-col min-h-[280px] border-white/80'
+              }
             >
               {!compact && (
                 <div className="flex gap-2 mb-4">
@@ -72,10 +76,10 @@ const PatientReviews = ({ showSubmitForm = false, compact = false, limit = 8 }) 
                   ))}
                 </div>
               )}
-              <p className={`italic text-hospital-slate/80 line-clamp-3 ${compact ? 'text-sm mb-3' : 'text-base mb-8'}`}>
+              <p className={`italic text-hospital-slate/80 ${compact ? 'text-xs line-clamp-2 mb-2' : 'text-base line-clamp-3 mb-8'}`}>
                 &ldquo;{rev.text}&rdquo;
               </p>
-              <p className={`font-bold text-hospital-dark ${compact ? 'text-sm' : 'text-lg'}`}>{rev.name}</p>
+              <p className={`font-bold text-hospital-dark ${compact ? 'text-xs' : 'text-lg'}`}>{rev.name}</p>
               {!compact && (
                 <p className="text-[9px] uppercase tracking-widest text-hospital-primary opacity-60 mt-1">
                   {rev.role || rev.visit_type || 'Patient'}

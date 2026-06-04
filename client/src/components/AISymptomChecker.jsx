@@ -82,10 +82,10 @@ const AISymptomChecker = () => {
     };
 
     return (
-        <section className="py-4">
-            <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
-                    <div className="lg:w-2/5">
-                        <div className="pro-ai-panel h-full min-h-[320px] flex flex-col justify-between">
+        <section className="py-2 sm:py-4 min-w-0 overflow-hidden">
+            <div className="flex flex-col lg:flex-row gap-6 lg:gap-12 min-w-0">
+                    <div className="lg:w-2/5 min-w-0">
+                        <div className="pro-ai-panel min-h-0 sm:min-h-[240px] flex flex-col justify-between">
                             <div>
                                 <div className="w-12 h-12 rounded-xl bg-hospital-primary/10 flex items-center justify-center text-hospital-primary mb-6">
                                     <Brain size={28} />
@@ -99,10 +99,10 @@ const AISymptomChecker = () => {
                         </div>
                     </div>
 
-                    <div className="lg:w-3/5 space-y-6">
-                        <div>
+                    <div className="lg:w-3/5 space-y-4 sm:space-y-6 min-w-0">
+                        <div className="min-w-0">
                             <p className="pro-section-label mb-2">Symptom check</p>
-                            <h3 className="text-2xl font-bold text-hospital-dark font-['Noto_Sans_Telugu']">మీ లక్షణాలు ఏమిటి?</h3>
+                            <h3 className="text-lg sm:text-2xl font-bold text-hospital-dark font-['Noto_Sans_Telugu']">మీ లక్షణాలు ఏమిటి?</h3>
                         </div>
 
                         <form onSubmit={handleAnalyze} className="space-y-6">
@@ -114,8 +114,8 @@ const AISymptomChecker = () => {
                                     className="pro-textarea font-['Noto_Sans_Telugu']"
                                 />
 
-                                <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-slate-100">
-                                    <div className="flex items-center gap-4">
+                                <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-100 min-w-0">
+                                    <div className="flex flex-wrap items-center gap-3 min-w-0">
                                         <button
                                             type="button"
                                             onClick={() => fileInputRef.current?.click()}
@@ -165,16 +165,16 @@ const AISymptomChecker = () => {
                         <AnimatePresence>
                             {result && (
                                 <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
-                                    className="pro-card mt-6">
+                                    className="pro-card mt-4 sm:mt-6 relative overflow-hidden min-w-0">
 
-                                    <div className="absolute top-0 right-0 p-10 text-white opacity-[0.03] group-hover:rotate-12 transition-transform duration-1000"><Brain size={150} /></div>
+                                    <div className="hidden sm:block absolute top-0 right-0 p-6 text-white opacity-[0.03] pointer-events-none"><Brain size={80} /></div>
 
-                                    <div className="relative z-10 w-full space-y-10">
-                                        <div className="flex flex-wrap items-center gap-4">
-                                            <span className="px-6 py-2 bg-hospital-dark text-white text-[10px] font-black uppercase tracking-[0.4em] rounded-full italic">{result.condition ? 'Visual AI Insight' : 'Clinical Diagnostic Insight'}</span>
+                                    <div className="relative z-10 w-full min-w-0 space-y-6 sm:space-y-10">
+                                        <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+                                            <span className="px-3 py-1.5 sm:px-6 sm:py-2 bg-hospital-dark text-white text-[9px] sm:text-[10px] font-black uppercase tracking-wider sm:tracking-[0.4em] rounded-full">{result.condition ? 'Visual AI Insight' : 'Clinical Insight'}</span>
                                             {getDepartmentLabel(result.department) && (
-                                                <span className="px-6 py-2 bg-hospital-primary text-hospital-dark font-black text-[12px] font-['Noto_Sans_Telugu'] rounded-full italic">
-                                                    ప్రాధాన్య విభాగం: {getDepartmentLabel(result.department)}
+                                                <span className="px-3 py-1.5 sm:px-6 sm:py-2 bg-hospital-primary text-hospital-dark font-bold text-[10px] sm:text-xs font-['Noto_Sans_Telugu'] rounded-full break-words max-w-full">
+                                                    విభాగం: {getDepartmentLabel(result.department)}
                                                 </span>
                                             )}
                                         </div>
@@ -182,15 +182,14 @@ const AISymptomChecker = () => {
                                         {result.condition ? (
                                             <div className="w-full space-y-8">
                                                 {isEmergencyCase(result) && (
-                                                    <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="p-8 rounded-[35px] bg-red-500/5 border border-red-500/20 text-red-500 shadow-lg relative overflow-hidden text-left">
-                                                        <div className="absolute top-0 right-0 p-6 opacity-10 animate-ping text-left"><ShieldAlert size={60} /></div>
-                                                        <p className="text-[12px] font-black uppercase tracking-[0.6em] mb-3 italic text-left">Clinical Emergency Alert</p>
-                                                        <p className="text-xl font-black italic leading-tight text-left">Serious metrics detected. Immediate physical triage at emergency response ward required.</p>
+                                                    <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="p-4 sm:p-6 rounded-2xl bg-red-500/5 border border-red-500/20 text-red-600 shadow-sm relative overflow-hidden">
+                                                        <p className="text-[10px] font-bold uppercase tracking-wider mb-2">Emergency alert</p>
+                                                        <p className="text-sm sm:text-base font-bold leading-snug">Serious symptoms detected — visit emergency or call hospital immediately.</p>
                                                     </motion.div>
                                                 )}
 
-                                                <div className="overflow-hidden rounded-[40px] border border-black/5 bg-white text-left shadow-inner">
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-black/5 text-left">
+                                                <div className="overflow-hidden rounded-xl sm:rounded-2xl border border-black/5 bg-white shadow-inner">
+                                                    <div className="ai-result-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-black/5 min-w-0">
                                                         {[
                                                             { label: 'Primary Condition', value: getBilingualText(result.condition), icon: <Activity size={18} />, color: 'text-hospital-secondary' },
                                                             { label: 'Protocols', value: joinItems(result.precautions), icon: <ShieldAlert size={18} />, color: 'text-slate-400' },
@@ -199,33 +198,33 @@ const AISymptomChecker = () => {
                                                             { label: 'Pharmaceutics', value: joinItems(result.medicine), icon: <Pill size={18} />, color: 'text-slate-400' },
                                                             { label: 'AI Risk Node', value: result.risk || 'Normal', icon: <Brain size={18} />, color: 'text-hospital-primary' }
                                                         ].map((item, idx) => (
-                                                            <div key={idx} className="p-8 bg-white hover:bg-slate-50 transition-colors group/item text-left">
-                                                                <div className="flex items-center gap-3 mb-4 text-left">
-                                                                    <div className={`w-10 h-10 rounded-xl bg-slate-50 border border-black/5 flex items-center justify-center ${item.color} shadow-sm text-left`}>{item.icon}</div>
-                                                                    <p className="text-[9px] font-black uppercase tracking-[0.4em] text-slate-300 italic text-left">{item.label}</p>
+                                                            <div key={idx} className="p-4 sm:p-6 bg-white hover:bg-slate-50 transition-colors min-w-0">
+                                                                <div className="flex items-center gap-2 mb-2">
+                                                                    <div className={`w-8 h-8 rounded-lg bg-slate-50 border border-black/5 flex items-center justify-center shrink-0 ${item.color}`}>{item.icon}</div>
+                                                                    <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">{item.label}</p>
                                                                 </div>
-                                                                <p className={`text-[15px] font-bold italic ${item.color === 'text-slate-400' ? 'text-slate-900' : item.color} leading-relaxed text-left`}>{item.value}</p>
+                                                                <p className={`text-sm font-semibold break-words ${item.color === 'text-slate-400' ? 'text-slate-900' : item.color} leading-relaxed`}>{item.value}</p>
                                                             </div>
                                                         ))}
                                                     </div>
                                                 </div>
 
                                                 {result.note && (
-                                                    <div className="p-8 bg-slate-50 border border-black/5 rounded-[35px] font-serif italic text-slate-400 text-sm leading-relaxed text-left shadow-inner">
-                                                        <span className="block text-[10px] font-black uppercase tracking-[0.5em] mb-4 text-hospital-secondary italic text-left">Autonomous Clinical Note:</span>
-                                                        "{result.note}"
+                                                    <div className="p-4 sm:p-6 bg-slate-50 border border-black/5 rounded-xl text-slate-600 text-sm leading-relaxed break-words">
+                                                        <span className="block text-[10px] font-bold uppercase tracking-wider mb-2 text-hospital-secondary">Clinical note</span>
+                                                        {result.note}
                                                     </div>
                                                 )}
                                             </div>
                                         ) : (
-                                            <div className="space-y-6 text-left">
-                                                <div className="text-left">
-                                                    <p className="text-[10px] uppercase font-black tracking-[0.5em] text-slate-300 mb-4 italic text-left">PRELIMINARY AI LOGIC [TELUGU]</p>
-                                                    <p className="text-slate-900 font-black text-3xl leading-snug font-['Noto_Sans_Telugu'] tracking-tight italic underline decoration-hospital-primary/20 underline-offset-8 decoration-4 text-left">{result.advice?.te}</p>
+                                            <div className="space-y-4 min-w-0">
+                                                <div>
+                                                    <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-2">Telugu</p>
+                                                    <p className="text-slate-900 font-bold text-lg sm:text-2xl leading-snug font-['Noto_Sans_Telugu'] break-words">{result.advice?.te}</p>
                                                 </div>
-                                                <div className="pt-10 border-t border-black/5 text-left">
-                                                    <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.6em] leading-relaxed italic mb-4 text-left">Scientific Breakdown [English]</p>
-                                                    <p className="text-[15px] font-bold text-slate-400 leading-relaxed italic font-serif opacity-70 text-left">"{result.advice?.en}"</p>
+                                                <div className="pt-4 border-t border-black/5">
+                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">English</p>
+                                                    <p className="text-sm text-slate-600 leading-relaxed break-words">{result.advice?.en}</p>
                                                 </div>
                                             </div>
                                         )}
