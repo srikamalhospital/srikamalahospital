@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: hospital-backend
+    runtime: node
+    region: oregon
+    buildCommand: cd server && npm install
+    startCommand: cd server && node server.js
+    healthCheckPath: /api/config
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: NVIDIA_API_KEY
+        sync: false
+      - key: NVIDIA_BASE_URL
+        value: https://integrate.api.nvidia.com/v1
+      - key: NVIDIA_VISION_API_KEY
+        sync: false
+      - key: CASHFREE_APP_ID
+        sync: false
+      - key: CASHFREE_SECRET_KEY
+        sync: false
+      - key: CASHFREE_ENVIRONMENT
+        value: TEST
+      - key: HOSPITAL_NAME
+        value: Sri Kamala Hospital
+      - key: SITE_URL
+        value: https://srikamalahospital.online
+      # Legacy alias (same value as SITE_URL)
+      - key: VERCEL_FRONTEND_URL
+        value: https://srikamalahospital.online

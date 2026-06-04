@@ -1,0 +1,7 @@
+flask
+flask-cors
+tflite-runtime
+numpy==1.24.3
+Pillow
+python-dotenv
+gunicorn

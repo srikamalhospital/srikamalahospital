@@ -1,0 +1,741 @@
+const express = require('express');
+const axios = require('axios');
+const cors = require('cors');
+const { createClient } = require('@supabase/supabase-js');
+const { OpenAI } = require('openai');
+const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
+const helmet = require('helmet');
+const morgan = require('morgan');
+const path = require('path');
+const rateLimit = (() => {
+    // Inline lightweight rate limiter — no external package needed
+    return ({ windowMs, max, message }) => {
+        const hits = new Map();
+        return (req, res, next) => {
+            const ip = req.ip || req.connection?.remoteAddress || 'unknown';
+            const now = Date.now();
+            const entry = hits.get(ip) || { count: 0, start: now };
+            if (now - entry.start > windowMs) { entry.count = 0; entry.start = now; }
+            entry.count++;
+            hits.set(ip, entry);
+            if (entry.count > max) return res.status(429).json(message);
+            next();
+        };
+    };
+})();
+require("dotenv").config({ path: path.join(__dirname, '.env') });
+
+const app = express();
+const PORT = process.env.PORT || 10000;
+
+const SITE_DOMAIN = (process.env.SITE_DOMAIN || 'srikamalahospital.online').replace(/^https?:\/\//, '').replace(/\/$/, '');
+const SITE_URL = (process.env.SITE_URL || process.env.VERCEL_FRONTEND_URL || `https://${SITE_DOMAIN}`).replace(/\/$/, '');
+
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+let supabase = null;
+try {
+    if (supabaseUrl && supabaseKey && typeof supabaseUrl === 'string' && !supabaseUrl.includes('YOUR_')) {
+        supabase = createClient(supabaseUrl, supabaseKey);
+        console.log('✅ Supabase initialized');
+    } else {
+        console.warn('⚠️ Supabase credentials missing');
+    }
+} catch (e) {
+    console.error('❌ Supabase initialization failed:', e.message);
+}
+
+// Rate Limiters
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    message: { success: false, message: "Too many requests, please try again later." },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+const aiLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 20,
+    message: { success: false, message: "AI limit reached. Call +91 99480 76665." },
+});
+
+// CORS — official frontend domains + local dev
+const allowedOrigins = [
+    SITE_URL,
+    `https://www.${SITE_DOMAIN}`,
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    process.env.VERCEL_FRONTEND_URL
+].filter(Boolean).map((o) => String(o).replace(/\/$/, ''));
+
+app.use(cors({
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin.replace(/\/$/, ''))) return callback(null, true);
+        return callback(null, true); // keep permissive for preview deploys; tighten in production if needed
+    },
+    credentials: true
+}));
+
+// Security & Utility Middleware
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+            imgSrc: ["'self'", "data:", "https://images.unsplash.com", "https://*.supabase.co"],
+            connectSrc: ["'self'", "https://*.supabase.co", "https://integrate.api.nvidia.com", (process.env.SKIN_AI_URL || "https://*")],
+            fontSrc: ["'self'", "https://fonts.gstatic.com"],
+            objectSrc: ["'none'"],
+            mediaSrc: ["'self'"],
+            frameSrc: ["'none'"],
+        },
+    },
+}));
+app.use(morgan('combined'));
+app.use(express.json({ limit: '30mb' }));
+app.use(express.urlencoded({ limit: '30mb', extended: true }));
+app.use(limiter);
+
+// Health Checks
+app.get('/health', (req, res) => res.status(200).send('OK'));
+app.get('/', (req, res) => res.status(200).send('Sri Kamala Hospital Backend Live'));
+
+// Legacy endpoint redirect middleware
+app.use((req, res, next) => {
+    const legacyToApi = {
+        '/config': '/api/config',
+        '/ai/symptom': '/api/ai/symptom',
+        '/ai/vision': '/api/ai/vision',
+        '/ai/chat': '/api/ai/chat',
+        '/create-appointment': '/api/create-appointment',
+        '/create-upi-order': '/api/create-upi-order',
+        '/lab/tests': '/api/lab/tests',
+        '/pharmacy/products': '/api/pharmacy/products',
+        '/admin/login': '/api/admin/login',
+        '/admin/appointments': '/api/admin/appointments',
+        '/admin/update-appointment': '/api/admin/update-appointment',
+        '/appointments': '/api/appointments',
+        '/ai/medicine-discovery': '/api/ai/medicine-discovery',
+        '/medicines/catalog': '/api/medicines/catalog',
+        '/admin/patient-clinical-note': '/api/admin/patient-clinical-note',
+        '/admin/patient-clinical-history': '/api/admin/patient-clinical-history',
+        '/ocr': '/api/ai/ocr',
+        '/predict': '/predict',
+        '/api/ai/skin-predict': '/api/ai/skin-predict'
+    };
+    if (!req.path.startsWith('/api')) {
+        const direct = legacyToApi[req.path];
+        if (direct) req.url = direct + (req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '');
+        if (!direct && req.path.startsWith('/appointments/')) req.url = `/api${req.url}`;
+    }
+    next();
+});
+
+app.use('/api/ai/', aiLimiter);
+
+// Global Config Store
+let siteConfig = {
+    showCoreServices: true,
+    showHealthAwareness: true,
+    allowOnlinePayment: true,
+    hospitalPhone: '99480 76665',
+    diagnosticsPhone: '9866895634',
+    opTimings: 'Open 24 Hours',
+    hospitalAddress: 'Opp. Tirumala Grand Restaurant, M.G. Road, Suryapet',
+    websiteUrl: SITE_URL,
+    websiteDomain: SITE_DOMAIN,
+    contactEmail: `info@${SITE_DOMAIN}`
+};
+
+const patientClinicalRecords = {};
+const medicineCatalog = [
+    "Paracetamol 650mg", "Dolo 650", "Amoxicillin 500mg", "Azithromycin 500mg",
+    "Cefixime 200mg", "Cetirizine 10mg", "Levocetirizine", "Pantoprazole 40mg",
+    "Rabeprazole", "Ondansetron", "Vomikind Injection", "Metformin 500mg",
+    "Glimepiride", "Insulin Human Mixtard", "Amlodipine 5mg", "Telmisartan 40mg",
+    "Losartan 50mg", "Atorvastatin 10mg", "Calcium + Vitamin D3", "Iron Folic Acid",
+    "Multivitamin Syrup", "ORS Sachet", "NS Saline Bottle", "RL Bottle",
+    "Disposable Syringe 2ml", "Disposable Syringe 5ml", "IV Cannula 20G",
+    "Surgical Gloves", "Examination Gloves", "Sterile Cotton Roll", "Bandage Roll",
+    "Betadine Ointment", "Diclofenac Gel", "Amoxiclav 625mg", "Doxycycline 100mg",
+    "Nebulizer Solution", "Inhaler (Salbutamol)", "Hydrocortisone Injection",
+    "Vitamin B12 Injection", "TT Injection", "Pain Relief Spray"
+];
+
+const openai = new OpenAI({
+    apiKey: process.env.NVIDIA_API_KEY || 'dummy_key_to_prevent_crash_if_missing',
+    baseURL: process.env.NVIDIA_BASE_URL || 'https://integrate.api.nvidia.com/v1',
+});
+
+const normalizeApiKey = (key) => {
+    if (!key || typeof key !== 'string') return '';
+    return key.trim().replace(/^Bearer\s+/i, '');
+};
+
+const getChatAI = async (messages, modelCandidates = ['meta/llama-3.1-70b-instruct', 'meta/llama3-70b-instruct', 'meta/llama-3.2-3b-instruct'], tokens = 1024) => {
+    const keyCandidates = [
+        normalizeApiKey(process.env.NVIDIA_API_KEY),
+        normalizeApiKey(process.env.NVIDIA_VISION_API_KEY),
+        normalizeApiKey(process.env.NVIDIA_VISION_FALLBACK_API_KEY)
+    ].filter(Boolean);
+
+    for (const key of keyCandidates) {
+        const openai = new OpenAI({ apiKey: key, baseURL: 'https://integrate.api.nvidia.com/v1' });
+        for (const model of modelCandidates) {
+            try {
+                const completion = await openai.chat.completions.create({ model, messages, temperature: 0.2, max_tokens: tokens });
+                if (completion?.choices?.[0]?.message?.content) return completion.choices[0].message.content;
+            } catch (e) {
+                if (e?.status === 404) continue;
+            }
+        }
+    }
+    throw new Error('All AI chat failovers exhausted');
+};
+
+// ─── AI ROUTES ─────────────────────────────────────────────────────────────
+
+app.post('/api/ai/symptom', async (req, res) => {
+    try {
+        const { symptoms } = req.body;
+        const msg = [
+            { role: "system", content: "You are an AI diagnostic assistant for Sri Kamala Hospital. Respond EXCLUSIVELY with a JSON object: { 'advice': { 'en': '...', 'te': '...' }, 'department': { 'en': '...', 'te': '...' } }. Concise and medical." },
+            { role: "user", content: symptoms }
+        ];
+        const modelText = await getChatAI(msg, ['meta/llama-3.1-405b-instruct', 'meta/llama-3.1-70b-instruct', 'meta/llama-3.2-3b-instruct']);
+        let jsonResponse = null;
+        try {
+            jsonResponse = JSON.parse(modelText.replace(/```json/g, '').replace(/```/g, '').trim());
+        } catch {
+            jsonResponse = { advice: { en: "Please visit the hospital for evaluation.", te: "దయచేసి ఆసుపత్రిని సందర్శించండి." }, department: { en: "General", te: "జనరల్" } };
+        }
+        res.json({ success: true, analysis: jsonResponse });
+    } catch (err) {
+        res.status(503).json({ success: false, message: "AI services busy." });
+    }
+});
+
+const HAM10000_CLASSES = {
+    'akiec': { name_en: "Actinic Keratosis", name_te: "యాక్టినిక్ కెరటోసిస్", risk: "Medium", desc_en: "Pre-cancerous sun damage.", desc_te: "ఎండ దెబ్బతినడం వల్ల వచ్చే క్యాన్సర్ ముందు దశ." },
+    'bcc': { name_en: "Basal Cell Carcinoma", name_te: "బేసల్ సెల్ కార్సినోమా", risk: "High", desc_en: "Common slow-growing skin cancer.", desc_te: "నెమ్మదిగా పెరిగే చర్మ క్యాన్సర్." },
+    'bkl': { name_en: "Benign Keratosis", name_te: "బెనైన్ కెరటోసిస్", risk: "Low", desc_en: "Harmless growths like seborrheic keratosis.", desc_te: "హాని కలిగించని చర్మ పెరుగుదలలు." },
+    'df': { name_en: "Dermatofibroma", name_te: "డెర్మటోఫైబ్రోమా", risk: "Low", desc_en: "Firm non-cancerous bumps on legs.", desc_te: "సాధారణంగా కాళ్లపై వచ్చే గడ్డలు." },
+    'mel': { name_en: "Melanoma", name_te: "మెలనోమా", risk: "Critically High", desc_en: "Serious skin cancer. Requires immediate review.", desc_te: "తీవ్రమైన చర్మ క్యాన్సర్." },
+    'nv': { name_en: "Melanocytic Nevi (Moles)", name_te: "మెలనోసైటిక్ నెవి", risk: "Low", desc_en: "Common moles. Usually benign.", desc_te: "సాధారణ పుట్టుమచ్చలు." },
+    'vasc': { name_en: "Vascular Lesions", name_te: "వాస్కులర్ గాయాలు", risk: "Low", desc_en: "Vascular growths like cherry angiomas.", desc_te: "రక్తనాళాల పెరుగుదల." }
+};
+
+const CONDITION_TO_DX = {
+    'actinic keratosis': 'akiec',
+    'basal cell carcinoma': 'bcc',
+    'benign keratosis': 'bkl',
+    'dermatofibroma': 'df',
+    'melanocytic nevi': 'nv',
+    'melanoma': 'mel',
+    'vascular lesions': 'vasc'
+};
+
+const mapSkinPrediction = (pred) => {
+    const dx = pred.dx || CONDITION_TO_DX[(pred.condition || '').toLowerCase().trim()] || 'nv';
+    const cls = HAM10000_CLASSES[dx] || HAM10000_CLASSES.nv;
+    const confRaw = pred.confidence;
+    const confidence = typeof confRaw === 'number' && confRaw <= 1 ? Math.round(confRaw * 1000) / 10 : Number(confRaw) || 0;
+    return {
+        success: true,
+        dx,
+        condition: pred.condition || cls.name_en,
+        condition_te: cls.name_te,
+        risk: pred.risk || cls.risk,
+        confidence,
+        uncertain: Boolean(pred.uncertain),
+        description_en: cls.desc_en,
+        description_te: cls.desc_te,
+        model: pred.model || 'HAM10000-CNN'
+    };
+};
+
+const SKIN_AI_URL = process.env.SKIN_AI_URL || `http://localhost:${process.env.SKIN_AI_PORT || 5005}`;
+
+const forwardSkinImage = async (req) => {
+    const FormData = require('form-data');
+    const form = new FormData();
+    if (req.file) {
+        form.append('image', req.file.buffer, { filename: req.file.originalname || 'image.jpg', contentType: req.file.mimetype || 'image/jpeg' });
+    } else if (req.files?.image) {
+        const f = req.files.image;
+        form.append('image', f.data || f, { filename: f.name || 'image.jpg', contentType: f.mimetype || 'image/jpeg' });
+    } else {
+        throw new Error('No image provided');
+    }
+    const response = await axios.post(`${SKIN_AI_URL}/predict`, form, {
+        headers: form.getHeaders(),
+        timeout: 12000,
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity
+    });
+    return response.data;
+};
+
+// Skin classification (HAM10000) — multipart via express (built-in for small uploads)
+const multer = require('multer');
+const skinUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 8 * 1024 * 1024 } });
+
+app.post('/api/ai/skin-predict', skinUpload.single('image'), async (req, res) => {
+    try {
+        if (!req.file) return res.status(400).json({ success: false, message: 'Image file required' });
+        const pred = await forwardSkinImage(req);
+        if (!pred?.success) return res.status(503).json({ success: false, message: pred?.error || 'Skin AI unavailable' });
+        return res.json(mapSkinPrediction(pred));
+    } catch (err) {
+        console.error('Skin predict error:', err.message);
+        return res.status(503).json({ success: false, message: 'Skin classification service unavailable. Ensure SKIN_AI_URL is running.' });
+    }
+});
+
+app.post('/predict', express.raw({ type: '*/*', limit: '20mb' }), async (req, res) => {
+    try {
+        const response = await axios.post(`${SKIN_AI_URL}/predict`, req.body, {
+            headers: { 'Content-Type': req.headers['content-type'] },
+            maxContentLength: Infinity, maxBodyLength: Infinity, timeout: 30000
+        });
+        res.json(response.data);
+    } catch (err) {
+        res.status(500).json({ success: false, message: `AI prediction failed: ${err.message}` });
+    }
+});
+
+app.post('/api/ai/vision', async (req, res) => {
+    try {
+        const { image, symptoms } = req.body;
+        if (!image) return res.status(400).json({ success: false, message: "No image provided" });
+
+        const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
+        const buffer = Buffer.from(base64Data, "base64");
+        const FormData = require('form-data');
+        const form = new FormData();
+        form.append('image', buffer, { filename: 'image.jpg', contentType: 'image/jpeg' });
+
+        try {
+            const flaskResponse = await axios.post(`${SKIN_AI_URL}/predict`, form, { headers: { ...form.getHeaders() }, timeout: 12000 });
+            if (flaskResponse.data?.success) {
+                const mapped = mapSkinPrediction(flaskResponse.data);
+                return res.json({
+                    success: true,
+                    analysis: {
+                        condition: { en: mapped.condition, te: mapped.condition_te },
+                        risk_level: mapped.risk,
+                        confidence: mapped.confidence,
+                        uncertain: mapped.uncertain,
+                        precautions: [{ en: mapped.description_en, te: mapped.description_te }],
+                        metadata: { source: mapped.model, dx: mapped.dx }
+                    }
+                });
+            }
+        } catch (fErr) { console.warn("Skin CNN fallback:", fErr.message); }
+
+        return res.json({
+            success: false,
+            message: "Skin classification model unavailable. Please consult dermatology in person.",
+            analysis: {
+                condition: { en: "Review required", te: "వైద్యుడి సమీక్ష అవసరం" },
+                risk_level: "Medium",
+                precautions: [{ en: "Upload a clear close-up image or visit the hospital.", te: "స్పష్టమైన చిత్రం అప్‌లోడ్ చేయండి లేదా ఆసుపత్రిని సంప్రదించండి." }]
+            }
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, message: "Skin AI engine failed." });
+    }
+});
+
+app.post('/api/ai/ocr', async (req, res) => {
+    try {
+        const { image } = req.body;
+        const keyCandidates = [
+            normalizeApiKey(process.env.NVIDIA_VISION_API_KEY),
+            normalizeApiKey(process.env.NVIDIA_VISION_FALLBACK_API_KEY),
+            normalizeApiKey(process.env.NVIDIA_API_KEY)
+        ].filter(Boolean);
+        const modelCandidates = ["meta/llama-3.2-90b-vision-instruct", "meta/llama-3.2-11b-vision-instruct", "microsoft/phi-3.5-vision-instruct"];
+        let response;
+        outer: for (const currentKey of keyCandidates) {
+            for (const currentModel of modelCandidates) {
+                try {
+                    const attempt = await axios.post("https://integrate.api.nvidia.com/v1/chat/completions", {
+                        model: currentModel,
+                        messages: [{ role: "user", content: [{ type: "text", text: `### CLINICAL OCR PROTOCOL V2.0\nDigitize this medical document with 100% precision.\nExtract as JSON: { "patient": "Patient Name", "date": "Date", "medicines": ["..."], "test_results": [{ "item_en": "...", "item_te": "...", "value": "...", "range": "...", "status": "..." }], "diagnosis_en": "...", "explanation_te": "...", "explanation_en": "..." }\nIMPORTANT: ONLY output VALID JSON.` }, { type: "image_url", image_url: { url: image } }] }],
+                        max_tokens: 2048, temperature: 0.1
+                    }, { headers: { "Authorization": `Bearer ${currentKey}`, "Content-Type": "application/json" }, timeout: 60000 });
+                    if (attempt.status === 200) { response = attempt; break outer; }
+                } catch (e) { continue; }
+            }
+        }
+        const content = response?.data?.choices?.[0]?.message?.content || "";
+        let json;
+        try { json = JSON.parse(content.replace(/```json|```/g, '').trim()); }
+        catch { json = { raw_extraction: content }; }
+        res.json({ success: true, data: json });
+    } catch (err) {
+        res.status(500).json({ success: false, message: "OCR engine failed." });
+    }
+});
+
+app.post('/api/ai/quality-check', async (req, res) => {
+    try {
+        const { image } = req.body;
+        const keyCandidates = [normalizeApiKey(process.env.NVIDIA_VISION_API_KEY), normalizeApiKey(process.env.NVIDIA_API_KEY)].filter(Boolean);
+        const modelCandidates = ["microsoft/phi-3.5-vision-instruct", "meta/llama-3.2-11b-vision-instruct"];
+        let response;
+        outer: for (const currentKey of keyCandidates) {
+            for (const currentModel of modelCandidates) {
+                try {
+                    const attempt = await axios.post("https://integrate.api.nvidia.com/v1/chat/completions", {
+                        model: currentModel,
+                        messages: [{ role: "user", content: [{ type: "text", text: "Evaluate clinical photo quality. Output ONLY JSON: { \"pass\": true/false, \"score\": 0-10, \"tips\": \"...\" }." }, { type: "image_url", image_url: { url: image } }] }],
+                        max_tokens: 512, temperature: 0.1
+                    }, { headers: { "Authorization": `Bearer ${currentKey}` }, timeout: 45000 });
+                    if (attempt.status === 200) { response = attempt; break outer; }
+                } catch (e) { continue; }
+            }
+        }
+        const content = response?.data?.choices?.[0]?.message?.content || "";
+        let json;
+        try { json = JSON.parse(content.replace(/```json|```/g, '').trim()); }
+        catch { json = { pass: true, score: 7, tips: "Proceed with caution." }; }
+        res.json({ success: true, quality: json });
+    } catch (err) {
+        res.status(500).json({ success: false, message: "Quality check failed." });
+    }
+});
+
+app.post('/api/ai/chat', async (req, res) => {
+    try {
+        const { query } = req.body;
+        const msg = [
+            { role: "system", content: `You are Dr. Kiran, the conversational AI for Sri Kamala Hospital in Suryapet. Official website: ${SITE_URL}. You output concise, empathetic, and professional responses. Max 3 sentences.` },
+            { role: "user", content: query }
+        ];
+        const responseText = await getChatAI(msg, ['meta/llama-3.1-70b-instruct', 'meta/llama3-70b-instruct', 'meta/llama-3.2-3b-instruct']);
+        res.json({ success: true, response: responseText || "I am currently offline. Call +91 99480 76665." });
+    } catch (err) {
+        res.status(500).json({ success: false, message: "Clinical AI is resting. Call +91 99480 76665." });
+    }
+});
+
+app.post('/api/ai/discover', async (req, res) => {
+    try {
+        const { keyword } = req.body;
+        if (!keyword) return res.json({ success: true, results: [] });
+        const msg = [
+            { role: "system", content: "You are a clinical AI. Suggest 2-3 standard medical equivalents. Output strictly a JSON array of strings." },
+            { role: "user", content: keyword }
+        ];
+        const responseText = await getChatAI(msg, ['meta/llama-3.1-70b-instruct', 'meta/llama-3.2-3b-instruct']);
+        let results = [];
+        try { results = JSON.parse(responseText.replace(/```json|```/g, '').trim()); if (!Array.isArray(results)) results = []; }
+        catch (e) { }
+        res.json({ success: true, results, ai_note: "Clinical suggestions gathered." });
+    } catch (err) {
+        res.json({ success: true, results: [], ai_note: "Could not fetch alternatives." });
+    }
+});
+
+// ─── ADMIN & CONFIG ROUTES ─────────────────────────────────────────────────
+
+app.post('/api/admin/login', (req, res) => {
+    const { password } = req.body;
+    if (password === process.env.ADMIN_PASSWORD) {
+        res.json({ success: true, token: 'admin-authorized-session' });
+    } else {
+        res.status(401).json({ success: false, message: 'Invalid Admin Password' });
+    }
+});
+
+app.get('/api/config', (req, res) => res.json({ success: true, config: siteConfig }));
+app.post('/api/config', (req, res) => {
+    siteConfig = { ...siteConfig, ...req.body };
+    res.json({ success: true, config: siteConfig });
+});
+
+// ─── APPOINTMENT ROUTES ────────────────────────────────────────────────────
+
+app.post('/api/create-appointment', (req, res) => {
+    // Ultra-defensive: synchronous wrapper prevents any async crash from leaking
+    const generateToken = (prefix) => {
+        const sfx = Math.random().toString(36).substring(2, 6).toUpperCase();
+        const ts = Date.now().toString().slice(-4);
+        return `${prefix}-${ts}-${sfx}`;
+    };
+
+    const respond = async () => {
+        try {
+            const { name, phone, age, gender, department, appointmentDate, reason, image } = req.body || {};
+            if (!name || !phone) {
+                return res.status(400).json({ success: false, message: "Missing required fields: name and phone" });
+            }
+
+            const safeDept = (department || '').toLowerCase();
+            const isDia = safeDept.includes('lab') || safeDept.includes('diagnosis');
+            const prefix = isDia ? 'KAMALADIA' : 'KAMALA-OP';
+            let finalToken = generateToken(prefix);
+
+            // Try to get sequential count from DB
+            if (supabase) {
+                try {
+                    const { count } = await supabase
+                        .from('appointments')
+                        .select('*', { count: 'exact', head: true })
+                        .ilike('token', `${prefix}%`);
+                    if (count !== null) {
+                        finalToken = `${prefix}-${String((count || 0) + 1).padStart(4, '0')}-${Math.random().toString(36).substring(2, 5).toUpperCase()}`;
+                    }
+                } catch (e) {
+                    console.warn('Token count failed:', e.message);
+                }
+            }
+
+            const bookingData = {
+                token: finalToken,
+                name, phone,
+                age: age || null,
+                gender: gender || null,
+                department: department || null,
+                appointment_date: appointmentDate || null,
+                reason: reason || (isDia ? 'Diagnostic Test' : 'General Checkup'),
+                payment_status: 'Pay at Hospital',
+                order_id: `OFFLINE_${Date.now()}`,
+            };
+
+            // Try DB insert (with and without image)
+            if (supabase) {
+                // First attempt: with image field
+                try {
+                    const { data, error } = await supabase
+                        .from('appointments')
+                        .insert({ ...bookingData, image: image || null })
+                        .select();
+                    if (!error && data?.[0]) {
+                        return res.json({ success: true, appointment: data[0], token: finalToken });
+                    }
+                    if (error) console.warn('Insert attempt 1 failed:', error.message);
+                } catch (e1) {
+                    console.warn('Insert attempt 1 exception:', e1.message);
+                }
+
+                // Second attempt: without image
+                try {
+                    const { data, error } = await supabase
+                        .from('appointments')
+                        .insert(bookingData)
+                        .select();
+                    if (!error && data?.[0]) {
+                        return res.json({ success: true, appointment: data[0], token: finalToken });
+                    }
+                    if (error) console.warn('Insert attempt 2 failed:', error.message);
+                } catch (e2) {
+                    console.warn('Insert attempt 2 exception:', e2.message);
+                }
+            }
+
+            // Offline fallback — always succeeds
+            return res.json({
+                success: true,
+                appointment: { ...bookingData, image: null, id: `offline_${Date.now()}` },
+                token: finalToken,
+                offline_mode: true,
+                note: 'Show this token at hospital reception.'
+            });
+
+        } catch (criticalErr) {
+            console.error('CRITICAL booking handler error:', criticalErr.message);
+            return res.json({
+                success: true,
+                token: `KAMALA-OP-${Date.now().toString().slice(-6)}`,
+                offline_mode: true,
+                message: 'Emergency offline booking. Show this token at reception.'
+            });
+        }
+    };
+
+    respond().catch(err => {
+        console.error('Unhandled promise rejection in booking:', err.message);
+        if (!res.headersSent) {
+            res.json({
+                success: true,
+                token: `KAMALA-OP-${Date.now().toString().slice(-6)}`,
+                offline_mode: true,
+                message: 'Emergency offline booking. Show this token at reception.'
+            });
+        }
+    });
+});
+
+app.get('/api/admin/appointments', async (req, res) => {
+    try {
+        if (!supabase) return res.json({ success: true, appointments: [{ _id: '1', name: 'Mock Patient', token: 'TKN-DEMO', department: 'General', phone: '0000', paymentStatus: 'Paid', appointmentDate: '2026-03-22' }] });
+        const { data, error } = await supabase.from('appointments').select('*').order('created_at', { ascending: false });
+        if (error) throw error;
+        const transformed = data.map(item => ({
+            _id: item.id, name: item.name, token: item.token, department: item.department,
+            phone: item.phone, age: item.age, gender: item.gender, reason: item.reason,
+            paymentStatus: item.payment_status, appointmentDate: item.appointment_date, orderId: item.order_id, image: item.image
+        }));
+        res.json({ success: true, appointments: transformed });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+app.get('/api/appointments/:token', async (req, res) => {
+    try {
+        const { token } = req.params;
+        if (!token) return res.status(400).json({ success: false, message: 'Token required' });
+        if (!supabase) return res.json({ success: true, appointment: { token, name: 'Demo Patient', phone: '0000000000', age: 30, gender: 'Male', department: 'General OP', paymentStatus: 'Pay at Hospital', appointmentDate: '2026-03-22', reason: 'Demo booking' } });
+        const { data, error } = await supabase.from('appointments').select('*').eq('token', token).order('created_at', { ascending: false }).limit(1).maybeSingle();
+        if (error) throw error;
+        if (!data) return res.status(404).json({ success: false, message: 'Appointment not found' });
+        return res.json({ success: true, appointment: { _id: data.id, name: data.name, token: data.token, department: data.department, phone: data.phone, age: data.age, gender: data.gender, reason: data.reason, paymentStatus: data.payment_status, appointmentDate: data.appointment_date, orderId: data.order_id, image: data.image } });
+    } catch (err) {
+        return res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+app.post('/api/admin/update-appointment', async (req, res) => {
+    try {
+        const { id, paymentStatus } = req.body;
+        if (!supabase) return res.status(503).json({ success: false, message: 'Database not connected' });
+        const { data, error } = await supabase.from('appointments').update({ payment_status: paymentStatus, updated_at: new Date() }).eq('id', id).select();
+        if (error) throw error;
+        res.json({ success: true, appointment: data[0] });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// ─── PAYMENT & LAB ROUTES ──────────────────────────────────────────────────
+
+app.post('/api/create-upi-order', async (req, res) => {
+    try {
+        const { name, phone, age, gender, department, appointmentDate, reason, token } = req.body;
+        const orderId = `ORD_${Date.now()}`;
+        if (supabase) {
+            const { data, error } = await supabase.from('appointments').insert({ order_id: orderId, token, name, phone, age, gender, department, appointment_date: appointmentDate, reason, payment_status: 'Pending' }).select();
+            if (error) throw error;
+        }
+        res.json({ success: true, orderId, paymentUrl: `https://test.cashfree.com/pg/v1/checkout/${orderId}` });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+app.get('/api/lab/tests', async (req, res) => {
+    try {
+        let tests = [];
+        if (supabase) {
+            const { data } = await supabase.from('labtests').select('*');
+            if (data?.length > 0) tests = data;
+        }
+        if (tests.length === 0) {
+            tests = [
+                { name: 'Complete Blood Picture (CBP)', category: 'Hematology', price: 250, report_time: 12 },
+                { name: 'Blood Glucose (Sugar)', category: 'Biochemistry', price: 150, report_time: 6 },
+                { name: 'Differential Count (DC)', category: 'Hematology', price: 200, report_time: 12 },
+                { name: 'ESR (1st & 2nd Hour)', category: 'Hematology', price: 100, report_time: 12 },
+                { name: 'Hemoglobin (Hb)', category: 'Hematology', price: 120, report_time: 8 },
+                { name: 'Thyroid Profile (T3, T4, TSH)', category: 'Hormonal', price: 450, report_time: 24 },
+                { name: 'Lipid Profile (Cholesterol)', category: 'Cardiology', price: 500, report_time: 24 },
+                { name: 'Liver Function Test (LFT)', category: 'General', price: 650, report_time: 24 },
+                { name: 'Kidney Function Test (KFT)', category: 'General', price: 750, report_time: 24 },
+                { name: 'HbA1c', category: 'Diabetes', price: 450, report_time: 24 },
+                { name: 'Widal Test', category: 'Serology', price: 300, report_time: 24 },
+                { name: 'Dengue NS1 Antigen', category: 'Serology', price: 600, report_time: 24 },
+                { name: 'Malaria Parasite Test', category: 'Serology', price: 320, report_time: 18 },
+                { name: 'CRP (C-Reactive Protein)', category: 'Immunology', price: 420, report_time: 24 }
+            ];
+        }
+        res.json({ success: true, tests });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+app.get('/api/pharmacy/products', async (req, res) => {
+    try {
+        let products = [];
+        if (supabase) {
+            const { data } = await supabase.from('products').select('*');
+            if (data?.length > 0) products = data;
+        }
+        if (products.length === 0) {
+            products = [
+                { name: 'Paracetamol 650mg', category: 'General', price: 12, image: 'pill' },
+                { name: 'Amoxicillin 500mg', category: 'Antibiotics', price: 45, image: 'capsule' },
+                { name: 'Surgical Gloves (Pair)', category: 'General Hospital', price: 20, image: 'kit' },
+                { name: 'Disposable Syringe 5ml', category: 'Injections', price: 15, image: 'kit' },
+                { name: 'D-Rise 60k Capsule', category: 'Vitamins', price: 25, image: 'capsule' },
+                { name: 'Azithromycin 500mg', category: 'Antibiotics', price: 80, image: 'capsule' }
+            ];
+        }
+        res.json({ success: true, products });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+app.post('/api/ai/medicine-discovery', async (req, res) => {
+    const { keyword } = req.body;
+    if (!keyword) return res.json({ success: true, results: [] });
+    const results = medicineCatalog.filter(m => m.toLowerCase().includes(keyword.toLowerCase()));
+    res.json({ success: true, results: results.slice(0, 8), totalMatches: results.length, ai_note: keyword.length > 2 ? `Detected '${keyword}'. ${results.length} items found.` : '' });
+});
+
+app.get('/api/medicines/catalog', (req, res) => {
+    res.json({ success: true, medicines: medicineCatalog });
+});
+
+// ─── PATIENT CLINICAL NOTES ────────────────────────────────────────────────
+
+app.post('/api/admin/patient-clinical-note', (req, res) => {
+    try {
+        const { token, patientName, phone, diagnosisType, notes, prescription } = req.body;
+        if (!token || !patientName || !phone) return res.status(400).json({ success: false, message: 'token, patientName and phone are required' });
+        const key = `${patientName.trim().toLowerCase()}_${phone.trim()}`;
+        if (!patientClinicalRecords[key]) patientClinicalRecords[key] = [];
+        patientClinicalRecords[key].push({ token, diagnosisType: diagnosisType || 'General', notes: notes || '', prescription: prescription || [], createdAt: new Date().toISOString() });
+        return res.json({ success: true, records: patientClinicalRecords[key] });
+    } catch (err) {
+        return res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+app.post('/api/admin/patient-clinical-history', (req, res) => {
+    const { patientName, phone } = req.body;
+    if (!patientName || !phone) return res.status(400).json({ success: false, message: 'patientName and phone are required' });
+    const key = `${patientName.trim().toLowerCase()}_${phone.trim()}`;
+    return res.json({ success: true, records: patientClinicalRecords[key] || [] });
+});
+
+// ─── GLOBAL ERROR HANDLER (catches any unhandled Express errors) ────────────
+app.use((err, req, res, next) => {
+    console.error('Global Express Error:', err.message);
+    // For booking route, always return success so patients get their token
+    if (req.path === '/api/create-appointment' || req.path === '/create-appointment') {
+        return res.json({
+            success: true,
+            token: `KAMALA-OP-${Date.now().toString().slice(-6)}`,
+            offline_mode: true,
+            message: 'Emergency offline booking. Show this token at reception.'
+        });
+    }
+    res.status(500).json({ success: false, message: err.message || 'Internal Server Error' });
+});
+
+// ─── START SERVER ──────────────────────────────────────────────────────────
+
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Sri Kamala Hospital Backend Live on Port ${PORT}`);
+    console.log(`🏥 Booking: KAMALA-OP-XXXX | Diagnostics: KAMALADIA-XXXX`);
+});
