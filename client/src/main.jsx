@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './index.css'
+import './styles/responsive.css'
 
 const stored = localStorage.getItem('sk_theme')
 if (stored === 'dark' || stored === 'light') {

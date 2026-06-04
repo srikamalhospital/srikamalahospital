@@ -181,7 +181,7 @@ const AdminPharmacyPanel = ({
         ) : orders.length === 0 ? (
           <p className="p-12 text-center text-slate-500">{t('empty')}</p>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="table-scroll">
             <table className="w-full text-left text-sm min-w-[900px]">
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>

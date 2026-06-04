@@ -44,7 +44,7 @@ const PatientReviews = ({ showSubmitForm = false, compact = false, limit = 8 }) 
 
   return (
     <section className={`px-6 bg-hospital-surface ${compact ? 'py-8' : 'py-16'} grainy`}>
-      <div className="container mx-auto max-w-6xl">
+      <div className="page-container max-w-6xl">
         <div className={`flex items-center justify-between gap-4 ${compact ? 'mb-6' : 'mb-12'}`}>
           <h2 className={`font-bold text-hospital-dark font-['Noto_Sans_Telugu'] ${compact ? 'text-xl' : 'heading-clinical'}`}>
             రోగి అభిప్రాయాలు {!compact && <span className="text-hospital-secondary italic">Patient reviews</span>}

@@ -292,7 +292,7 @@ const MedicalShop = () => {
 
   return (
     <div className="pro-page grainy pb-28">
-      <div className="container mx-auto max-w-7xl">
+      <div className="page-container max-w-7xl">
         <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="pro-section-label">Pharmacy</p>
@@ -522,7 +522,7 @@ const MedicalShop = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-slate-900/50 flex justify-end"
+            className="fixed inset-0 z-50 bg-slate-900/50 flex justify-end safe-area-pt"
             onClick={() => setCartOpen(false)}
           >
             <motion.aside
@@ -530,7 +530,7 @@ const MedicalShop = () => {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-              className="w-full max-w-md h-full bg-white shadow-2xl flex flex-col"
+              className="w-full max-w-md h-full max-h-[100dvh] bg-white shadow-2xl flex flex-col safe-area-pb"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="p-5 border-b border-slate-200 flex items-center justify-between">

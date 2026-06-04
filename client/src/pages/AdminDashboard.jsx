@@ -58,7 +58,9 @@ const AdminDashboard = () => {
     });
 
     // UI States
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(() =>
+        typeof window !== 'undefined' ? window.innerWidth >= 1024 : true
+    );
     const [activePatient, setActivePatient] = useState(null);
     const [aiKeyword, setAiKeyword] = useState('');
     const [aiSuggestions, setAiSuggestions] = useState([]);
@@ -309,10 +311,23 @@ const AdminDashboard = () => {
     );
 
     return (
-        <div className="min-h-screen bg-slate-50 flex font-['Outfit'] text-slate-900 overflow-hidden relative">
+        <div className="min-h-screen min-h-[100dvh] bg-slate-50 flex font-['Outfit'] text-slate-900 overflow-hidden relative">
+
+            {isSidebarOpen && (
+                <button
+                    type="button"
+                    aria-label="Close menu"
+                    className="fixed inset-0 z-30 bg-slate-900/40 lg:hidden"
+                    onClick={() => setIsSidebarOpen(false)}
+                />
+            )}
 
             {/* Nav Rail */}
-            <aside className={`bg-white border-r border-black/5 flex flex-col transition-all duration-700 overflow-hidden ${isSidebarOpen ? 'w-80' : 'w-24'} relative z-30 backdrop-blur-3xl shadow-xl`}>
+            <aside
+                className={`bg-white border-r border-black/5 flex flex-col transition-transform duration-300 overflow-hidden fixed lg:static inset-y-0 left-0 z-40 shadow-xl
+                ${isSidebarOpen ? 'translate-x-0 w-[min(18rem,88vw)]' : '-translate-x-full lg:translate-x-0'}
+                ${isSidebarOpen ? 'lg:w-80' : 'lg:w-24'}`}
+            >
                 <div className="p-10 flex items-center justify-center lg:justify-start gap-5 border-b border-black/5 h-28 italic">
                     <div className="w-14 h-14 bg-slate-50 border border-black/5 rounded-2xl shadow-md flex items-center justify-center shrink-0 hover:rotate-12 transition-transform text-hospital-secondary"><LayoutDashboard size={26} /></div>
                     {isSidebarOpen && <h1 className="text-xl font-black text-slate-900 leading-none font-['Noto_Sans_Telugu']">శ్రీ కమల</h1>}
@@ -349,19 +364,19 @@ const AdminDashboard = () => {
             {/* Main Area */}
             <main className="flex-1 flex flex-col h-screen relative bg-slate-50 overflow-hidden">
 
-                <header className="h-28 px-12 flex justify-between items-center border-b border-black/5 shrink-0 relative z-20 backdrop-blur-3xl bg-white/80">
-                    <div className="flex items-center gap-8">
-                        <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="w-12 h-12 flex items-center justify-center bg-slate-50 border border-black/5 rounded-2xl hover:bg-slate-100 transition-colors text-slate-400"><MoreVertical size={22} /></button>
-                        <h2 className="text-2xl font-bold text-slate-900 leading-none">{t(`tabs.${activeTab}`) || activeTab}</h2>
+                <header className="min-h-[4.5rem] px-4 sm:px-8 lg:px-12 py-3 flex flex-wrap justify-between items-center gap-3 border-b border-black/5 shrink-0 relative z-20 backdrop-blur-3xl bg-white/80">
+                    <div className="flex items-center gap-3 sm:gap-6 min-w-0">
+                        <button type="button" onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="w-11 h-11 flex items-center justify-center bg-slate-50 border border-black/5 rounded-2xl hover:bg-slate-100 text-slate-500 shrink-0" aria-label="Toggle menu"><MoreVertical size={22} /></button>
+                        <h2 className="text-lg sm:text-2xl font-bold text-slate-900 leading-tight truncate">{t(`tabs.${activeTab}`) || activeTab}</h2>
                     </div>
-                    <div className="flex items-center gap-4 flex-wrap">
-                        <button type="button" onClick={toggleLang} className="flex items-center gap-2 px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold hover:bg-white">
+                    <div className="flex items-center gap-2 sm:gap-4 flex-wrap w-full sm:w-auto">
+                        <button type="button" onClick={toggleLang} className="flex items-center gap-2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-bold hover:bg-white min-h-[44px]">
                             <Languages size={18} /> {lang === 'en' ? 'తెలుగు' : 'English'}
                         </button>
-                        <div className="relative group hidden lg:block">
-                            <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
-                            <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} type="text" placeholder={t('search')}
-                                className="bg-slate-50 border border-black/5 pl-12 pr-6 py-3 rounded-2xl text-sm outline-none focus:border-hospital-primary w-64 lg:w-80" />
+                        <div className="relative group flex-1 sm:flex-none min-w-0">
+                            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
+                            <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} type="search" placeholder={t('search')}
+                                className="bg-slate-50 border border-black/5 pl-10 pr-4 py-2.5 rounded-2xl text-base sm:text-sm outline-none focus:border-hospital-primary w-full sm:w-64 lg:w-80 min-h-[44px]" />
                         </div>
                         <div className="text-right hidden sm:block">
                             <p className="text-xs text-green-600 font-semibold">{t('live')}</p>
@@ -370,7 +385,7 @@ const AdminDashboard = () => {
                     </div>
                 </header>
 
-                <div className="flex-1 overflow-y-auto p-12 lg:p-16 scrollbar-hide relative z-10">
+                <div className="flex-1 overflow-y-auto p-4 sm:p-8 lg:p-16 scrollbar-hide relative z-10 min-w-0">
                     <AnimatePresence mode="wait">
                         {activeTab === 'overview' && (
                             <motion.div key="overview" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -20, opacity: 0 }} className="space-y-16">
@@ -419,7 +434,7 @@ const AdminDashboard = () => {
                                         </div>
                                         <button className="px-10 py-5 bg-slate-50 border border-black/5 rounded-full text-[11px] font-black uppercase tracking-[0.4em] italic hover:bg-slate-100 active:scale-95 transition-all text-slate-900">Download Audit CSV</button>
                                     </div>
-                                    <div className="overflow-x-auto relative z-10 scrollbar-hide">
+                                    <div className="table-scroll relative z-10 scrollbar-hide">
                                         <table className="w-full text-left min-w-[900px]">
                                             <thead>
                                                 <tr className="border-b border-black/5">

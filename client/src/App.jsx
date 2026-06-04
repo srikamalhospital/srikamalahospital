@@ -32,7 +32,7 @@ const Layout = ({ children }) => {
     const isAdmin = pathname === '/6665';
 
     return (
-        <div className="site-shell relative selection:bg-hospital-primary selection:text-white overflow-x-hidden min-h-screen scan-effect">
+        <div className="site-shell relative selection:bg-hospital-primary selection:text-white overflow-x-clip min-h-screen min-h-[100dvh] scan-effect">
             <ScrollToTop />
             <CustomCursor />
             <BackgroundIcons />

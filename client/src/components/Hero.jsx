@@ -5,14 +5,14 @@ import { Link } from 'react-router-dom';
 
 const Hero = () => {
   return (
-    <section className="relative min-h-[42vh] flex items-center overflow-hidden bg-hospital-surface px-6 pt-20 pb-8 grainy">
-      <div className="container mx-auto max-w-5xl relative z-10">
+    <section className="relative min-h-[36vh] sm:min-h-[42vh] flex items-center overflow-hidden bg-hospital-surface px-4 sm:px-6 pt-6 sm:pt-10 pb-6 sm:pb-8 grainy">
+      <div className="page-container max-w-5xl relative z-10">
         <div className="grid lg:grid-cols-2 gap-8 items-center">
           <div>
             <motion.h1
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-4xl md:text-5xl font-black text-hospital-dark leading-tight mb-3 font-['Noto_Sans_Telugu']"
+              className="text-3xl sm:text-4xl md:text-5xl font-black text-hospital-dark leading-tight mb-3 font-['Noto_Sans_Telugu']"
             >
               శ్రీ కమలా ఆసుపత్రి
             </motion.h1>

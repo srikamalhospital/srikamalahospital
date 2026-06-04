@@ -104,8 +104,8 @@ const AIHealthPage = () => {
 
   return (
     <div className="pro-page grainy">
-      <div className="container mx-auto max-w-6xl">
-        <header className="text-center mb-10">
+      <div className="page-container max-w-6xl">
+        <header className="text-center mb-6 sm:mb-10">
           <p className="pro-section-label mb-2">Sri Kamala Hospital</p>
           <h1 className="pro-title font-['Noto_Sans_Telugu']">AI ఆరోగ్య కేంద్రం</h1>
           <p className="pro-subtitle mx-auto">
@@ -114,7 +114,7 @@ const AIHealthPage = () => {
           </p>
         </header>
 
-        <div className="flex flex-wrap justify-center gap-3 mb-8">
+        <div className="pro-tabs-row mb-6 sm:mb-8">
           {TABS.map((tab) => (
             <button
               key={tab.id}
@@ -129,7 +129,7 @@ const AIHealthPage = () => {
           ))}
         </div>
 
-        <div className="pro-card min-h-[480px]">
+        <div className="pro-card min-h-0 sm:min-h-[400px]">
           <p className="text-xs font-semibold text-hospital-primary uppercase tracking-wider mb-6 pb-4 border-b border-theme">
             {active?.labelEn} — {active?.hint}
           </p>
@@ -147,7 +147,7 @@ const AIHealthPage = () => {
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                className="grid lg:grid-cols-2 gap-8"
+                className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8"
               >
                 <div>
                   <h2 className="text-xl font-bold text-theme mb-2 font-['Noto_Sans_Telugu']">రిపోర్ట్ విశ్లేషణ</h2>
@@ -225,7 +225,7 @@ const AIHealthPage = () => {
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                className="grid lg:grid-cols-2 gap-8"
+                className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8"
               >
                 <div>
                   <h2 className="text-xl font-bold text-theme mb-2 font-['Noto_Sans_Telugu']">చర్మ పరీక్ష AI</h2>

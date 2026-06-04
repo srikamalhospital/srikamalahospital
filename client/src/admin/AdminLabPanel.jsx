@@ -35,7 +35,7 @@ const AdminLabPanel = ({ t }) => {
       ) : requests.length === 0 ? (
         <p className="text-slate-400">{t('lab.empty')}</p>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="table-scroll">
           <table className="w-full text-left text-sm min-w-[700px]">
             <thead>
               <tr className="text-slate-400 uppercase text-[10px]">

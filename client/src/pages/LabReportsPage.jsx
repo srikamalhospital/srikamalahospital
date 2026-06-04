@@ -56,7 +56,7 @@ const LabReportsPage = () => {
 
   return (
     <div className="pro-page grainy pb-24">
-      <div className="container mx-auto max-w-3xl px-4 py-12">
+      <div className="page-container max-w-3xl py-8 sm:py-12">
         <header className="text-center mb-10">
           <p className="pro-section-label mb-2">Sri Kamala Hospital</p>
           <h1 className="pro-title font-['Noto_Sans_Telugu']">ల్యాబ్ రిపోర్ట్ ట్రాకింగ్</h1>

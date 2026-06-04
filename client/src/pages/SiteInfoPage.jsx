@@ -148,7 +148,7 @@ const SiteInfoPage = () => {
 
   return (
     <section className="pro-page grainy">
-      <div className="container mx-auto max-w-5xl">
+      <div className="page-container max-w-5xl">
         <Link to="/" className="inline-flex items-center gap-3 text-hospital-dark font-semibold mb-8 hover:text-hospital-primary transition-colors group">
           <div className="p-2 bg-white rounded-xl border border-slate-200 shadow-clinical group-hover:-translate-x-1 transition-transform">
             <ArrowLeft size={18} />

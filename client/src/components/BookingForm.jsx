@@ -65,7 +65,7 @@ const BookingForm = () => {
 
   return (
     <section className="py-8">
-      <div className="max-w-4xl mx-auto">
+      <div className="page-container max-w-4xl">
         <div className="grid lg:grid-cols-5 gap-8 items-start">
             <div className="lg:col-span-2 space-y-6">
                 <div>
@@ -108,7 +108,7 @@ const BookingForm = () => {
                     onSubmit={handleSubmit} 
                     className="pro-card space-y-6"
                 >
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <label className="font-['Noto_Sans_Telugu'] text-[10px] font-black uppercase tracking-widest text-hospital-slate/60 ml-1">పూర్తి పేరు <span className="text-[8px] opacity-40 ml-1 uppercase">Full Name</span></label>
                             <input required type="text" placeholder="పేరు (Patient Name)" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})}
@@ -121,7 +121,7 @@ const BookingForm = () => {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <label className="font-['Noto_Sans_Telugu'] text-[10px] font-black uppercase tracking-widest text-hospital-slate/60 ml-1">వయస్సు <span className="text-[8px] opacity-40 ml-1 uppercase">Age</span></label>
                             <input required type="number" placeholder="సంవత్సరాలు (Years)" value={formData.age} onChange={(e) => setFormData({...formData, age: e.target.value})}
@@ -138,7 +138,7 @@ const BookingForm = () => {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <label className="font-['Noto_Sans_Telugu'] text-[10px] font-black uppercase tracking-widest text-hospital-slate/60 ml-1">విభాగం <span className="text-[8px] opacity-40 ml-1 uppercase">Dept</span></label>
                             <select value={formData.department} onChange={(e) => setFormData({...formData, department: e.target.value})}

@@ -11,7 +11,7 @@ const actions = [
 
 const QuickActionGrid = () => (
   <section className="py-6 px-6" style={{ backgroundColor: 'var(--page-bg)' }}>
-    <div className="container mx-auto max-w-5xl">
+    <div className="page-container max-w-5xl">
       <h2 className="text-center text-sm font-bold uppercase tracking-wider text-hospital-slate mb-4">
         Quick links
       </h2>

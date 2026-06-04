@@ -181,13 +181,13 @@ const HealthBot = () => {
     if (isDismissed) return null;
 
     return (
-        <div className="fixed bottom-6 right-6 z-[600]">
+        <div className="fixed bottom-[4.75rem] right-3 sm:bottom-6 sm:right-6 z-[55] safe-area-pb">
             <AnimatePresence>
                 {!isOpen && (
                   <div className="relative group">
                     <motion.button initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
                         onClick={() => setIsOpen(true)}
-                        className="w-10 h-10 bg-white text-hospital-primary rounded-full shadow-xl flex items-center justify-center border border-black/5 hover:scale-105 transition-all">
+                        className="w-12 h-12 sm:w-11 sm:h-11 bg-white text-hospital-primary rounded-full shadow-xl flex items-center justify-center border border-black/5 hover:scale-105 transition-all">
                         <Bot size={24} className="relative z-10" />
                     </motion.button>
                     
@@ -212,8 +212,8 @@ const HealthBot = () => {
                         initial={{ opacity: 0, scale: 0.9, y: 30 }} 
                         animate={{ opacity: 1, scale: 1, y: 0 }} 
                         exit={{ opacity: 0, scale: 0.9, y: 30 }}
-                        className="w-[85vw] md:w-[260px] h-[60vh] md:h-[380px] bg-white rounded-[24px] shadow-4xl flex flex-col overflow-hidden border border-black/5 backdrop-blur-3xl relative">
-                        
+                        className="fixed inset-x-3 bottom-[4.5rem] sm:static sm:inset-auto w-auto sm:w-[260px] h-[min(70dvh,520px)] sm:h-[380px] max-h-[calc(100dvh-6rem)] bg-white rounded-2xl sm:rounded-[24px] shadow-4xl flex flex-col overflow-hidden border border-black/5 backdrop-blur-3xl relative"
+                    >
                         {/* Transparent Logo Background Decor */}
                         <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none select-none">
                             <img src="/logo.png" className="w-[80%] h-auto object-contain" alt="Background Watermark" />

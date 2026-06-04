@@ -12,7 +12,7 @@ const EmergencyBar = () => {
       role="region"
       aria-label="Emergency contacts"
     >
-      <div className="container mx-auto max-w-7xl px-3 py-2 flex flex-wrap items-center justify-center gap-2 sm:gap-4 text-xs sm:text-sm font-bold">
+      <div className="page-container max-w-7xl py-2 flex flex-wrap items-center justify-center gap-2 sm:gap-4 text-xs sm:text-sm font-bold">
         <span className="hidden sm:inline-flex items-center gap-1 uppercase tracking-wider opacity-90">
           <Ambulance size={16} /> Emergency
         </span>

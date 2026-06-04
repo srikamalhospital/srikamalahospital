@@ -32,7 +32,7 @@ const Doctors = () => {
 
   return (
     <section id="doctors" className="py-2">
-      <div className="grid lg:grid-cols-3 gap-6 items-start max-w-6xl mx-auto">
+      <div className="page-container grid grid-cols-1 lg:grid-cols-3 gap-6 items-start max-w-6xl">
         <div className="lg:col-span-1 space-y-3">
           <h2 className="text-xl font-bold text-hospital-dark font-['Noto_Sans_Telugu']">వైద్య నిపుణులు</h2>
           <p className="text-sm text-slate-600">Dr. D. Kiran — General Medicine. Book OP or use AI for symptom guidance.</p>

@@ -14,7 +14,7 @@ function Home() {
   }, []);
 
   return (
-    <div className="bg-hospital-surface min-h-screen pb-20 selection:bg-hospital-primary selection:text-white overflow-hidden grainy font-['Plus_Jakarta_Sans']">
+    <div className="bg-hospital-surface min-h-screen selection:bg-hospital-primary selection:text-white overflow-x-clip grainy font-['Plus_Jakarta_Sans'] nav-offset">
       <div className="logo-bg-overlay" />
 
       <main className="relative z-10">

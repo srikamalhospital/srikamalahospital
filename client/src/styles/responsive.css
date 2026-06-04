@@ -1,0 +1,88 @@
+/* Mobile-first layout foundation — base = phones, enhance at sm/md/lg */
+
+html {
+  overflow-x: clip;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  overflow-x: clip;
+  min-width: 0;
+}
+
+img,
+video,
+svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Safe areas (notch / home indicator) */
+.safe-area-pt {
+  padding-top: max(0.75rem, env(safe-area-inset-top));
+}
+
+.safe-area-pb {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+
+.safe-area-pb-lg {
+  padding-bottom: max(5rem, calc(env(safe-area-inset-bottom) + 4.5rem));
+}
+
+/* Main content clears fixed nav + emergency bar + chat */
+.main-wrapper {
+  padding-bottom: max(6.5rem, calc(env(safe-area-inset-bottom) + 5.5rem));
+  min-width: 0;
+}
+
+@media (min-width: 640px) {
+  .main-wrapper {
+    padding-bottom: max(5rem, calc(env(safe-area-inset-bottom) + 4rem));
+  }
+}
+
+.page-container {
+  width: 100%;
+  max-width: 72rem;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  min-width: 0;
+}
+
+@media (min-width: 768px) {
+  .page-container {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+/* Touch-friendly controls */
+@media (pointer: coarse) {
+  .pro-input,
+  .pro-btn-primary,
+  .pro-btn-outline,
+  .btn-clinical,
+  button,
+  a[role='button'] {
+    min-height: 44px;
+  }
+
+  .pro-input,
+  select.pro-input {
+    font-size: 16px; /* prevents iOS zoom on focus */
+  }
+}
+
+/* Horizontal scroll for tables */
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-scroll table {
+  min-width: 560px;
+}

@@ -8,15 +8,15 @@ import ThemeToggle from './ThemeToggle';
 const Footer = () => {
     const { config, hospitalTel, diagnosticsTel } = useSiteConfig();
     return (
-        <footer className="pt-40 pb-20 px-6 relative overflow-hidden grainy border-t border-theme" style={{ backgroundColor: 'var(--surface-bg)', color: 'var(--text-primary)' }}>
+        <footer className="pt-12 sm:pt-20 md:pt-28 pb-24 sm:pb-20 px-4 sm:px-6 safe-area-pb relative overflow-hidden grainy border-t border-theme" style={{ backgroundColor: 'var(--surface-bg)', color: 'var(--text-primary)' }}>
 
             {/* Clinical Accents */}
             <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-hospital-primary/20 to-transparent"></div>
             <div className="absolute -bottom-40 -right-40 w-[600px] h-[600px] bg-hospital-primary/5 rounded-full blur-[160px] pointer-events-none animate-pulse-soft"></div>
             <div className="absolute top-1/4 -left-20 w-[500px] h-[500px] bg-hospital-secondary/5 rounded-full blur-[140px] pointer-events-none animate-pulse-soft" style={{ animationDelay: '2s' }}></div>
 
-            <div className="container mx-auto max-w-7xl relative z-10">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-16 mb-24">
+            <div className="page-container max-w-7xl relative z-10">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-12 mb-12 sm:mb-16">
 
                     {/* Brand Section */}
                     <div className="space-y-8">

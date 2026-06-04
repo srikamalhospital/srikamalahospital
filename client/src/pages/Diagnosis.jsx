@@ -131,7 +131,7 @@ CRITICAL RULE: You MUST format your precise response as:
 
   return (
     <div className="pro-page grainy">
-      <div className="container mx-auto max-w-7xl">
+      <div className="page-container max-w-7xl">
         <header className="mb-10">
           <p className="pro-section-label">Diagnostics</p>
           <h1 className="pro-title font-['Noto_Sans_Telugu']">ల్యాబ్ పరీక్షలు</h1>
@@ -147,7 +147,7 @@ CRITICAL RULE: You MUST format your precise response as:
           </div>
 
           <div className="flex flex-col gap-8 w-full md:w-[500px]">
-            <div className="bg-white border border-black/5 p-10 rounded-[50px] text-slate-900 shadow-xl relative overflow-hidden group">
+            <div className="bg-white border border-black/5 p-5 sm:p-8 md:p-10 rounded-3xl sm:rounded-[50px] text-slate-900 shadow-xl relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-6 text-hospital-primary opacity-5 group-hover:scale-125 transition-transform duration-1000"><Sparkles size={120} /></div>
               <div className="flex justify-between items-start mb-4">
                 <p className="text-[10px] font-black uppercase tracking-[0.4em] text-hospital-primary mb-4 opacity-70">AI Diagnostic Scout Protocol</p>
@@ -181,12 +181,12 @@ CRITICAL RULE: You MUST format your precise response as:
             <div className="relative group w-full">
               <Search size={24} className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-hospital-primary transition-all z-10" />
               <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} type="text" placeholder="కావాల్సిన పరీక్ష కోసం వెతకండి..."
-                className="w-full bg-white border border-black/5 focus:border-hospital-primary/30 shadow-xl p-7 pl-16 rounded-[40px] outline-none text-sm font-bold transition-all text-slate-900 placeholder:text-slate-200 font-['Noto_Sans_Telugu']" />
+                className="w-full bg-white border border-black/5 focus:border-hospital-primary/30 shadow-xl p-4 sm:p-7 pl-12 sm:pl-16 rounded-2xl sm:rounded-[40px] outline-none text-sm font-bold transition-all text-slate-900 placeholder:text-slate-200 font-['Noto_Sans_Telugu']" />
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 md:gap-8">
           {filteredTests.map((test, index) => (
             <motion.div key={index}
               initial={{ y: 30, opacity: 0 }}
@@ -207,7 +207,7 @@ CRITICAL RULE: You MUST format your precise response as:
                 <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/20 to-transparent"></div>
               </div>
 
-              <div className="p-8 flex-1 flex flex-col pt-6 text-left">
+              <div className="p-5 sm:p-8 flex-1 flex flex-col pt-4 sm:pt-6 text-left">
                 <div className="mb-6 flex-1 text-left">
                   <div className="px-3 py-1 bg-hospital-primary/10 rounded-full border border-hospital-primary/20 text-[8px] font-black uppercase tracking-widest text-hospital-primary inline-block mb-3 shadow-inner">
                     {test.category}
