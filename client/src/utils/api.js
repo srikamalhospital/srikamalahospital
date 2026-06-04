@@ -19,7 +19,7 @@ const api = axios.create({
     ? normalizeBaseUrl(envUrl)
     : isLocalhost
       ? 'http://localhost:5000/api'
-      : 'https://sri-kamala-backend.onrender.com/api',
+      : 'https://srikamalahospital.onrender.com/api',
 });
 
 export const bookAppointment = (data) => api.post('/create-appointment', data);
@@ -46,7 +46,17 @@ export const predictSkinCancer = async (file) => {
   });
 };
 export const analyzeOCR = (image) => api.post('/ai/ocr', { image });
-export const chatWithAI = (query) => api.post('/ai/chat', { query });
+export const chatWithAI = (query, options = {}) =>
+  api.post('/ai/chat', { query, ...options }, { timeout: 45000 });
+
+/** Doctor assistant — uses dedicated mode on backend */
+export const doctorConsultAI = (message, doctor) =>
+  api.post('/ai/chat', {
+    query: message,
+    mode: 'doctor',
+    doctorName: doctor?.name || 'Dr. D. Kiran',
+    specialty: doctor?.specialty || 'General Medicine',
+  }, { timeout: 45000 });
 export const discoverMedicines = (keyword) => api.post('/ai/medicine-discovery', { keyword });
 export const savePatientClinicalNote = (data) => api.post('/admin/patient-clinical-note', data);
 export const getPatientClinicalHistory = (patientName, phone) => api.post('/admin/patient-clinical-history', { patientName, phone });

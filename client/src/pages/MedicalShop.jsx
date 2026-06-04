@@ -103,21 +103,18 @@ CRITICAL RULE: You MUST format your response as:
     <div className="pro-page grainy text-left">
       <div className="container mx-auto max-w-7xl text-left">
 
-        <div className="flex flex-col lg:flex-row items-center justify-between mb-20 gap-12 text-left">
-          <div className="max-w-xl text-center lg:text-left text-left">
-            <div className="flex items-center gap-4 mb-8 justify-center lg:justify-start text-left">
-              <div className="w-12 h-12 rounded-2xl bg-white border border-black/5 flex items-center justify-center text-hospital-secondary shadow-lg"><Pill size={22} /></div>
-              <div className="text-left">
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-hospital-primary text-left">ఔషధాల విభాగం · Pharmacy</h4>
-                <p className="text-xs text-slate-500 mt-1 text-left">In-hospital medical shop</p>
-              </div>
+        <header className="mb-10 text-left">
+          <p className="pro-section-label">Pharmacy</p>
+          <h1 className="pro-title font-['Noto_Sans_Telugu']">మెడికల్ షాప్</h1>
+          <p className="pro-subtitle">In-hospital medicines and supplies. Ask AI for general medicine information.</p>
+        </header>
+
+        <div className="flex flex-col lg:flex-row items-start justify-between mb-12 gap-12 text-left">
+          <div className="max-w-xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-hospital-secondary/10 flex items-center justify-center text-hospital-secondary"><Pill size={22} /></div>
+              <span className="text-sm font-semibold text-slate-700">Verified pharmacy catalog</span>
             </div>
-            <h2 className="text-3xl lg:text-5xl font-black text-slate-900 leading-[0.9] tracking-tighter font-['Noto_Sans_Telugu'] mb-4 text-left">
-              మెడికల్ <span className="text-hospital-secondary italic font-serif">షాప్</span> <br />మరియు మందులు.
-              <div className="text-[14px] font-black uppercase text-hospital-dark/10 tracking-[0.4em] mt-4 font-['Plus_Jakarta_Sans']">Medical Shop & Pharmacy</div>
-            </h2>
-            <p className="font-['Noto_Sans_Telugu'] text-[10px] font-bold text-slate-400 tracking-[0.2em] mt-2 mb-8 italic text-left uppercase">శ్రీ కమల ఫార్మా ఇంటెలిజెన్స్ కోర్ <span className="text-[8px] opacity-40 ml-1">Sri Kamala Pharma IQ</span></p>
-            <p className="text-[12px] font-medium text-slate-500 font-serif italic max-w-sm text-left">"సురక్షితమైన వైద్య పంపిణీ కోసం ఇంటిగ్రేటెడ్ AI కన్సల్టేషన్‌తో ధృవీకరించబడిన ఫార్మాస్యూటికల్ లాజిస్టిక్స్‌ను అమలు చేయడం."</p>
           </div>
 
           <div className="flex flex-col gap-8 w-full lg:w-[500px] text-left">

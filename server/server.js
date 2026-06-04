@@ -413,15 +413,41 @@ app.post('/api/ai/quality-check', async (req, res) => {
 
 app.post('/api/ai/chat', async (req, res) => {
     try {
-        const { query } = req.body;
+        const { query, mode, doctorName, specialty } = req.body;
+        if (!query || !String(query).trim()) {
+            return res.status(400).json({ success: false, message: 'Message required' });
+        }
+
+        let systemContent = `You are the helpful AI assistant for Sri Kamala Hospital, Suryapet. Website: ${SITE_URL}. Hospital phone: 99480 76665. Diagnostics: 9866895634. Open 24 hours. Be concise, empathetic, professional. Max 3 sentences.`;
+
+        if (mode === 'doctor') {
+            const doc = doctorName || 'Dr. D. Kiran';
+            const spec = specialty || 'General Medicine';
+            systemContent = `You are the digital clinical assistant for ${doc} (${spec}) at Sri Kamala Hospital, Suryapet.
+Rules:
+1. Triage only — not a final diagnosis. Encourage in-person visit when needed.
+2. Max 2-3 short sentences per language.
+3. For chest pain, breathing difficulty, stroke signs, severe bleeding, or high fever — urge immediate hospital visit or call 99480 76665.
+4. FORMAT EXACTLY: [Telugu text] ||| [English text]
+Hospital: Open 24h. Website: ${SITE_URL}`;
+        }
+
         const msg = [
-            { role: "system", content: `You are Dr. Kiran, the conversational AI for Sri Kamala Hospital in Suryapet. Official website: ${SITE_URL}. You output concise, empathetic, and professional responses. Max 3 sentences.` },
-            { role: "user", content: query }
+            { role: "system", content: systemContent },
+            { role: "user", content: String(query).trim() }
         ];
         const responseText = await getChatAI(msg, ['meta/llama-3.1-70b-instruct', 'meta/llama3-70b-instruct', 'meta/llama-3.2-3b-instruct']);
-        res.json({ success: true, response: responseText || "I am currently offline. Call +91 99480 76665." });
+        const fallback = mode === 'doctor'
+            ? `దయచేసి ఆసుపత్రికి సంప్రదించండి: 99480 76665 ||| Please contact the hospital: 99480 76665`
+            : 'I am currently offline. Call +91 99480 76665.';
+        res.json({ success: true, response: responseText || fallback });
     } catch (err) {
-        res.status(500).json({ success: false, message: "Clinical AI is resting. Call +91 99480 76665." });
+        console.error('AI chat error:', err.message);
+        res.status(500).json({
+            success: false,
+            message: 'Clinical AI is temporarily unavailable. Call +91 99480 76665.',
+            response: 'క్షమించండి, AI అందుబాటులో లేదు. 99480 76665 కి కాల్ చేయండి. ||| Sorry, AI is unavailable. Please call 99480 76665.'
+        });
     }
 });
 

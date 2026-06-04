@@ -132,37 +132,18 @@ CRITICAL RULE: You MUST format your precise response as:
   return (
     <div className="pro-page grainy">
       <div className="container mx-auto max-w-7xl">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="mb-14 p-8 rounded-[40px] bg-white border border-black/5 shadow-xl flex flex-col md:flex-row items-center justify-between gap-8 group overflow-hidden relative"
-        >
-          <div className="absolute top-0 right-0 p-10 opacity-[0.02] group-hover:rotate-12 transition-transform duration-1000 text-slate-900"><Microscope size={120} /></div>
-          
-          <div className="relative z-10 text-center md:text-left">
-            <p className="text-xs font-semibold uppercase tracking-wider text-hospital-primary mb-2">ల్యాబ్ సర్వీసెస్ · Lab Services</p>
-            <p className="text-lg font-bold text-slate-800 leading-tight">Book blood tests and diagnostics at Sri Kamala Hospital.</p>
-          </div>
-          
-          <div className="relative w-20 h-20 md:w-24 md:h-24">
-            <motion.div animate={{ rotate: 360 }} transition={{ duration: 15, repeat: Infinity, ease: 'linear' }} className="absolute inset-0 rounded-full border border-hospital-primary/20" />
-            <motion.div animate={{ rotate: -360 }} transition={{ duration: 10, repeat: Infinity, ease: 'linear' }} className="absolute inset-3 rounded-full border border-hospital-secondary/20" />
-            <div className="absolute inset-0 flex items-center justify-center text-hospital-primary"><Orbit size={32} className="animate-pulse" /></div>
-          </div>
-        </motion.div>
+        <header className="mb-10">
+          <p className="pro-section-label">Diagnostics</p>
+          <h1 className="pro-title font-['Noto_Sans_Telugu']">ల్యాబ్ పరీక్షలు</h1>
+          <p className="pro-subtitle">Book blood tests at Sri Kamala Hospital. AI can suggest tests based on your symptoms.</p>
+        </header>
 
-        <div className="flex flex-col lg:flex-row items-center justify-between mb-20 gap-10">
-          <div className="max-w-xl text-center lg:text-left">
-            <div className="flex items-center gap-4 mb-10 justify-center lg:justify-start text-left">
-            <div className="w-12 h-12 rounded-2xl bg-white border border-black/5 flex items-center justify-center text-hospital-primary shadow-lg"><Flask size={20} /></div>
-            <div className="text-left">
-              <h4 className="text-[9px] font-black uppercase tracking-[0.4em] text-hospital-secondary leading-none">Advanced Laboratory Services // మెరుగైన పరీక్షలు</h4>
-              <p className="text-[7px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1 italic">WHO-Certified Diagnostic Center</p>
+        <div className="flex flex-col lg:flex-row items-start justify-between mb-12 gap-10">
+          <div className="max-w-xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-hospital-primary/10 flex items-center justify-center text-hospital-primary"><Flask size={20} /></div>
+              <span className="text-sm font-semibold text-slate-700">Full diagnostic catalog</span>
             </div>
-          </div>
-          <h2 className="text-3xl lg:text-5xl font-black text-slate-900 leading-[0.9] tracking-tighter font-['Noto_Sans_Telugu'] mb-4 text-left">పరిపూర్ణ <span className="text-hospital-secondary italic font-serif">ల్యాబ్</span> <br />పరీక్షలు.</h2>
-          <p className="text-[9px] uppercase font-bold text-slate-400 tracking-[0.6em] mt-2 mb-8 italic text-left">Suryapet Elite Clinical Diagnostic Operations</p>
-          <p className="text-[12px] font-medium text-slate-500 font-serif italic max-w-sm text-left">"ఖచ్చితమైన మాలిక్యులర్ ఫలితాల కోసం డిజిటల్ ధృవీకరణతో కూడిన ప్రెసిషన్ డయాగ్నస్టిక్స్."</p>
           </div>
 
           <div className="flex flex-col gap-8 w-full md:w-[500px]">

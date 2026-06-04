@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
-import { Sparkles, Send, Brain, ShieldAlert, Activity, ChevronRight, RefreshCw, Upload, Image as ImageIcon, X, Plus, Scissors, Syringe, Droplets, Pill } from 'lucide-react';
+import { Brain, ShieldAlert, Activity, ChevronRight, RefreshCw, Upload, X, Pill, Syringe, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { getBilingualText, joinBilingualItems, toArray, HOSPITAL_PHONE } from '../utils/aiHelpers';
 
 const AISymptomChecker = () => {
     const navigate = useNavigate();
@@ -11,28 +12,13 @@ const AISymptomChecker = () => {
     const [result, setResult] = useState(null);
     const fileInputRef = useRef(null);
 
-    const toArray = (value) => {
-        if (Array.isArray(value)) return value;
-        if (value === null || value === undefined) return [];
-        return [value];
-    };
-
-    const getBilingualText = (value) => {
-        if (value === null || value === undefined) return '-';
-        if (typeof value === 'object') return value.te || value.en || '-';
-        return String(value);
-    };
     const getDepartmentLabel = (department) => {
         if (!department) return null;
         if (typeof department === 'object') return department.te || department.en;
         return String(department);
     };
 
-    const joinItems = (value) => {
-        const list = toArray(value);
-        if (!list.length) return '-';
-        return list.map((item) => getBilingualText(item)).join(', ');
-    };
+    const joinItems = joinBilingualItems;
 
     const isEmergencyCase = (analysis) => {
         const bag = [
@@ -87,8 +73,8 @@ const AISymptomChecker = () => {
         } catch (err) {
             console.error("AI Error:", err);
             setResult({
-                advice: { en: "Cannot connect to clinical AI network. Call +91 99480 76665 for queries.", te: "క్లినికల్ AI నెట్‌వర్క్‌కి కనెక్ట్ కాలేదు. సందేహాల కోసం +91 99480 76665 కి కాల్ చేయండి." },
-                department: { en: "Support", te: "మద్దతు" }
+                advice: { en: `Cannot reach AI service. Call ${HOSPITAL_PHONE}.`, te: `AI సేవ లేదు. ${HOSPITAL_PHONE} కి కాల్ చేయండి.` },
+                department: { en: "General", te: "జనరల్" }
             });
         } finally {
             setIsAnalyzing(false);
@@ -96,78 +82,46 @@ const AISymptomChecker = () => {
     };
 
     return (
-        <section className="py-12 bg-transparent relative overflow-hidden">
-            <div className="container mx-auto relative z-10 px-0">
-                <div className="flex flex-col lg:flex-row items-center gap-16 lg:gap-20">
-
-                    {/* Visual Side */}
-                    <div className="lg:w-2/5 relative w-full text-left">
-                        <motion.div initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} className="relative z-10 h-full text-left">
-                            <div className="w-full h-[550px] bg-white border border-black/5 rounded-[60px] p-12 flex flex-col justify-between text-slate-900 shadow-xl relative overflow-hidden group text-left">
-                                <div className="absolute inset-0 bg-hospital-primary opacity-5 group-hover:opacity-10 transition-opacity"></div>
-
-                                {/* Background clinical decor */}
-                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.03] text-slate-900 text-left">
-                                    <Brain size={300} strokeWidth={1} />
+        <section className="py-4">
+            <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
+                    <div className="lg:w-2/5">
+                        <div className="pro-ai-panel h-full min-h-[320px] flex flex-col justify-between">
+                            <div>
+                                <div className="w-12 h-12 rounded-xl bg-hospital-primary/10 flex items-center justify-center text-hospital-primary mb-6">
+                                    <Brain size={28} />
                                 </div>
-
-                                <div className="relative z-10 text-left">
-                                    <div className="w-16 h-16 bg-slate-50 border border-black/5 rounded-2xl flex items-center justify-center mb-10 shadow-lg group-hover:rotate-12 transition-transform text-left">
-                                        <Brain size={32} className="text-hospital-secondary shadow-sm" />
-                                    </div>
-                                    <h2 className="text-4xl font-black leading-tight mb-6 font-['Noto_Sans_Telugu'] tracking-tighter italic text-left">AI హెల్త్ <br /><span className="text-hospital-primary">పవర్ కోర్</span></h2>
-                                    <p className="text-xs uppercase font-semibold tracking-wider text-hospital-secondary mb-6 text-left">AI Symptom Check</p>
-                                    <p className="text-slate-400 text-[13px] font-bold max-w-sm leading-relaxed font-serif italic text-left">"Synchronize your symptoms with our clinical neural network for instant preliminary molecular advice."</p>
-                                </div>
-
-                                <div className="relative z-10 flex gap-6 text-left">
-                                    <div className="flex-1 p-6 bg-slate-50 rounded-[32px] border border-black/5 text-left">
-                                        <p className="text-[8px] font-black uppercase tracking-[0.4em] text-hospital-secondary mb-2 italic text-left">PRECISION</p>
-                                        <p className="text-2xl font-black tabular-nums text-slate-900 text-left">98.4%</p>
-                                    </div>
-                                    <div className="flex-1 p-6 bg-slate-50 rounded-[32px] border border-black/5 text-left">
-                                        <p className="text-[8px] font-black uppercase tracking-[0.4em] text-hospital-primary mb-2 italic text-left">LATENCY</p>
-                                        <p className="text-2xl font-black tabular-nums text-slate-900 text-left">&lt; 1.5S</p>
-                                    </div>
-                                </div>
+                                <h2 className="pro-title font-['Noto_Sans_Telugu'] mb-3">లక్షణాల విశ్లేషణ</h2>
+                                <p className="pro-subtitle">Describe symptoms in Telugu or English, or upload a photo. This is preliminary guidance only — not a replacement for a doctor visit.</p>
                             </div>
-                        </motion.div>
+                            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-6">
+                                Emergency? Call hospital immediately: {HOSPITAL_PHONE}
+                            </p>
+                        </div>
                     </div>
 
-                    {/* Interaction Side */}
-                    <div className="lg:w-3/5 w-full space-y-10 text-left">
-                        <div className="flex items-center gap-4 text-left">
-                            <div className="w-10 h-10 rounded-2xl bg-slate-50 border border-black/5 flex items-center justify-center text-hospital-secondary shadow-lg text-left"><Activity size={20} /></div>
-                            <div className="text-left">
-                                <h4 className="text-[11px] font-black uppercase tracking-[0.5em] text-hospital-primary leading-none italic text-left">Symptom Core Analyzer</h4>
-                                <p className="text-[8px] font-bold text-slate-300 uppercase tracking-[0.2em] mt-1 italic text-left text-left">Authorized Autonomous Assessment Node</p>
-                            </div>
+                    <div className="lg:w-3/5 space-y-6">
+                        <div>
+                            <p className="pro-section-label mb-2">Symptom check</p>
+                            <h3 className="text-2xl font-bold text-hospital-dark font-['Noto_Sans_Telugu']">మీ లక్షణాలు ఏమిటి?</h3>
                         </div>
 
-                        <div className="space-y-4 text-left">
-                            <h3 className="text-5xl lg:text-6xl font-black text-slate-900 font-['Noto_Sans_Telugu'] tracking-tighter italic leading-none text-left">మీరు ఈరోజు <span className="text-hospital-secondary italic underline decoration-hospital-secondary/20 underline-offset-[10px] text-left">ఎలా</span> ఉన్నారు?</h3>
-                            <p className="text-[10px] uppercase font-black text-slate-300 tracking-[0.6em] leading-none mb-6 italic text-left">PATIENT SYMPTOM TELEMETRY INTERFACE</p>
-                        </div>
-
-                        <form onSubmit={handleAnalyze} className="relative space-y-8 text-left">
-                            <div className="bg-white border border-black/5 group-focus-within:border-hospital-primary/30 rounded-[45px] p-10 shadow-xl transition-all relative overflow-hidden group text-left">
-                                <div className="absolute top-0 right-0 p-8 text-slate-900 opacity-[0.02] group-hover:scale-110 transition-transform text-left"><Plus size={100} /></div>
+                        <form onSubmit={handleAnalyze} className="space-y-6">
+                            <div className="pro-card space-y-4">
                                 <textarea
                                     value={symptoms}
                                     onChange={(e) => setSymptoms(e.target.value)}
-                                    placeholder="ఉదాహరణ: నిన్నటి నుండి నాకు రొమ్ములో నొప్పిగా ఉంది..."
-                                    className="w-full bg-transparent h-32 outline-none text-lg font-bold placeholder:text-slate-200 resize-none text-slate-900 font-serif italic text-left"
+                                    placeholder="Example: chest pain since yesterday, mild fever..."
+                                    className="pro-textarea font-['Noto_Sans_Telugu']"
                                 />
 
-                                <div className="flex items-center justify-between border-t border-black/5 pt-8 mt-6 text-left">
-                                    <div className="flex items-center gap-6 text-left">
+                                <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-slate-100">
+                                    <div className="flex items-center gap-4">
                                         <button
                                             type="button"
                                             onClick={() => fileInputRef.current?.click()}
-                                            className="flex items-center gap-3 px-6 py-3 bg-slate-50 border border-black/5 rounded-2xl shadow-md text-hospital-primary hover:bg-white hover:border-hospital-primary/30 transition-all active:scale-90 text-left"
+                                            className="pro-btn-outline"
                                         >
-                                            <Upload size={18} />
-                                            <span className="text-[10px] font-black uppercase tracking-[0.4em] leading-none italic text-left">Upload Imagery</span>
+                                            <Upload size={16} /> Upload photo
                                         </button>
                                         <input
                                             type="file"
@@ -192,26 +146,18 @@ const AISymptomChecker = () => {
                                             </motion.div>
                                         )}
                                     </div>
-                                    <div className="hidden md:flex flex-col items-end text-left">
-                                        <p className="text-[8px] font-black uppercase tracking-widest text-slate-300 italic text-left">HIPAA ENCRYPTED CHANNEL</p>
-                                        <div className="flex gap-1 mt-1 text-left">
-                                            {[1, 2, 3].map(i => <div key={i} className="w-1.5 h-1.5 rounded-full bg-green-500/10"></div>)}
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
 
-                            <div className="flex flex-col md:flex-row justify-between items-center gap-8 text-left">
-                                <div className="flex items-center gap-4 text-[11px] font-black uppercase text-hospital-secondary leading-none italic opacity-60 text-left">
-                                    <ShieldAlert size={16} className="animate-pulse" />
-                                    <span className="font-['Noto_Sans_Telugu'] text-sm tracking-tight opacity-100 text-left">డేటా గోప్యత హామీ (Clinical Vision Active)</span>
-                                </div>
-                                <button type="submit" disabled={isAnalyzing || (!symptoms.trim() && !imagePreview)}
-                                    className="animated-button w-full md:w-auto bg-[#0f172a] text-white px-12 py-6 rounded-[35px] font-black text-xs uppercase tracking-[0.6em] shadow-xl hover:bg-hospital-primary transition-all disabled:opacity-50 min-w-[280px] border-none group relative overflow-hidden active:scale-95 text-left">
-                                    <span className="relative z-10 flex items-center justify-center gap-3 text-left text-left">
-                                        {isAnalyzing ? <RefreshCw size={24} className="animate-spin text-white" /> : <><span className="font-['Noto_Sans_Telugu'] text-2xl font-bold tracking-tight leading-none italic ml-2 text-left">విశ్లేషించాలని</span> <Activity size={24} /></>}
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                <p className="text-xs text-slate-500 flex items-center gap-2">
+                                    <ShieldAlert size={14} /> Private · For screening only
+                                </p>
+                                <button type="submit" disabled={isAnalyzing || (!symptoms.trim() && !imagePreview)} className="pro-btn-primary w-full sm:w-auto min-w-[200px]">
+                                    <span className="flex items-center justify-center gap-2">
+                                        {isAnalyzing ? <RefreshCw size={18} className="animate-spin" /> : <Activity size={18} />}
+                                        {isAnalyzing ? 'Analyzing...' : 'Analyze symptoms'}
                                     </span>
-                                    <div className="absolute inset-x-0 bottom-0 top-0 bg-hospital-primary opacity-0 group-hover:opacity-100 transition-opacity"></div>
                                 </button>
                             </div>
                         </form>
@@ -219,7 +165,7 @@ const AISymptomChecker = () => {
                         <AnimatePresence>
                             {result && (
                                 <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
-                                    className="p-12 rounded-[55px] bg-slate-50 border border-black/5 relative overflow-hidden group mt-12 shadow-xl text-left">
+                                    className="pro-card mt-6">
 
                                     <div className="absolute top-0 right-0 p-10 text-white opacity-[0.03] group-hover:rotate-12 transition-transform duration-1000"><Brain size={150} /></div>
 
@@ -285,18 +231,16 @@ const AISymptomChecker = () => {
                                         )}
 
                                         <div className="flex pt-4 text-left">
-                                            <button onClick={() => {
+                                            <button type="button" onClick={() => {
                                                 const dept = getDepartmentLabel(result.department) || '';
                                                 const reason = symptoms.trim() || getBilingualText(result.condition);
                                                 const q = new URLSearchParams({ reason, ...(dept ? { department: dept } : {}) });
                                                 navigate(`/book?${q.toString()}`);
                                             }}
-                                                className="animated-button w-full bg-[#0f172a] text-white p-8 rounded-[35px] font-black text-xs uppercase tracking-[0.5em] flex items-center justify-center gap-5 hover:bg-hospital-primary transition-all active:scale-95 group/btn shadow-xl relative overflow-hidden text-left">
-                                                <span className="relative z-10 flex items-center gap-3 italic text-left">
-                                                    <span className="font-['Noto_Sans_Telugu'] text-2xl font-black tracking-tighter mr-2 underline underline-offset-4 text-left">డాక్టర్‌ని సంప్రదించండి</span>
-                                                    <ChevronRight size={24} className="group-hover/btn:translate-x-3 transition-transform duration-500 text-left" />
+                                                className="pro-btn-primary w-full py-4">
+                                                <span className="flex items-center justify-center gap-2 font-['Noto_Sans_Telugu']">
+                                                    డాక్టర్ అపాయింట్‌మెంట్ <ChevronRight size={18} />
                                                 </span>
-                                                <div className="absolute inset-0 bg-hospital-primary opacity-0 group-hover/btn:opacity-100 transition-opacity"></div>
                                             </button>
                                         </div>
                                     </div>
@@ -306,11 +250,6 @@ const AISymptomChecker = () => {
                     </div>
                 </div>
             </div>
-
-            {/* Background floating clinical icons */}
-            <div className="absolute top-[20%] left-[-10%] opacity-[0.03] text-slate-900 pointer-events-none scale-150 rotate-12 medical-icon-float"><Scissors size={300} strokeWidth={1} /></div>
-            <div className="absolute bottom-[20%] right-[-10%] opacity-[0.03] text-hospital-secondary pointer-events-none scale-150 -rotate-12 medical-icon-float"><Syringe size={300} strokeWidth={1} /></div>
-
         </section>
     );
 };

@@ -10,7 +10,8 @@ if not os.path.exists(env_path):
     env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
 load_dotenv(env_path)
 
-SKIN_AI_PORT = int(os.getenv('SKIN_AI_PORT', 5005))
+# Render sets PORT; local dev uses SKIN_AI_PORT
+SKIN_AI_PORT = int(os.getenv('PORT', os.getenv('SKIN_AI_PORT', 5005)))
 
 app = Flask(__name__)
 CORS(app)

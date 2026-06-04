@@ -4,8 +4,8 @@ services:
     runtime: node
     region: oregon
     rootDir: server
-    buildCommand: npm install
-    startCommand: npm start
+    buildCommand: npm install --omit=dev --no-audit --no-fund
+    startCommand: sh start.sh
     healthCheckPath: /api/config
     envVars:
       - key: NODE_ENV
@@ -39,3 +39,18 @@ services:
       # Legacy alias (same value as SITE_URL)
       - key: VERCEL_FRONTEND_URL
         value: https://srikamalahospital.online
+      - key: SKIN_AI_URL
+        sync: false
+
+  - type: web
+    name: srikamala-skin-ai
+    runtime: python
+    region: oregon
+    rootDir: server
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --bind 0.0.0.0:$PORT --timeout 120 --workers 1 skin_api:app
+    healthCheckPath: /
+    plan: starter
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.0"

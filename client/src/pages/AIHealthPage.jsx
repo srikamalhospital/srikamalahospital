@@ -145,62 +145,34 @@ const AIHealthPage = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-hospital-surface pt-40 pb-24 px-6 relative overflow-hidden grainy font-['Plus_Jakarta_Sans']">
+        <div className="pro-page grainy">
+            <div className="container mx-auto max-w-7xl">
+                <header className="text-center mb-10">
+                    <p className="pro-section-label mb-2">Sri Kamala Hospital</p>
+                    <h1 className="pro-title font-['Noto_Sans_Telugu']">AI ఆరోగ్య కేంద్రం</h1>
+                    <p className="pro-subtitle mx-auto">Symptoms, reports, skin screening, diet, and more — preliminary guidance in Telugu and English. Always confirm with a doctor.</p>
+                </header>
 
-            {/* Clinical Accents */}
-            <div className="fixed inset-0 z-0 pointer-events-none opacity-20 overflow-hidden">
-                <div className="absolute top-[10%] right-[10%] w-[800px] h-[800px] bg-hospital-primary/5 rounded-full blur-[160px] animate-pulse-soft"></div>
-                <div className="absolute bottom-[20%] left-[5%] w-[600px] h-[600px] bg-hospital-secondary/5 rounded-full blur-[140px] animate-pulse-soft" style={{ animationDelay: '3s' }}></div>
-            </div>
-
-            <div className="container mx-auto max-w-7xl relative z-10">
-
-                {/* Cybernetic Leaderhood */}
-                <div className="flex flex-col items-center mb-24">
-                    <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="mb-12 relative group">
-                        <div className="w-28 h-28 bg-white border border-white/80 rounded-[2.5rem] flex items-center justify-center text-hospital-primary shadow-premium group-hover:rotate-[15deg] transition-all duration-700 relative overflow-hidden">
-                            <Cpu size={48} className="animate-spin-slow relative z-10" />
-                            <div className="absolute -top-3 -right-3 w-10 h-10 bg-hospital-secondary text-white rounded-2xl flex items-center justify-center shadow-premium animate-pulse">
-                                <Sparkles size={20} />
-                            </div>
-                        </div>
-                    </motion.div>
-
-                    <h1 className="text-6xl lg:text-9xl font-black text-hospital-dark mb-6 leading-none tracking-tighter italic uppercase text-center font-['Noto_Sans_Telugu']">
-                        AI క్లినికల్ <span className="text-hospital-secondary">కోర్</span>
-                        <div className="text-[14px] lg:text-[18px] font-black uppercase text-hospital-dark/10 tracking-[0.4em] mt-4 font-['Plus_Jakarta_Sans']">AI Clinical Core</div>
-                    </h1>
-                    <div className="flex items-center gap-4">
-                        <div className="w-2 h-2 rounded-full bg-hospital-secondary"></div>
-                        <p className="pro-subtitle font-['Noto_Sans_Telugu']">డిజిటల్ ఆరోగ్య సలహా · AI Health Assistant</p>
-                    </div>
-                </div>
-
-                {/* Tactical Navigation Link Matrix */}
-                <div className="flex flex-wrap justify-center gap-4 mb-24">
+                <div className="flex flex-wrap justify-center gap-2 mb-8">
                     {tabs.map(tab => (
-                        <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                            className={`h-22 px-10 py-6 rounded-[2.5rem] font-bold transition-all flex flex-col items-center justify-center gap-2 border active:scale-95 italic ${activeTab === tab.id ? 'bg-hospital-dark text-white border-transparent shadow-premium' : 'bg-white/40 text-hospital-slate/40 border-white/80 hover:border-hospital-primary hover:text-hospital-dark hover:bg-white/60 shadow-clinical'}`}>
-                            <tab.icon size={22} className={activeTab === tab.id ? "text-hospital-secondary" : "opacity-40"} />
-                            <span className="font-['Noto_Sans_Telugu'] text-[11px] leading-none">{tab.labelTe}</span>
-                            <span className="text-[8px] uppercase tracking-widest opacity-40 leading-none">{tab.labelEn}</span>
+                        <button
+                            key={tab.id}
+                            type="button"
+                            onClick={() => setActiveTab(tab.id)}
+                            className={activeTab === tab.id ? 'pro-tab pro-tab-active' : 'pro-tab pro-tab-inactive'}
+                        >
+                            <tab.icon size={18} />
+                            <span className="font-['Noto_Sans_Telugu'] text-xs">{tab.labelTe}</span>
+                            <span className="text-[10px] opacity-70">{tab.labelEn}</span>
                         </button>
                     ))}
                 </div>
 
-                {/* Processing Terminal */}
-                <div className="premium-card bg-white/40 border-white/80 min-h-[800px] shadow-premium relative overflow-hidden group">
-                    <div className="absolute top-0 left-0 w-full h-16 bg-white/60 border-b border-black/5 flex items-center justify-between px-10">
-                        <div className="flex gap-3">
-                            {[1, 2, 3].map(i => <div key={i} className={`w-2.5 h-2.5 rounded-full ${i === 1 ? 'bg-hospital-primary' : i === 2 ? 'bg-hospital-secondary' : 'bg-hospital-slate/20'}`}></div>)}
-                        </div>
-                        <div className="flex items-center gap-4">
-                            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                            <p className="text-xs font-semibold text-hospital-primary uppercase tracking-wider">Module: {activeTab}</p>
-                        </div>
-                    </div>
-
-                    <div className="p-10 lg:p-24 pt-32 h-full">
+                <div className="pro-card min-h-[520px]">
+                    <p className="text-xs font-semibold text-hospital-primary uppercase tracking-wider mb-6 pb-4 border-b border-slate-100">
+                        Active: {tabs.find((t) => t.id === activeTab)?.labelEn || activeTab}
+                    </p>
+                    <div className="py-2">
                         <AnimatePresence mode="wait">
                             {activeTab === 'symptoms' && (
                                 <motion.div key="symptoms" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
@@ -566,30 +538,10 @@ const AIHealthPage = () => {
                     </div>
                 </div>
 
-                {/* Cyber Security Badges */}
-                <div className="mt-32 flex flex-col md:flex-row items-center justify-between gap-12 py-12 border-t border-black/5 text-left">
-                    <div className="flex flex-wrap items-center gap-8 justify-center text-left">
-                        {[
-                            { i: <ShieldCheck size={20} />, l: 'HIPAA PROTOCOL v4.0', c: 'text-hospital-primary' },
-                            { i: <Dna size={18} />, l: 'NVIDIA CLINICAL CORE', c: 'text-hospital-secondary' },
-                            { i: <Cpu size={18} />, l: 'SRI KAMALA NEURAL NET', c: 'text-slate-800' }
-                        ].map((b, idx) => (
-                            <div key={idx} className="flex items-center gap-4 px-6 py-3 bg-white border border-black/5 rounded-2xl shadow-md group hover:border-black/20 transition-all text-left">
-                                <div className={`${b.c} group-hover:scale-110 transition-transform`}>{b.i}</div>
-                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.5em] italic text-left">{b.l}</span>
-                            </div>
-                        ))}
-                    </div>
-                    <p className="text-[9px] font-bold text-slate-300 uppercase tracking-[0.4em] italic leading-tight text-center md:text-right">Autonomous Health Nexus © 2026 Sri Kamala Medical Group. <br />All Logic Clusters Encrypted.</p>
-                </div>
-
+                <p className="mt-8 text-center text-xs text-slate-500 max-w-2xl mx-auto">
+                    AI results are for education only. For diagnosis and treatment, visit Sri Kamala Hospital or call 99480 76665.
+                </p>
             </div>
-
-            {/* Ambient Background Elements */}
-            <div className="absolute top-[30%] left-[-15%] opacity-[0.02] text-slate-900 rotate-45 pointer-events-none scale-150 medical-icon-float"><Scissors size={400} strokeWidth={1} /></div>
-            <div className="absolute bottom-[30%] right-[-15%] opacity-[0.02] text-hospital-secondary -rotate-45 pointer-events-none scale-150 medical-icon-float"><Syringe size={400} strokeWidth={1} /></div>
-            <div className="absolute top-[10%] left-1/2 -translate-x-1/2 opacity-[0.01] text-slate-900 pointer-events-none medical-icon-float"><Dna size={800} strokeWidth={0.5} /></div>
-
         </div>
     );
 };

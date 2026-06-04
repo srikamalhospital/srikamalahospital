@@ -64,6 +64,44 @@
   @apply bg-red-50 text-red-700 border border-red-200;
 }
 
+.pro-input {
+  @apply w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 outline-none transition-colors;
+  @apply focus:border-hospital-primary focus:ring-2 focus:ring-hospital-primary/20;
+}
+
+.pro-textarea {
+  @apply pro-input min-h-[120px] resize-y;
+}
+
+.pro-btn-primary {
+  @apply btn-clinical px-6 py-3 rounded-xl text-xs disabled:opacity-50 disabled:pointer-events-none;
+}
+
+.pro-btn-outline {
+  @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 text-sm font-semibold;
+  @apply hover:border-hospital-primary hover:text-hospital-primary transition-colors;
+}
+
+.pro-section-label {
+  @apply text-xs font-semibold uppercase tracking-wider text-hospital-primary;
+}
+
+.pro-ai-panel {
+  @apply pro-card border-hospital-primary/10 bg-gradient-to-br from-white to-slate-50/80;
+}
+
+.pro-tab {
+  @apply px-4 py-3 rounded-xl text-sm font-semibold border transition-all flex flex-col items-center gap-1 min-w-[88px];
+}
+
+.pro-tab-active {
+  @apply bg-hospital-dark text-white border-transparent shadow-clinical;
+}
+
+.pro-tab-inactive {
+  @apply bg-white text-slate-500 border-slate-200 hover:border-hospital-primary/40 hover:text-hospital-dark;
+}
+
 @layer components {
   /* Minimalist Glass Panel */
   .glass-panel {

@@ -1,175 +1,200 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Send, Bot, User, Activity, Sparkles, Phone, CalendarCheck, MessageSquarePlus } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { X, Send, Sparkles, Phone, CalendarCheck, Stethoscope } from 'lucide-react';
+import { doctorConsultAI } from '../utils/api';
+import { getAIResponseText, fallbackAI, HOSPITAL_PHONE_TEL } from '../utils/aiHelpers';
+import BilingualAIBlock from './BilingualAIBlock';
 
 const DoctorConsultationModal = ({ isOpen, onClose, doctor }) => {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const endOfMessagesRef = useRef(null);
+    const endRef = useRef(null);
 
     const suggestions = [
-        "Symptom help",
-        "Hospital timings",
-        "Emergency contact",
-        "Clinical details"
+        'ఛాతీ నొప్పి ఉంది',
+        'జ్వరం మరియు తలనొప్పి',
+        'డాక్టర్ అపాయింట్‌మెంట్',
+        'ఆసుపత్రి సమయాలు',
     ];
 
     useEffect(() => {
         if (isOpen && doctor) {
+            const fb = fallbackAI(
+                `నమస్కారం! నేను ${doctor.name} గారి AI సహాయకుడిని. లక్షణాలు లేదా అపాయింట్‌మెంట్ గురించి అడగండి.`,
+                `Hello! I'm the AI assistant for ${doctor.name}. Ask about symptoms or booking a visit.`
+            );
             setMessages([{
                 id: Date.now(),
                 sender: 'ai',
-                text: `Welcome! I'm ${doctor.name}'s AI assistant. Ready to help with clinical guidance or ${doctor.specialty} queries.`,
-                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                text: `${fb.te} ||| ${fb.en}`,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             }]);
             setInput('');
         }
     }, [isOpen, doctor]);
 
     useEffect(() => {
-        endOfMessagesRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages]);
+        endRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [messages, isLoading]);
 
-    const handleSend = async (manualText = null) => {
-        const textToSend = manualText || input;
-        if (!textToSend.trim() || !doctor) return;
+    const sendMessage = async (manualText = null) => {
+        const textToSend = (manualText || input).trim();
+        if (!textToSend || !doctor || isLoading) return;
 
-        const userMsg = { id: Date.now(), sender: 'user', text: textToSend, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
-        setMessages(prev => [...prev, userMsg]);
+        const userMsg = {
+            id: Date.now(),
+            sender: 'user',
+            text: textToSend,
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        };
+        setMessages((prev) => [...prev, userMsg]);
         setInput('');
         setIsLoading(true);
 
         try {
-            const { chatWithAI } = await import('../utils/api');
-            const chatHistory = messages.slice(-4).map(m => {
-                const text = typeof m.text === 'string' && m.text.includes('|||') ? m.text.split('|||')[1].trim() : m.text;
-                return `${m.sender.toUpperCase()}: ${text}`;
-            }).join('\n');
-
-            const prompt = `Digital Medical Assistant for ${doctor.name} (${doctor.specialty}) at Sri Kamala Hospital.
-Rules:
-1. Warm, conversation, empathetic.
-2. Max 2-3 sentences.
-3. If symptoms mentioned, advise Dr. ${doctor.name} visit.
-
-Context: ${chatHistory}
-User: "${userMsg.text}"
-
-Format: [Telugu] ||| [English]`;
-
-            const resp = await chatWithAI(prompt);
-            setMessages(prev => [...prev, {
-                id: Date.now(),
+            const resp = await doctorConsultAI(textToSend, doctor);
+            const raw = getAIResponseText(resp);
+            const reply = raw || `${fallbackAI().te} ||| ${fallbackAI().en}`;
+            setMessages((prev) => [...prev, {
+                id: Date.now() + 1,
                 sender: 'ai',
-                text: resp.data.response || "Clinical network delay. Call +91 99480 76665.",
-                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                text: reply,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             }]);
         } catch (err) {
-            setMessages(prev => [...prev, {
-                id: Date.now(),
+            const raw = err.response?.data?.response;
+            if (raw) {
+                setMessages((prev) => [...prev, {
+                    id: Date.now() + 1,
+                    sender: 'ai',
+                    text: raw,
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                }]);
+                setIsLoading(false);
+                return;
+            }
+            const fb = fallbackAI();
+            setMessages((prev) => [...prev, {
+                id: Date.now() + 1,
                 sender: 'ai',
-                text: "Emergency Relay: Contact reception directly at 99480 76665.",
-                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                text: `${fb.te} ||| ${fb.en}`,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             }]);
         } finally {
             setIsLoading(false);
         }
     };
 
+    if (!doctor) return null;
+
     return (
         <AnimatePresence>
             {isOpen && (
                 <>
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-hospital-dark/60 backdrop-blur-sm z-[150] pointer-events-auto" onClick={onClose} />
-                    
-                    <motion.div 
-                        initial={{ opacity: 0, y: 50, scale: 0.95, x: 20 }} 
-                        animate={{ opacity: 1, y: 0, scale: 1, x: 0 }} 
-                        exit={{ opacity: 0, y: 30, scale: 0.95 }}
-                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                        className="fixed bottom-24 right-4 md:bottom-6 md:right-24 w-[300px] max-w-[90vw] h-[450px] max-h-[70vh] bg-white rounded-[32px] shadow-4xl z-[160] overflow-hidden flex flex-col border border-gray-100">
-
-                        {/* Header */}
-                        <div className="bg-hospital-dark px-4 py-3 relative flex items-center gap-3 flex-shrink-0">
-                            <div className="w-10 h-10 rounded-xl border border-hospital-primary/30 overflow-hidden relative shadow-md">
-                                <img src={doctor?.img} className="w-full h-full object-cover" alt="Doctor" />
-                                <div className="absolute bottom-1 right-1 w-2 h-2 bg-green-500 rounded-full border-2 border-hospital-dark"></div>
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[150]"
+                        onClick={onClose}
+                    />
+                    <motion.div
+                        initial={{ opacity: 0, y: 24, scale: 0.96 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 16, scale: 0.98 }}
+                        className="fixed bottom-4 right-4 md:bottom-8 md:right-8 w-[min(100vw-2rem,400px)] h-[min(85vh,560px)] bg-white rounded-2xl shadow-2xl z-[160] flex flex-col border border-slate-200 overflow-hidden"
+                    >
+                        <div className="bg-hospital-dark px-4 py-4 flex items-center gap-3 shrink-0">
+                            <div className="w-12 h-12 rounded-xl overflow-hidden border-2 border-hospital-primary/40">
+                                <img src={doctor.img} alt={doctor.name} className="w-full h-full object-cover" />
                             </div>
-                            <div className="flex-1">
-                                <h3 className="text-[11px] font-black text-white tracking-tight leading-none">{doctor?.name}</h3>
-                                <div className="flex items-center gap-1.5 mt-1">
-                                    <Sparkles size={8} className="text-hospital-secondary animate-pulse" />
-                                    <p className="text-[7px] font-black uppercase tracking-widest text-hospital-secondary opacity-80">KIRAN CORE AI</p>
-                                </div>
+                            <div className="flex-1 min-w-0">
+                                <h3 className="text-sm font-bold text-white truncate">{doctor.name}</h3>
+                                <p className="text-xs text-slate-300 flex items-center gap-1 mt-0.5">
+                                    <Sparkles size={12} className="text-hospital-secondary" />
+                                    AI Clinical Assistant
+                                </p>
                             </div>
-                            <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-all flex items-center justify-center">
-                                <X size={16} />
+                            <button type="button" onClick={onClose} className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10">
+                                <X size={18} />
                             </button>
                         </div>
 
-                        {/* Chat Area */}
-                        <div className="flex-1 overflow-y-auto p-5 bg-[#fcfdfe] flex flex-col gap-5">
-                            {messages.map((msg, i) => (
-                                <motion.div key={msg.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                                    className={`flex w-full ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                    <div className={`p-4 rounded-3xl text-[13px] font-bold shadow-sm leading-relaxed ${msg.sender === 'user' ? 'bg-hospital-secondary text-white rounded-br-sm' : 'bg-white border border-gray-100 text-hospital-dark rounded-bl-sm max-w-[85%]'}`}>
-                                        {msg.text.includes('|||') ? (
-                                            <>
-                                                <p className="font-['Noto_Sans_Telugu']">{msg.text.split('|||')[0].trim()}</p>
-                                                <p className="text-[9px] font-black uppercase tracking-widest text-hospital-primary opacity-60 mt-3 pt-2 border-t border-gray-50">{msg.text.split('|||')[1].trim()}</p>
-                                            </>
+                        <div className="flex-1 overflow-y-auto p-4 bg-slate-50 space-y-3">
+                            {messages.map((msg) => (
+                                <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                    <div className={`max-w-[90%] rounded-2xl px-4 py-3 text-sm shadow-sm ${
+                                        msg.sender === 'user'
+                                            ? 'bg-hospital-primary text-white rounded-br-md'
+                                            : 'bg-white border border-slate-200 text-slate-800 rounded-bl-md'
+                                    }`}>
+                                        {msg.sender === 'ai' ? (
+                                            <BilingualAIBlock text={msg.text} />
                                         ) : (
-                                            <p className="font-['Noto_Sans_Telugu']">{msg.text}</p>
+                                            <p>{msg.text}</p>
                                         )}
-                                        <p className={`text-[8px] mt-2 uppercase flex items-center gap-1 ${msg.sender === 'user' ? 'text-white/40 justify-end' : 'text-gray-400'}`}>
-                                            {msg.time}
-                                        </p>
+                                        <p className={`text-[10px] mt-2 ${msg.sender === 'user' ? 'text-white/70' : 'text-slate-400'}`}>{msg.time}</p>
                                     </div>
-                                </motion.div>
+                                </div>
                             ))}
                             {isLoading && (
-                                <div className="flex gap-1 items-center bg-gray-50 px-4 py-3 rounded-full w-fit">
-                                    {[0, 0.2, 0.4].map(delay => (
-                                        <motion.div key={delay} animate={{ y: [0, -3, 0] }} transition={{ repeat: Infinity, duration: 1, delay }} className="w-1 h-1 bg-gray-400 rounded-full" />
+                                <div className="flex gap-1.5 px-4 py-2">
+                                    {[0, 0.15, 0.3].map((d) => (
+                                        <span key={d} className="w-2 h-2 bg-hospital-primary/40 rounded-full animate-bounce" style={{ animationDelay: `${d}s` }} />
                                     ))}
                                 </div>
                             )}
-                            <div ref={endOfMessagesRef} />
+                            <div ref={endRef} />
                         </div>
 
-                        {/* Input & Suggestions */}
-                        <div className="p-4 bg-white border-t border-gray-100 flex-shrink-0">
-                            {messages.length < 3 && !isLoading && (
-                                <div className="flex flex-wrap gap-2 mb-4">
-                                    {suggestions.map(s => (
-                                        <button key={s} onClick={() => handleSend(s)} className="px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-full text-[9px] font-black uppercase text-hospital-dark hover:bg-hospital-primary/10 hover:border-hospital-primary/20 transition-all flex items-center gap-1.5 group">
-                                            <MessageSquarePlus size={10} className="text-hospital-primary group-hover:scale-110 transition-transform" /> {s}
+                        <div className="p-4 bg-white border-t border-slate-200 shrink-0">
+                            {messages.length < 4 && !isLoading && (
+                                <div className="flex flex-wrap gap-2 mb-3">
+                                    {suggestions.map((s) => (
+                                        <button
+                                            key={s}
+                                            type="button"
+                                            onClick={() => sendMessage(s)}
+                                            className="text-xs px-3 py-1.5 rounded-full bg-slate-100 text-slate-700 hover:bg-hospital-primary/10 hover:text-hospital-primary border border-slate-200"
+                                        >
+                                            {s}
                                         </button>
                                     ))}
                                 </div>
                             )}
-                            
-                            <div className="relative flex items-center bg-[#f8fafc] border-2 border-gray-200 rounded-[24px] p-1.5 focus-within:border-hospital-primary/30 transition-all shadow-inner">
-                                <input value={input} onChange={(e) => setInput(e.target.value)}
-                                    onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                                    placeholder={`Ask Dr. Kiran...`}
-                                    className="w-full bg-transparent border-none px-4 outline-none text-xs text-hospital-dark font-black placeholder:text-gray-300" />
-                                <button onClick={() => handleSend()} disabled={!input.trim() || isLoading}
-                                    className="p-3 bg-hospital-primary text-white rounded-full shadow-lg hover:scale-105 active:scale-95 transition-all disabled:opacity-50">
-                                    <Send size={14} />
+                            <div className="flex gap-2 items-center pro-input p-1.5 pr-1.5">
+                                <input
+                                    value={input}
+                                    onChange={(e) => setInput(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+                                    placeholder="Type your question..."
+                                    className="flex-1 border-0 focus:ring-0 bg-transparent py-2"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => sendMessage()}
+                                    disabled={!input.trim() || isLoading}
+                                    className="p-2.5 rounded-xl bg-hospital-primary text-white disabled:opacity-40"
+                                >
+                                    <Send size={16} />
                                 </button>
                             </div>
-                            <div className="flex items-center justify-between mt-3 px-1">
-                                <p className="text-[7px] font-black uppercase tracking-widest text-gray-300">Clinical AI Simulation</p>
-                                <div className="flex items-center gap-2">
-                                     <a href="tel:9948076665" className="text-hospital-primary hover:underline"><Phone size={10} /></a>
-                                     <a href="/#booking" className="text-[7px] font-black uppercase text-hospital-secondary hover:underline">Book Visit</a>
+                            <div className="flex items-center justify-between mt-3 text-xs text-slate-500">
+                                <span className="flex items-center gap-1">
+                                    <Stethoscope size={12} /> Preliminary guidance only
+                                </span>
+                                <div className="flex gap-3">
+                                    <a href={HOSPITAL_PHONE_TEL} className="text-hospital-primary font-semibold flex items-center gap-1">
+                                        <Phone size={12} /> Call
+                                    </a>
+                                    <Link to="/book" onClick={onClose} className="text-hospital-secondary font-semibold flex items-center gap-1">
+                                        <CalendarCheck size={12} /> Book
+                                    </Link>
                                 </div>
                             </div>
                         </div>
-
                     </motion.div>
                 </>
             )}

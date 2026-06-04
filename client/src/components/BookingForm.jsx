@@ -64,21 +64,14 @@ const BookingForm = () => {
   };
 
   return (
-    <section className="py-20 px-6 bg-hospital-surface min-h-screen flex items-center justify-center grainy">
-      <div className="container mx-auto max-w-4xl relative z-10">
-        
+    <section className="py-8">
+      <div className="max-w-4xl mx-auto">
         <div className="grid lg:grid-cols-5 gap-8 items-start">
-            
-            <div className="lg:col-span-2 space-y-8">
+            <div className="lg:col-span-2 space-y-6">
                 <div>
-                   <h2 className="text-4xl font-black text-hospital-dark leading-tight tracking-tightest mb-4 font-['Noto_Sans_Telugu']">
-                     తక్షణ <br />
-                     <span className="text-hospital-primary italic">బుకింగ్.</span>
-                     <div className="text-[12px] font-black uppercase text-hospital-dark/10 tracking-widest mt-2">Instant Booking</div>
-                   </h2>
-                   <p className="font-['Noto_Sans_Telugu'] text-lg text-hospital-slate font-medium mb-6">
-                     త్వరిత అపాయింట్‌మెంట్ బుకింగ్ <span className="text-[10px] opacity-40 ml-1 italic font-['Plus_Jakarta_Sans']">Quick appointment booking</span>
-                   </p>
+                   <p className="pro-section-label mb-2">Appointments</p>
+                   <h2 className="pro-title font-['Noto_Sans_Telugu'] mb-3">అపాయింట్‌మెంట్ బుకింగ్</h2>
+                   <p className="pro-subtitle">Book OP or lab visit. Pay at hospital. Open 24 hours.</p>
                 </div>
 
                 <div className="space-y-4">
@@ -113,7 +106,7 @@ const BookingForm = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     onSubmit={handleSubmit} 
-                    className="bg-white p-8 md:p-10 rounded-[2.5rem] shadow-premium border border-black/5 space-y-6"
+                    className="pro-card space-y-6"
                 >
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
@@ -173,7 +166,7 @@ const BookingForm = () => {
                         {!isSubmitting && <ShieldCheck size={18} className="group-hover:rotate-12 transition-transform" />}
                     </button>
                     
-                    <p className="text-[8px] font-bold text-center text-hospital-slate/40 uppercase tracking-[0.3em]">Institutional Hub v4.0 SECURE SESSION</p>
+                    <p className="text-xs text-center text-slate-500">You will receive a token for reception. Pay at hospital.</p>
                 </motion.form>
             </div>
         </div>
