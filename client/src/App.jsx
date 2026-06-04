@@ -13,6 +13,7 @@ import BookingPage from './pages/BookingPage';
 import DoctorsPage from './pages/DoctorsPage';
 import ReviewsPage from './pages/ReviewsPage';
 import AIHealthPage from './pages/AIHealthPage';
+import LabReportsPage from './pages/LabReportsPage';
 import SiteInfoPage from './pages/SiteInfoPage';
 import CustomCursor from './components/CustomCursor';
 import BackgroundIcons from './components/BackgroundIcons';
@@ -65,6 +66,7 @@ const App = () => {
                     <Route path="/diagnosis" element={<Diagnosis />} />
                     <Route path="/medical-shop" element={<MedicalShop />} />
                     <Route path="/ai-health" element={<AIHealthPage />} />
+                    <Route path="/lab-reports" element={<LabReportsPage />} />
                     <Route path="/info/:slug" element={<SiteInfoPage />} />
                     <Route path="/6665" element={<AdminDashboard />} />
                     <Route path="/receipt" element={<Receipt />} />

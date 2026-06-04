@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { MessageSquare, Sparkles, Stethoscope, ArrowRight } from 'lucide-react';
+import { MessageSquare, Sparkles, Stethoscope, ArrowRight, CalendarOff, Clock } from 'lucide-react';
 import DoctorConsultationModal from './DoctorConsultationModal';
+import useSiteConfig from '../hooks/useSiteConfig';
 import drKiran from '../assets/dr-kiran.jpg';
 
 const doctors = [
@@ -18,8 +19,11 @@ const doctors = [
 ];
 
 const Doctors = () => {
+  const { config } = useSiteConfig();
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const scheduleFor = (id) => config.doctorSchedule?.[id] || config.doctorSchedule?.dr_kiran;
 
   const openConsult = (doctor) => {
     setSelectedDoctor(doctor);
@@ -43,7 +47,10 @@ const Doctors = () => {
         </div>
 
         <div className="lg:col-span-2 flex flex-col md:flex-row gap-6">
-          {doctors.map((doctor) => (
+          {doctors.map((doctor) => {
+            const sched = scheduleFor(doctor.id);
+            const onLeave = sched && sched.available === false;
+            return (
             <motion.article
               key={doctor.id}
               initial={{ opacity: 0, y: 12 }}
@@ -60,12 +67,25 @@ const Doctors = () => {
                 <span className="absolute top-4 left-4 pro-badge pro-badge-safe bg-white/95">
                   Reg. {doctor.regNo}
                 </span>
+                {onLeave && (
+                  <span className="absolute top-4 right-4 pro-badge pro-badge-warn bg-amber-100 text-amber-900">
+                    <CalendarOff size={12} className="inline mr-1" /> On leave
+                  </span>
+                )}
               </div>
               <div className="p-6 space-y-4">
                 <div>
                   <h3 className="text-xl font-bold text-hospital-dark">{doctor.name}</h3>
                   <p className="text-sm text-slate-600 mt-1">{doctor.qualification} · {doctor.specialty}</p>
                   <p className="text-xs text-slate-500 mt-2">{doctor.exp} experience</p>
+                  {sched?.opHours && (
+                    <p className="text-xs text-hospital-primary mt-2 flex items-center gap-1">
+                      <Clock size={12} /> OP: {sched.opHours}
+                    </p>
+                  )}
+                  {onLeave && sched?.leaveMessage && (
+                    <p className="text-xs text-amber-700 mt-2">{sched.leaveMessage}</p>
+                  )}
                 </div>
 
                 <div className="pro-ai-panel p-4 flex gap-3">
@@ -92,7 +112,8 @@ const Doctors = () => {
                 </Link>
               </div>
             </motion.article>
-          ))}
+          );
+          })}
         </div>
       </div>
 

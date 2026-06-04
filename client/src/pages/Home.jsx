@@ -5,6 +5,7 @@ import QuickActionGrid from '../components/QuickActionGrid';
 import OPBoard from '../components/OPBoard';
 import PatientReviews from '../components/PatientReviews';
 import Doctors from '../components/Doctors';
+import EmergencyBar from '../components/EmergencyBar';
 import ClinicalPulseDashboard from '../components/ClinicalPulseDashboard';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Heart } from 'lucide-react';
@@ -35,7 +36,7 @@ function Home() {
   };
 
   return (
-    <div className="bg-hospital-surface min-h-screen selection:bg-hospital-primary selection:text-white overflow-hidden grainy font-['Plus_Jakarta_Sans']">
+    <div className="bg-hospital-surface min-h-screen pb-20 selection:bg-hospital-primary selection:text-white overflow-hidden grainy font-['Plus_Jakarta_Sans']">
 
       {/* Hospital Logo Background Overlay */}
       <div className="logo-bg-overlay"></div>
@@ -88,6 +89,8 @@ function Home() {
         </section>
 
       </main>
+
+      <EmergencyBar />
 
       {/* Global Decor Nodes */}
       <div className="fixed top-1/2 left-[-15%] opacity-[0.01] text-hospital-dark pointer-events-none -rotate-12 scale-[2]"><Plus size={400} /></div>

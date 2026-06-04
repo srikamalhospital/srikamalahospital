@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { LayoutDashboard, Users, Calendar, Clock, Search, LogOut, Download, Pill, Activity, Plus, Trash2, Settings, Globe, Lock, Key, Sparkles, MoreVertical, FileText, Phone, MapPin, ShieldCheck, Zap, Dna, Microscope, Syringe, Scissors, Brain, Languages, BookOpen, ClipboardList, Package } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, Clock, Search, LogOut, Download, Pill, Activity, Plus, Trash2, Settings, Globe, Lock, Key, Sparkles, MoreVertical, FileText, Phone, MapPin, ShieldCheck, Zap, Dna, Microscope, Syringe, Scissors, Brain, Languages, BookOpen, ClipboardList, Package, MessageSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     updateConfig,
@@ -18,6 +18,10 @@ import {
 import { setAdminSession, getAdminToken, clearAdminSession, isAdminSessionValid } from '../utils/adminSession';
 import { getAdminLang, setAdminLang, tAdmin } from '../admin/translations';
 import AdminPharmacyPanel from '../admin/AdminPharmacyPanel';
+import AdminReviewsPanel from '../admin/AdminReviewsPanel';
+import AdminLabPanel from '../admin/AdminLabPanel';
+import AdminDoctorSchedule from '../admin/AdminDoctorSchedule';
+import AdminPatientJourney from '../admin/AdminPatientJourney';
 
 const AdminDashboard = () => {
     const [isAuthenticated, setIsAuthenticated] = useState(() => isAdminSessionValid());
@@ -321,6 +325,8 @@ const AdminDashboard = () => {
                         { id: 'pharmacy', icon: <Package size={22} />, label: t('tabs.pharmacy') },
                         { id: 'patients', icon: <Users size={22} />, label: t('tabs.patients') },
                         { id: 'medicines', icon: <Pill size={22} />, label: t('tabs.medicines') },
+                        { id: 'reviews', icon: <MessageSquare size={22} />, label: t('tabs.reviews') },
+                        { id: 'lab', icon: <Microscope size={22} />, label: t('tabs.lab') },
                         { id: 'website', icon: <BookOpen size={22} />, label: t('tabs.website') },
                         { id: 'settings', icon: <Settings size={22} />, label: t('tabs.settings') }
                     ].map(item => (
@@ -469,6 +475,14 @@ const AdminDashboard = () => {
                                 onRefresh={fetchData}
                                 onUpdateStatus={handlePharmacyStatus}
                             />
+                        )}
+
+                        {activeTab === 'reviews' && (
+                            <AdminReviewsPanel lang={lang} t={t} />
+                        )}
+
+                        {activeTab === 'lab' && (
+                            <AdminLabPanel t={t} />
                         )}
 
                         {activeTab === 'website' && (
@@ -635,6 +649,8 @@ const AdminDashboard = () => {
                                                                 </div>
                                                             </div>
                                                         </div>
+                                                        <AdminPatientJourney patient={activePatient} t={t} />
+
                                                         <button onClick={saveClinicalEntry} className="w-full py-8 bg-[#0f172a] text-white rounded-[40px] font-black text-[12px] uppercase tracking-[0.6em] shadow-xl hover:bg-hospital-secondary transition-all active:scale-95 italic group/btn relative overflow-hidden">
                                                             <span className="relative z-10 flex items-center justify-center gap-6"><Zap size={22} /> Synchronize Clinical Record</span>
                                                             <div className="absolute inset-x-0 bottom-0 top-0 bg-hospital-secondary opacity-0 group-hover/btn:opacity-100 transition-opacity"></div>
@@ -859,6 +875,8 @@ const AdminDashboard = () => {
                                                 </button>
                                             </div>
                                         </div>
+
+                                        <AdminDoctorSchedule config={config} setConfig={setConfig} t={t} />
 
                                         <div className="p-12 bg-slate-50 border border-black/5 rounded-[45px] space-y-6">
                                             <div className="flex items-center gap-4 text-slate-200">

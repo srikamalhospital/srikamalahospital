@@ -6,11 +6,22 @@ import { Link } from 'react-router-dom';
 const QuickActionGrid = () => {
     const actions = [
         { 
+            title: 'Lab report status', 
+            telugu: 'ల్యాబ్ రిపోర్ట్ ట్రాక్', 
+            descriptionTelugu: 'ల్యాబ్ అభ్యర్థన సమర్పించండి లేదా ఫోన్ / టోకెన్ తో స్థితి చూడండి.', 
+            descriptionEnglish: 'Submit or track lab report status by phone or token.', 
+            icon: <FlaskConical size={32} />, 
+            link: '/lab-reports', 
+            color: 'from-teal-400/20 to-teal-600/5', 
+            iconColor: 'text-teal-600',
+            accent: 'bg-teal-600'
+        },
+        { 
             title: 'Diagnostic Lab', 
             telugu: 'రోగ నిర్ధారణ ల్యాబ్', 
-            descriptionTelugu: 'ఆటోమేటెడ్ రిపోర్ట్ సదుపాయంతో ఖచ్చితమైన రోగ నిర్ధారణ.', 
-            descriptionEnglish: 'Precision molecular diagnosis with automated report delivery.', 
-            icon: <FlaskConical size={32} />, 
+            descriptionTelugu: 'ల్యాబ్ టెస్ట్ బుక్ చేయండి — ధరలు మరియు రిపోర్ట్ సమయం.', 
+            descriptionEnglish: 'Book lab tests with live prices and report times.', 
+            icon: <Microscope size={32} />, 
             link: '/diagnosis', 
             color: 'from-emerald-400/20 to-emerald-600/5', 
             iconColor: 'text-emerald-500',

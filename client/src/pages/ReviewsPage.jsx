@@ -4,7 +4,7 @@ import PatientReviews from '../components/PatientReviews';
 const ReviewsPage = () => {
     return (
         <div className="pro-page grainy">
-            <PatientReviews />
+            <PatientReviews showSubmitForm />
         </div>
     );
 };

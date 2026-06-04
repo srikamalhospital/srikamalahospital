@@ -222,6 +222,11 @@ const PharmacyReceipt = () => {
               </p>
               <p className="text-xl font-bold text-hospital-dark">{order.name}</p>
               <p className="text-sm font-bold text-hospital-slate mt-2 tracking-widest">{order.phone}</p>
+              {order.appointmentToken && (
+                <p className="text-xs text-hospital-primary mt-2 font-semibold">
+                  Linked OP: {order.appointmentToken}
+                </p>
+              )}
               {(order.age || order.gender) && (
                 <p className="text-xs text-slate-500 mt-1">
                   {order.age ? `${order.age} years` : ''}

@@ -249,7 +249,6 @@ const AISymptomChecker = () => {
                         </AnimatePresence>
                     </div>
                 </div>
-            </div>
         </section>
     );
 };

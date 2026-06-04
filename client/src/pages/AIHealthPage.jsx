@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Stethoscope, Scan, Microscope, ExternalLink } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Stethoscope, Scan, Microscope, ExternalLink, ShoppingCart } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import AISymptomChecker from '../components/AISymptomChecker';
-import { analyzeOCR, predictSkinCancer } from '../utils/api';
+import { analyzeOCR, predictSkinCancer, matchPharmacyMedicines } from '../utils/api';
+import { addToCart } from '../utils/pharmacyCart';
 const TABS = [
   { id: 'symptoms', icon: Stethoscope, labelTe: 'లక్షణాలు', labelEn: 'Symptoms', hint: 'Live AI symptom analysis' },
   { id: 'ocr', icon: Scan, labelTe: 'రిపోర్టులు', labelEn: 'Reports', hint: 'Upload prescription / lab report' },
@@ -11,9 +12,12 @@ const TABS = [
 ];
 
 const AIHealthPage = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('symptoms');
   const [ocrResult, setOcrResult] = useState(null);
   const [isOcrLoading, setIsOcrLoading] = useState(false);
+  const [ocrCartLoading, setOcrCartLoading] = useState(false);
+  const [ocrCartMsg, setOcrCartMsg] = useState('');
   const [skinImage, setSkinImage] = useState(null);
   const [skinResult, setSkinResult] = useState(null);
   const [isSkinLoading, setIsSkinLoading] = useState(false);
@@ -72,6 +76,31 @@ const AIHealthPage = () => {
   };
 
   const active = TABS.find((t) => t.id === activeTab);
+
+  const addOcrToShopCart = async () => {
+    const names = Array.isArray(ocrResult?.medicines) ? ocrResult.medicines : [];
+    if (!names.length) {
+      setOcrCartMsg('No medicine names found on this prescription. Add items manually in the shop.');
+      return;
+    }
+    setOcrCartLoading(true);
+    setOcrCartMsg('');
+    try {
+      const resp = await matchPharmacyMedicines(names);
+      const products = resp.data?.products || [];
+      products.forEach((p) => addToCart({ ...p, price: p.price || 0 }, 1));
+      setOcrCartMsg(
+        products.length
+          ? `Matched ${products.length} item(s). Opening medical shop…`
+          : 'No catalog matches — open shop to search manually.'
+      );
+      if (products.length) navigate('/medical-shop');
+    } catch {
+      setOcrCartMsg('Could not match medicines. Try the medical shop search.');
+    } finally {
+      setOcrCartLoading(false);
+    }
+  };
 
   return (
     <div className="pro-page grainy">
@@ -166,6 +195,22 @@ const AIHealthPage = () => {
                         <p className="text-[10px] uppercase text-theme-muted mb-2">English</p>
                         <p className="text-sm text-theme-muted leading-relaxed">{ocrResult.explanation_en}</p>
                       </div>
+                      {Array.isArray(ocrResult.medicines) && ocrResult.medicines.length > 0 && (
+                        <div className="pt-4 border-t border-theme">
+                          <p className="text-[10px] uppercase text-hospital-primary mb-2">Medicines detected</p>
+                          <p className="text-xs text-theme-muted mb-3">{ocrResult.medicines.join(', ')}</p>
+                          <button
+                            type="button"
+                            onClick={addOcrToShopCart}
+                            disabled={ocrCartLoading}
+                            className="pro-btn-primary w-full py-3 flex items-center justify-center gap-2"
+                          >
+                            <ShoppingCart size={18} />
+                            {ocrCartLoading ? 'Matching…' : 'Add to medical shop cart'}
+                          </button>
+                          {ocrCartMsg && <p className="text-xs text-theme-muted mt-2 text-center">{ocrCartMsg}</p>}
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <p className="text-sm text-theme-muted text-center py-16">Upload a document to see results here.</p>

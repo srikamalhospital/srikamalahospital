@@ -36,8 +36,45 @@ export const adminT = {
       pharmacy: 'Pharmacy receipts',
       patients: 'Patients',
       medicines: 'Medicine list',
+      reviews: 'Reviews',
+      lab: 'Lab reports',
       website: 'Website guide',
       settings: 'Settings',
+    },
+
+    reviews: {
+      title: 'Patient reviews',
+      sub: 'Approve reviews before they appear on the website',
+      loading: 'Loading…',
+      empty: 'No reviews yet',
+      approved: 'Live on site',
+      pending: 'Waiting',
+      approve: 'Approve',
+      hide: 'Hide',
+    },
+
+    lab: {
+      title: 'Lab report tracking',
+      sub: 'Update status when sample is received or report is ready',
+      loading: 'Loading…',
+      empty: 'No lab requests yet',
+    },
+
+    schedule: {
+      title: 'Doctor schedule',
+      sub: 'Shown on the Doctors page — mark leave when doctor is away',
+      available: 'Doctor available for OP',
+      opHours: 'OP hours (display text)',
+      leaveMsg: 'Leave message (if on leave)',
+      leavePlaceholder: 'e.g. Back on Monday — book emergency via hospital phone',
+    },
+
+    journey: {
+      title: 'Patient journey (this phone)',
+      loading: 'Loading journey…',
+      bookings: 'Bookings',
+      pharmacy: 'Pharmacy',
+      lab: 'Lab',
     },
 
     overview: {
@@ -148,8 +185,45 @@ export const adminT = {
       pharmacy: 'ఫార్మసీ రసీదులు',
       patients: 'రోగులు',
       medicines: 'మందుల జాబితా',
+      reviews: 'అభిప్రాయాలు',
+      lab: 'ల్యాబ్ రిపోర్టులు',
       website: 'వెబ్‌సైట్ గైడ్',
       settings: 'సెట్టింగ్‌లు',
+    },
+
+    reviews: {
+      title: 'రోగి అభిప్రాయాలు',
+      sub: 'వెబ్‌సైట్‌లో చూపే ముందు ఆమోదించండి',
+      loading: 'లోడ్…',
+      empty: 'ఇంకా అభిప్రాయాలు లేవు',
+      approved: 'సైట్‌లో ఉంది',
+      pending: 'వేచి ఉంది',
+      approve: 'ఆమోదించు',
+      hide: 'దాచు',
+    },
+
+    lab: {
+      title: 'ల్యాబ్ రిపోర్ట్ ట్రాకింగ్',
+      sub: 'నమూనా / రిపోర్ట్ సిద్ధమైనప్పుడు స్థితి మార్చండి',
+      loading: 'లోడ్…',
+      empty: 'ల్యాబ్ అభ్యర్థనలు లేవు',
+    },
+
+    schedule: {
+      title: 'డాక్టర్ షెడ్యూల్',
+      sub: 'డాక్టర్స్ పేజీలో చూపబడుతుంది',
+      available: 'OP కి అందుబాటులో',
+      opHours: 'OP సమయాలు',
+      leaveMsg: 'సెలవు సందేశం',
+      leavePlaceholder: 'ఉదా: సోమవారం తిరిగి వస్తారు',
+    },
+
+    journey: {
+      title: 'రోగి ప్రయాణం (ఈ ఫోన్)',
+      loading: 'లోడ్…',
+      bookings: 'బుకింగ్‌లు',
+      pharmacy: 'ఫార్మసీ',
+      lab: 'ల్యాబ్',
     },
 
     overview: {

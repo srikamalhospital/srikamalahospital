@@ -67,7 +67,19 @@ export const submitPharmacyOrder = (order) => api.post('/pharmacy/orders', {
   rxCount: order.rxCount,
   status: order.status,
   createdAt: order.createdAt,
+  appointmentToken: order.appointmentToken || null,
 });
+export const getReviews = () => api.get('/reviews');
+export const submitReview = (data) => api.post('/reviews', data);
+export const getAdminReviews = () => api.get('/admin/reviews');
+export const updateAdminReview = (payload) => api.patch('/admin/reviews', payload);
+export const submitLabReport = (data) => api.post('/lab-reports', data);
+export const trackLabReports = (params) => api.get('/lab-reports/track', { params });
+export const getAdminLabReports = () => api.get('/admin/lab-reports');
+export const updateAdminLabReport = (payload) => api.patch('/admin/lab-reports', payload);
+export const getPatientJourney = (phone, name) =>
+  api.get('/admin/patient-journey', { params: { phone, name: name || undefined } });
+export const matchPharmacyMedicines = (names) => api.post('/pharmacy/match-medicines', { names });
 export const updateAppointment = (id, status) => api.post('/admin/update-appointment', { id, paymentStatus: status });
 export const fetchLabTests = () => api.get('/lab/tests');
 export const fetchPharmacyProducts = (category) =>

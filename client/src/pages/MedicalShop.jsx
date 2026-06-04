@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Search,
   Pill,
@@ -29,6 +29,7 @@ const DEFAULT_IMG = 'https://images.unsplash.com/photo-1584308666744-24d5c474f2a
 
 const MedicalShop = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState(['All']);
   const [activeCategory, setActiveCategory] = useState('All');
@@ -47,6 +48,12 @@ const MedicalShop = () => {
   const [patientGender, setPatientGender] = useState('');
   const [patientNotes, setPatientNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [appointmentToken, setAppointmentToken] = useState('');
+
+  useEffect(() => {
+    const apt = searchParams.get('apt') || searchParams.get('token');
+    if (apt && !apt.startsWith('KAMALA-RX')) setAppointmentToken(apt);
+  }, [searchParams]);
 
   const refreshCart = useCallback(() => setCart(getCart()), []);
   const totals = useMemo(() => cartTotals(cart), [cart]);
@@ -128,6 +135,7 @@ const MedicalShop = () => {
         gender: patientGender,
         notes: patientNotes,
         items: cart,
+        appointmentToken,
       });
       setSubmitOpen(false);
       setCartOpen(false);
@@ -518,6 +526,14 @@ const MedicalShop = () => {
                 onChange={(e) => setPatientPhone(e.target.value)}
                 className="pro-input w-full mb-4"
                 placeholder="10-digit mobile"
+              />
+              <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">OP appointment token (optional)</label>
+              <input
+                type="text"
+                value={appointmentToken}
+                onChange={(e) => setAppointmentToken(e.target.value)}
+                className="pro-input w-full mb-4"
+                placeholder="Links pharmacy receipt to OP booking"
               />
               <div className="grid grid-cols-2 gap-3 mb-4">
                 <div>

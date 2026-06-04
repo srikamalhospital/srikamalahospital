@@ -85,7 +85,7 @@ export const getPharmacyOrder = (token) => {
   }
 };
 
-export const createPharmacyOrder = async ({ name, phone, age, gender, notes, items }) => {
+export const createPharmacyOrder = async ({ name, phone, age, gender, notes, items, appointmentToken }) => {
   const token = generatePharmacyToken();
   const { subtotal, rxCount } = cartTotals(items);
   const order = {
@@ -94,6 +94,7 @@ export const createPharmacyOrder = async ({ name, phone, age, gender, notes, ite
     phone: phone.trim(),
     age: age != null && String(age).trim() ? String(age).trim() : '',
     gender: gender != null && String(gender).trim() ? String(gender).trim() : '',
+    appointmentToken: appointmentToken ? String(appointmentToken).trim() : '',
     notes: (notes || '').trim(),
     items: items.map((l) => ({ ...l })),
     subtotal,

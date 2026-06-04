@@ -151,7 +151,16 @@ let siteConfig = {
     hospitalAddress: 'Opp. Tirumala Grand Restaurant, M.G. Road, Suryapet',
     websiteUrl: SITE_URL,
     websiteDomain: SITE_DOMAIN,
-    contactEmail: `info@${SITE_DOMAIN}`
+    contactEmail: `info@${SITE_DOMAIN}`,
+    doctorSchedule: {
+        dr_kiran: {
+            id: 'dr_kiran',
+            name: 'Dr. D. Kiran',
+            available: true,
+            leaveMessage: '',
+            opHours: '08:00–13:00, 16:00–20:00',
+        },
+    },
 };
 
 const patientClinicalRecords = {};
@@ -180,6 +189,8 @@ const requireAdmin = (req, res, next) => {
 };
 
 const { filterAppointments, filterPharmacyOrders, distinctValues } = require('./adminSearch');
+const { deductPharmacyStock } = require('./stockDeduction');
+const { registerFeatureRoutes } = require('./featureRoutes');
 
 const normalizePharmacyOrder = (row) => ({
     id: row.id,
@@ -196,6 +207,7 @@ const normalizePharmacyOrder = (row) => ({
     createdAt: row.created_at || row.createdAt,
     verifiedAt: row.verified_at || row.verifiedAt,
     dispensedAt: row.dispensed_at || row.dispensedAt,
+    appointmentToken: row.appointment_token || row.appointmentToken || null,
 });
 
 const {
@@ -524,10 +536,13 @@ app.post('/api/admin/login', adminLoginLimiter, (req, res) => {
     return res.status(401).json({ success: false, message: 'Invalid password' });
 });
 
-app.get('/api/config', (req, res) => res.json({ success: true, config: siteConfig }));
-app.post('/api/config', requireAdmin, (req, res) => {
-    siteConfig = { ...siteConfig, ...req.body };
-    res.json({ success: true, config: siteConfig });
+registerFeatureRoutes(app, {
+    supabase,
+    getSiteConfig: () => siteConfig,
+    setSiteConfig: (patch) => { siteConfig = { ...siteConfig, ...patch }; },
+    requireAdmin,
+    normalizePharmacyOrder,
+    pharmacyOrdersMemory,
 });
 
 // ─── APPOINTMENT ROUTES ────────────────────────────────────────────────────
@@ -796,7 +811,7 @@ app.get('/api/lab/tests', async (req, res) => {
 
 app.post('/api/pharmacy/orders', async (req, res) => {
     try {
-        const { token, name, phone, age, gender, notes, items, subtotal, rxCount, status, createdAt } = req.body || {};
+        const { token, name, phone, age, gender, notes, items, subtotal, rxCount, status, createdAt, appointmentToken } = req.body || {};
         if (!token || !name || !phone || !Array.isArray(items) || items.length === 0) {
             return res.status(400).json({ success: false, message: 'token, name, phone and items are required' });
         }
@@ -812,6 +827,7 @@ app.post('/api/pharmacy/orders', async (req, res) => {
             rx_count: Number(rxCount) || 0,
             status: status || 'pending_verification',
             created_at: createdAt || new Date().toISOString(),
+            appointment_token: appointmentToken ? String(appointmentToken).trim() : null,
         };
         if (supabase) {
             const { data, error } = await supabase.from('pharmacy_orders').insert(row).select().maybeSingle();
@@ -900,7 +916,9 @@ app.patch('/api/admin/pharmacy-orders', requireAdmin, async (req, res) => {
                 throw error;
             }
             if (!data) return res.status(404).json({ success: false, message: 'Order not found' });
-            return res.json({ success: true, order: normalizePharmacyOrder(data) });
+            let stockDeduction = { deducted: [] };
+            if (status === 'dispensed') stockDeduction = await deductPharmacyStock(supabase, data.items || []);
+            return res.json({ success: true, order: normalizePharmacyOrder(data), stockDeduction });
         }
         const idx = pharmacyOrdersMemory.findIndex((o) => (id && o.id === id) || o.token === token);
         if (idx < 0) return res.status(404).json({ success: false, message: 'Order not found' });

@@ -431,6 +431,77 @@ SELECT
 FROM public.products
 WHERE is_active = true;
 
+-- -----------------------------------------------------------------------------
+-- 7. FEATURE TABLES (reviews, lab tracking, appointment link)
+-- -----------------------------------------------------------------------------
+ALTER TABLE public.pharmacy_orders ADD COLUMN IF NOT EXISTS appointment_token TEXT;
+CREATE INDEX IF NOT EXISTS pharmacy_orders_apt_token_idx ON public.pharmacy_orders (appointment_token);
+
+ALTER TABLE public.site_config ADD COLUMN IF NOT EXISTS doctor_schedule JSONB NOT NULL DEFAULT '{}'::jsonb;
+
+CREATE TABLE IF NOT EXISTS public.patient_reviews (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    patient_name TEXT NOT NULL,
+    phone TEXT,
+    visit_type TEXT DEFAULT 'Patient',
+    review_text TEXT NOT NULL,
+    rating SMALLINT NOT NULL DEFAULT 5 CHECK (rating >= 1 AND rating <= 5),
+    approved BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS patient_reviews_approved_idx ON public.patient_reviews (approved, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS public.lab_report_requests (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    token TEXT NOT NULL UNIQUE,
+    patient_name TEXT NOT NULL,
+    phone TEXT NOT NULL,
+    test_name TEXT NOT NULL DEFAULT 'Lab test',
+    appointment_token TEXT,
+    notes TEXT,
+    status TEXT NOT NULL DEFAULT 'submitted',
+    admin_notes TEXT,
+    ready_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS lab_report_requests_phone_idx ON public.lab_report_requests (phone);
+CREATE INDEX IF NOT EXISTS lab_report_requests_token_idx ON public.lab_report_requests (token);
+
+DROP TRIGGER IF EXISTS lab_report_requests_updated_at ON public.lab_report_requests;
+CREATE TRIGGER lab_report_requests_updated_at
+    BEFORE UPDATE ON public.lab_report_requests
+    FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+ALTER TABLE public.patient_reviews ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.lab_report_requests ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public insert patient_reviews" ON public.patient_reviews;
+CREATE POLICY "Public insert patient_reviews"
+    ON public.patient_reviews FOR INSERT TO anon, authenticated WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public read approved reviews" ON public.patient_reviews;
+CREATE POLICY "Public read approved reviews"
+    ON public.patient_reviews FOR SELECT TO anon, authenticated USING (approved = true);
+
+DROP POLICY IF EXISTS "Service role manage patient_reviews" ON public.patient_reviews;
+CREATE POLICY "Service role manage patient_reviews"
+    ON public.patient_reviews FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public insert lab_report_requests" ON public.lab_report_requests;
+CREATE POLICY "Public insert lab_report_requests"
+    ON public.lab_report_requests FOR INSERT TO anon, authenticated WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public read own lab by phone" ON public.lab_report_requests;
+CREATE POLICY "Public read own lab by phone"
+    ON public.lab_report_requests FOR SELECT TO anon, authenticated USING (true);
+
+DROP POLICY IF EXISTS "Service role manage lab_report_requests" ON public.lab_report_requests;
+CREATE POLICY "Service role manage lab_report_requests"
+    ON public.lab_report_requests FOR ALL TO service_role USING (true) WITH CHECK (true);
+
 -- =============================================================================
 -- Render env reminder (backend):
 --   SUPABASE_URL=https://xxxx.supabase.co
