@@ -23,16 +23,19 @@ const api = axios.create({
       : 'https://srikamalahospital.onrender.com/api',
 });
 
+const isAdminLoginRequest = (path) => path === '/admin/login' || path.endsWith('/admin/login');
+
 api.interceptors.request.use((config) => {
   const token = getAdminToken();
   const path = config.url || '';
-  if (
-    token &&
-    (path.includes('/admin/') ||
+  if (token && !isAdminLoginRequest(path)) {
+    if (
+      path.includes('/admin/') ||
       path.includes('/diagnostics/admin/') ||
-      (path === '/config' && config.method === 'post'))
-  ) {
-    config.headers.Authorization = `Bearer ${token}`;
+      (path === '/config' && config.method === 'post')
+    ) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
   }
   return config;
 });
@@ -41,9 +44,9 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     const path = error.config?.url || '';
-    if (error.response?.status === 401 && path.includes('/admin/')) {
+    if (error.response?.status === 401 && path.includes('/admin/') && !isAdminLoginRequest(path)) {
       clearAdminSession();
-      if (typeof window !== 'undefined' && window.location.pathname === '/6665') {
+      if (typeof window !== 'undefined' && ['/6665', '/lab-admin'].includes(window.location.pathname)) {
         window.dispatchEvent(new Event('sk-admin-logout'));
       }
     }
@@ -57,7 +60,10 @@ export const getAppointmentByToken = (token) => api.get(`/appointments/${token}`
 export const getConfig = () => api.get('/config');
 export const updateConfig = (data) => api.post('/config', data);
 export const adminLogin = (password, panel = 'hospital') =>
-  api.post('/admin/login', { password, panel: panel === 'diagnostics' ? 'diagnostics' : 'hospital' });
+  api.post('/admin/login', {
+    password: String(password || '').trim(),
+    panel: panel === 'diagnostics' ? 'diagnostics' : 'hospital',
+  });
 
 export const getDiagnosticsStats = () => api.get('/diagnostics/admin/stats');
 export const getAdminLabTests = () => api.get('/diagnostics/admin/tests');

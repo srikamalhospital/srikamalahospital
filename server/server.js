@@ -538,18 +538,30 @@ app.post('/api/ai/discover', async (req, res) => {
 
 // ─── ADMIN & CONFIG ROUTES ─────────────────────────────────────────────────
 
+const normalizeEnvSecret = (value) => {
+    let v = String(value || '').trim();
+    if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
+        v = v.slice(1, -1).trim();
+    }
+    return v;
+};
+
 app.post('/api/admin/login', adminLoginLimiter, (req, res) => {
     const { password, panel } = req.body || {};
-    const expected = process.env.ADMIN_PASSWORD;
+    const expected = normalizeEnvSecret(process.env.ADMIN_PASSWORD);
+    const supplied = normalizeEnvSecret(password);
     if (!expected) {
-        return res.status(503).json({ success: false, message: 'Admin password not configured on server' });
+        return res.status(503).json({ success: false, message: 'Admin password not configured on server (set ADMIN_PASSWORD in Render)' });
     }
-    if (password === expected) {
+    if (!supplied) {
+        return res.status(400).json({ success: false, message: 'Password required' });
+    }
+    if (supplied === expected) {
         const role = panel === 'diagnostics' ? 'diagnostics' : 'admin';
         const token = jwt.sign({ role, sub: role === 'diagnostics' ? 'diagnostics-admin' : 'hospital-admin' }, ADMIN_JWT_SECRET, { expiresIn: '8h' });
         return res.json({ success: true, token, role, expiresIn: 28800 });
     }
-    return res.status(401).json({ success: false, message: 'Invalid password' });
+    return res.status(401).json({ success: false, message: 'Invalid password. Must match ADMIN_PASSWORD on Render (not your local .env).' });
 });
 
 const { registerDiagnosticsAdminRoutes } = require('./diagnosticsAdminRoutes');

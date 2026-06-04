@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Lock, Key, Microscope, LayoutDashboard } from 'lucide-react';
 import { adminLogin } from '../utils/api';
-import { setAdminSession } from '../utils/adminSession';
+import { setAdminSession, clearAdminSession } from '../utils/adminSession';
 import { getAdminLang, setAdminLang, tAdmin } from '../admin/translations';
 
 /**
@@ -16,6 +16,10 @@ const AdminLoginScreen = ({ defaultPanel = 'hospital', onSuccess }) => {
   const [lang, setLang] = useState(() => getAdminLang());
   const t = (key) => tAdmin(lang, key);
 
+  React.useEffect(() => {
+    clearAdminSession();
+  }, []);
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoginError('');
@@ -27,8 +31,15 @@ const AdminLoginScreen = ({ defaultPanel = 'hospital', onSuccess }) => {
         setPassword('');
         onSuccess(role);
       }
-    } catch {
-      setLoginError(t('loginError'));
+    } catch (err) {
+      const msg = err.response?.data?.message;
+      if (err.response?.status === 429) {
+        setLoginError('Too many attempts. Wait 15 minutes and try again.');
+      } else if (msg) {
+        setLoginError(msg);
+      } else {
+        setLoginError(t('loginError'));
+      }
     }
   };
 
