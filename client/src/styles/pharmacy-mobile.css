@@ -1,0 +1,148 @@
+/* Medical shop — mobile-first layout */
+
+.pharmacy-page {
+  padding-bottom: max(7rem, calc(env(safe-area-inset-bottom) + 6rem));
+}
+
+.pharmacy-header {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+@media (min-width: 640px) {
+  .pharmacy-header {
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+  }
+}
+
+.pharmacy-cart-btn-header {
+  width: 100%;
+  justify-content: center;
+}
+
+@media (min-width: 640px) {
+  .pharmacy-cart-btn-header {
+    width: auto;
+  }
+}
+
+.pharmacy-category-scroll {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.5rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 0.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.pharmacy-category-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.pharmacy-category-scroll .pro-tab {
+  flex: 0 0 auto;
+  min-width: max-content;
+  white-space: nowrap;
+}
+
+.pharmacy-product-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.625rem;
+  align-items: stretch;
+}
+
+@media (min-width: 640px) {
+  .pharmacy-product-grid {
+    gap: 1rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .pharmacy-product-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1280px) {
+  .pharmacy-product-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+.pharmacy-product-card {
+  min-width: 0;
+  padding: 0.75rem !important;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+@media (min-width: 640px) {
+  .pharmacy-product-card {
+    padding: 1rem !important;
+  }
+}
+
+.pharmacy-fab-cart {
+  left: 0.75rem;
+  right: 0.75rem;
+  transform: none;
+  max-width: 24rem;
+  margin: 0 auto;
+  bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
+.pharmacy-fab-cart .btn-clinical {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border-radius: 1rem;
+  font-size: 0.7rem;
+}
+
+.pharmacy-cart-drawer {
+  width: 100%;
+  max-width: 100%;
+}
+
+@media (min-width: 480px) {
+  .pharmacy-cart-drawer {
+    max-width: 24rem;
+  }
+}
+
+.pharmacy-info-modal {
+  align-items: flex-end;
+  padding: 0;
+}
+
+@media (min-width: 640px) {
+  .pharmacy-info-modal {
+    align-items: center;
+    padding: 1rem;
+  }
+}
+
+.pharmacy-info-sheet {
+  width: 100%;
+  max-width: 100%;
+  border-radius: 1.25rem 1.25rem 0 0;
+  max-height: min(90dvh, 640px);
+  overflow-y: auto;
+}
+
+@media (min-width: 640px) {
+  .pharmacy-info-sheet {
+    max-width: 28rem;
+    border-radius: 1rem;
+    max-height: none;
+  }
+}

@@ -76,9 +76,9 @@ const HospitalLocationMap = ({ variant = 'card', compact = false, className = ''
   const mapAspect = compact ? 'aspect-[16/10] sm:aspect-[2/1]' : 'aspect-[16/9] sm:aspect-[21/9]';
 
   return (
-    <section className={`page-container ${compact ? 'max-w-4xl' : 'max-w-6xl'} ${className}`} aria-labelledby="hospital-location-heading">
-      <div className={`flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 ${compact ? 'mb-4' : 'mb-6'}`}>
-        <div>
+    <section className={`${compact ? 'content-rail' : 'page-container max-w-6xl'} ${className}`} aria-labelledby="hospital-location-heading">
+      <div className={`section-head-row sm:items-end ${compact ? 'mb-4' : 'mb-6'}`}>
+        <div className="min-w-0 text-left">
           <p className="pro-section-label mb-0.5 text-[10px]">Location</p>
           <h2
             id="hospital-location-heading"
@@ -92,7 +92,7 @@ const HospitalLocationMap = ({ variant = 'card', compact = false, className = ''
             Find us on M.G. Road, Suryapet — open 24 hours.
           </p>
         </div>
-        <div className={`flex items-start gap-2 text-slate-600 max-w-md ${compact ? 'text-xs' : 'text-sm'}`}>
+        <div className={`flex items-start gap-2 text-slate-600 max-w-md shrink-0 ${compact ? 'text-xs' : 'text-sm'}`}>
           <MapPin size={compact ? 14 : 18} className="text-sky-600 shrink-0 mt-0.5" />
           <span>{address}</span>
         </div>

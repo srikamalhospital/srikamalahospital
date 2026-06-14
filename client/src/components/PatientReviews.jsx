@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Star, MessageSquare } from 'lucide-react';
+import { Star, MessageSquare, ExternalLink } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getReviews, submitReview } from '../utils/api';
+import { getGoogleReviewsUrl, getGoogleWriteReviewUrl } from '../utils/maps';
 
 const FALLBACK = [
   { name: 'Sunitha Nicky', role: 'Patient Response', text: 'Nice hospital and very good response and good staff nurses', rating: 5 },
@@ -43,20 +44,39 @@ const PatientReviews = ({ showSubmitForm = false, compact = false, limit = 8 }) 
   const shown = reviews.slice(0, limit);
 
   return (
-    <section className={`px-4 sm:px-6 bg-hospital-surface ${compact ? 'py-5' : 'py-16'} grainy`}>
-      <div className={`page-container ${compact ? 'max-w-4xl' : 'max-w-6xl'}`}>
-        <div className={`flex items-center justify-between gap-4 ${compact ? 'mb-4' : 'mb-12'}`}>
-          <h2 className={`font-bold text-hospital-dark font-['Noto_Sans_Telugu'] ${compact ? 'text-base' : 'heading-clinical'}`}>
-            రోగి అభిప్రాయాలు {!compact && <span className="text-hospital-secondary italic">Patient reviews</span>}
-          </h2>
-          {!compact && (
-            <div className="glass-panel px-6 py-3 rounded-2xl border-white/80">
-              <p className="text-3xl font-black text-hospital-dark leading-none">5.0</p>
-            </div>
-          )}
+    <section className={`bg-hospital-surface grainy ${compact ? '' : 'py-16'}`}>
+      <div className={compact ? 'content-rail' : 'page-container max-w-6xl'}>
+        <div className={`section-head-row ${compact ? 'mb-4' : 'mb-12'}`}>
+          <div className="min-w-0">
+            <h2 className={`font-bold text-hospital-dark font-['Noto_Sans_Telugu'] ${compact ? 'text-base' : 'heading-clinical'}`}>
+              రోగి అభిప్రాయాలు {!compact && <span className="text-hospital-secondary italic">Patient reviews</span>}
+            </h2>
+            {compact && (
+              <p className="text-[10px] text-hospital-slate mt-1">Featured on site · more on Google</p>
+            )}
+          </div>
+          <div className={`flex flex-wrap items-center gap-2 shrink-0 ${compact ? '' : 'gap-3'}`}>
+            <a
+              href={getGoogleReviewsUrl()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`inline-flex items-center gap-1.5 font-semibold text-hospital-primary border border-hospital-primary/25 bg-white hover:bg-hospital-primary/5 transition-colors ${
+                compact ? 'text-[10px] px-2.5 py-1.5 rounded-lg' : 'text-xs px-4 py-2 rounded-xl'
+              }`}
+            >
+              <Star size={compact ? 12 : 14} className="text-amber-500" fill="currentColor" />
+              Google reviews
+              <ExternalLink size={compact ? 10 : 12} />
+            </a>
+            {!compact && (
+              <div className="glass-panel px-6 py-3 rounded-2xl border-white/80">
+                <p className="text-3xl font-black text-hospital-dark leading-none">5.0</p>
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className={`grid grid-cols-1 md:grid-cols-2 ${compact ? 'lg:grid-cols-2 gap-2.5 sm:gap-3' : 'lg:grid-cols-4 gap-10'}`}>
+        <div className={`equal-stretch-grid grid grid-cols-1 md:grid-cols-2 ${compact ? 'lg:grid-cols-2 gap-2.5 sm:gap-3' : 'lg:grid-cols-4 gap-10'}`}>
           {shown.map((rev, i) => (
             <motion.div
               key={rev.id || i}
@@ -65,7 +85,7 @@ const PatientReviews = ({ showSubmitForm = false, compact = false, limit = 8 }) 
               viewport={{ once: true }}
               className={
                 compact
-                  ? 'pro-card !p-3 sm:!p-3.5 rounded-xl min-h-0'
+                  ? 'review-card-equal pro-card !p-3 sm:!p-3.5 rounded-xl'
                   : 'premium-card group p-12 flex flex-col min-h-[280px] border-white/80'
               }
             >
@@ -76,7 +96,7 @@ const PatientReviews = ({ showSubmitForm = false, compact = false, limit = 8 }) 
                   ))}
                 </div>
               )}
-              <p className={`italic text-hospital-slate/80 ${compact ? 'text-xs line-clamp-2 mb-2' : 'text-base line-clamp-3 mb-8'}`}>
+              <p className={`italic text-hospital-slate/80 flex-1 ${compact ? 'text-xs line-clamp-2 mb-2' : 'text-base line-clamp-3 mb-8'}`}>
                 &ldquo;{rev.text}&rdquo;
               </p>
               <p className={`font-bold text-hospital-dark ${compact ? 'text-xs' : 'text-lg'}`}>{rev.name}</p>
@@ -125,12 +145,31 @@ const PatientReviews = ({ showSubmitForm = false, compact = false, limit = 8 }) 
           </form>
         )}
 
-        <div className={`flex justify-center ${compact ? 'mt-6' : 'mt-16'}`}>
+        <div className={`flex flex-col sm:flex-row flex-wrap justify-center items-center gap-3 ${compact ? 'mt-5' : 'mt-16'}`}>
           <a
-            href="https://g.page/srikamala/review"
-            className={`inline-flex items-center gap-2 font-semibold text-hospital-primary hover:underline ${compact ? 'text-sm' : 'btn-clinical px-10 py-4 rounded-2xl bg-hospital-dark text-white hover:no-underline hover:bg-hospital-secondary'}`}
+            href={getGoogleReviewsUrl()}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`inline-flex items-center gap-2 font-semibold ${
+              compact
+                ? 'text-sm text-hospital-primary hover:underline'
+                : 'btn-clinical px-8 py-4 rounded-2xl bg-hospital-dark text-white hover:no-underline hover:bg-hospital-secondary'
+            }`}
           >
-            <MessageSquare size={compact ? 16 : 18} /> Google review
+            <Star size={compact ? 16 : 18} className={compact ? 'text-amber-500' : ''} fill={compact ? 'currentColor' : 'none'} />
+            {compact ? 'View all on Google' : 'Read Google reviews'}
+            <ExternalLink size={compact ? 14 : 16} />
+          </a>
+          <a
+            href={getGoogleWriteReviewUrl()}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`inline-flex items-center gap-2 font-semibold text-hospital-slate hover:text-hospital-primary ${
+              compact ? 'text-xs px-3 py-2 rounded-lg border border-black/10 bg-white' : 'text-sm underline'
+            }`}
+          >
+            <MessageSquare size={compact ? 14 : 16} />
+            Write a Google review
           </a>
         </div>
       </div>

@@ -10,30 +10,32 @@ const actions = [
 ];
 
 const QuickActionGrid = () => (
-  <section className="py-4 px-0" style={{ backgroundColor: 'var(--page-bg)' }}>
-    <div className="page-container max-w-4xl">
-      <h2 className="text-center text-xs font-bold uppercase tracking-wider text-hospital-slate mb-3">
-        Quick links
-      </h2>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
+  <section style={{ backgroundColor: 'var(--page-bg)' }}>
+    <div className="content-rail">
+      <h2 className="section-eyebrow">Quick links</h2>
+      <div className="equal-stretch-grid grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
         {actions.map(({ telugu, title, icon: Icon, link, color, bg }) => (
           <Link
             key={link}
             to={link}
-            className="pro-card !p-3 sm:!p-3.5 flex flex-col gap-2 hover:border-hospital-primary/30 transition-colors group rounded-xl"
+            className="action-card pro-card !p-3 sm:!p-3.5 hover:border-hospital-primary/30 transition-colors group rounded-xl"
           >
-            <div className={`w-9 h-9 rounded-lg ${bg} flex items-center justify-center ${color}`}>
-              <Icon size={18} />
+            <div className="action-card-body">
+              <div className={`w-9 h-9 rounded-lg ${bg} flex items-center justify-center ${color} shrink-0`}>
+                <Icon size={18} />
+              </div>
+              <div className="min-w-0 mt-2">
+                <p className="font-bold text-hospital-dark font-['Noto_Sans_Telugu'] text-xs leading-tight">{telugu}</p>
+                <p className="text-[10px] text-hospital-slate mt-0.5">{title}</p>
+              </div>
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="font-bold text-hospital-dark font-['Noto_Sans_Telugu'] text-xs leading-tight">{telugu}</p>
-              <p className="text-[10px] text-hospital-slate mt-0.5">{title}</p>
+            <div className="action-card-foot">
+              <ChevronRight size={14} className="text-hospital-primary opacity-60 group-hover:translate-x-0.5 transition-transform" />
             </div>
-            <ChevronRight size={14} className="text-hospital-primary opacity-60 group-hover:translate-x-0.5 transition-transform self-end" />
           </Link>
         ))}
       </div>
-      <p className="text-center mt-3">
+      <p className="text-center mt-4">
         <Link to="/lab-reports" className="text-xs font-semibold text-hospital-primary hover:underline">
           Lab report status →
         </Link>

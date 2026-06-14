@@ -1,8 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Calendar, User, Phone, Activity, Clock, ShieldCheck, Heart, Zap } from 'lucide-react';
+import { ShieldCheck, Clock, Heart } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { bookAppointment, getConfig } from '../utils/api';
+import {
+  OP_DEPARTMENTS,
+  normalizeDepartment,
+  validateAppointmentBooking,
+  getDepartmentScheduleHint,
+  getNextThursday,
+  todayIso,
+  isThursday,
+} from '../utils/appointmentSchedule';
 
 const BookingForm = () => {
   const [searchParams] = useSearchParams();
@@ -12,163 +21,264 @@ const BookingForm = () => {
     phone: '',
     age: '',
     gender: 'Male',
-    department: 'General Medicine',
-    appointmentDate: new Date().toISOString().slice(0, 10),
+    department: OP_DEPARTMENTS[0].value,
+    appointmentDate: todayIso(),
     reason: '',
-    paymentMethod: 'Offline'
+    paymentMethod: 'Offline',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [bookingError, setBookingError] = useState('');
 
   useEffect(() => {
     const reason = searchParams.get('reason');
     const department = searchParams.get('department');
     if (reason || department) {
-      setFormData((prev) => ({
-        ...prev,
-        ...(reason ? { reason } : {}),
-        ...(department ? { department } : {}),
-      }));
+      setFormData((prev) => {
+        const next = { ...prev, ...(reason ? { reason } : {}) };
+        if (department) {
+          const match = OP_DEPARTMENTS.find(
+            (d) => d.en.toLowerCase() === department.toLowerCase() || department.toLowerCase().includes(d.id)
+          );
+          next.department = match?.value || OP_DEPARTMENTS[0].value;
+          if (match?.id === 'cardiology') {
+            next.appointmentDate = getNextThursday();
+          }
+        }
+        return next;
+      });
     }
-    getConfig().then((resp) => {
-      if (resp.data?.success) setAllowOnlinePayment(resp.data.config.allowOnlinePayment !== false);
-    }).catch(() => {});
+    getConfig()
+      .then((resp) => {
+        if (resp.data?.success) setAllowOnlinePayment(resp.data.config.allowOnlinePayment !== false);
+      })
+      .catch(() => {});
   }, [searchParams]);
 
-  const departments = [
-    { en: 'General Medicine', te: 'జనరల్ మెడిసిన్' },
-    { en: 'Cardiology', te: 'కార్డియాలజీ' },
-    { en: 'Neurology', te: 'న్యూరాలజీ' },
-    { en: 'Pediatrics', te: 'పీడియాట్రిక్స్' },
-    { en: 'Orthopedics', te: 'ఆర్థోపెడిక్స్' },
-    { en: 'Dermatology', te: 'డెర్మటాలజీ' }
-  ];
+  const scheduleHint = useMemo(
+    () => getDepartmentScheduleHint(formData.department),
+    [formData.department]
+  );
+
+  const isCardiology = normalizeDepartment(formData.department) === 'cardiology';
+
+  const handleDepartmentChange = (value) => {
+    setBookingError('');
+    const id = normalizeDepartment(value);
+    setFormData((prev) => ({
+      ...prev,
+      department: value,
+      appointmentDate: id === 'cardiology' ? getNextThursday() : prev.appointmentDate,
+    }));
+  };
+
+  const handleDateChange = (value) => {
+    setBookingError('');
+    if (isCardiology && value && !isThursday(value)) {
+      setBookingError('Cardiology OP is every Thursday only. Please select a Thursday.');
+    }
+    setFormData((prev) => ({ ...prev, appointmentDate: value }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setBookingError('');
+    const check = validateAppointmentBooking(formData.department, formData.appointmentDate);
+    if (!check.ok) {
+      setBookingError(check.messageEn);
+      return;
+    }
     setIsSubmitting(true);
     try {
       const response = await bookAppointment(formData);
       if (response.data.success) {
-        // Save to localStorage so receipt can see it if DB fetch fails
         if (response.data.appointment) {
           localStorage.setItem(`appointment_${response.data.token}`, JSON.stringify(response.data.appointment));
         }
         window.location.href = `/receipt?token=${response.data.token}&status=offline`;
+      } else if (response.data.message) {
+        setBookingError(response.data.message);
       }
     } catch (err) {
-      console.error(err);
-      alert('Error during booking. Please try again.');
+      setBookingError(err.response?.data?.message || 'Error during booking. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <section className="py-8">
+    <section className="py-6 sm:py-8">
       <div className="page-container max-w-4xl">
-        <div className="grid lg:grid-cols-5 gap-8 items-start">
-            <div className="lg:col-span-2 space-y-6">
-                <div>
-                   <p className="pro-section-label mb-2">Appointments</p>
-                   <h2 className="pro-title font-['Noto_Sans_Telugu'] mb-3">అపాయింట్‌మెంట్ బుకింగ్</h2>
-                   <p className="pro-subtitle">Book OP or lab visit. Pay at hospital. Open 24 hours.</p>
-                </div>
-
-                <div className="space-y-4">
-                   <div className="flex gap-4 items-center p-4 bg-white border border-black/5 rounded-2xl shadow-sm">
-                      <div className="w-10 h-10 bg-hospital-primary/10 text-hospital-primary rounded-xl flex items-center justify-center shrink-0">
-                         <Clock size={18} />
-                      </div>
-                      <div className="text-left">
-                         <p className="font-['Noto_Sans_Telugu'] text-[10px] font-black uppercase tracking-wider text-hospital-dark">త్వరిత మార్పు <span className="text-[8px] opacity-40 ml-1 uppercase">Quick Turnaround</span></p>
-                         <p className="font-['Noto_Sans_Telugu'] text-[11px] text-hospital-slate">60 సెకన్లలో నిర్ధారించండి <span className="text-[9px] opacity-40 ml-1">Confirm in 60s</span></p>
-                      </div>
-                   </div>
-
-                   <div className="flex gap-4 items-center p-4 bg-white border border-black/5 rounded-2xl shadow-sm">
-                      <div className="w-10 h-10 bg-hospital-secondary/10 text-hospital-secondary rounded-xl flex items-center justify-center shrink-0">
-                         <ShieldCheck size={18} />
-                      </div>
-                      <div className="text-left">
-                         <p className="font-['Noto_Sans_Telugu'] text-[10px] font-black uppercase tracking-wider text-hospital-dark">సురక్షిత యాక్సెస్ <span className="text-[8px] opacity-40 ml-1 uppercase">Secure Access</span></p>
-                         <p className="font-['Noto_Sans_Telugu'] text-[11px] text-hospital-slate">నేరుగా రిజిస్ట్రీకి <span className="text-[9px] opacity-40 ml-1">Direct registry</span></p>
-                      </div>
-                   </div>
-                </div>
-
-                <div className="hidden lg:block pt-8 text-center px-8 border-t border-black/5">
-                   <Heart size={32} className="text-hospital-primary mx-auto opacity-20 animate-pulse" />
-                </div>
+        <div className="grid lg:grid-cols-5 gap-6 lg:gap-8 items-start">
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+            <div>
+              <p className="pro-section-label mb-2">Appointments</p>
+              <h2 className="pro-title font-['Noto_Sans_Telugu'] mb-2 sm:mb-3">అపాయింట్‌మెంట్ బుకింగ్</h2>
+              <p className="pro-subtitle text-sm">
+                General Medicine — daily. Cardiology — Thursdays only. Pay at hospital reception.
+              </p>
             </div>
 
-            <div className="lg:col-span-3">
-                <motion.form 
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    onSubmit={handleSubmit} 
-                    className="pro-card space-y-6"
+            <div className="space-y-3">
+              {OP_DEPARTMENTS.map((dept) => (
+                <div
+                  key={dept.id}
+                  className="flex gap-3 items-center p-3 sm:p-4 bg-white border border-black/5 rounded-xl shadow-sm"
                 >
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <label className="font-['Noto_Sans_Telugu'] text-[10px] font-black uppercase tracking-widest text-hospital-slate/60 ml-1">పూర్తి పేరు <span className="text-[8px] opacity-40 ml-1 uppercase">Full Name</span></label>
-                            <input required type="text" placeholder="పేరు (Patient Name)" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})}
-                                className="w-full bg-slate-50 border border-transparent focus:border-hospital-primary/20 p-4 rounded-xl outline-none text-[11px] font-bold transition-all font-['Noto_Sans_Telugu']" />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="font-['Noto_Sans_Telugu'] text-[10px] font-black uppercase tracking-widest text-hospital-slate/60 ml-1">ఫోన్ <span className="text-[8px] opacity-40 ml-1 uppercase">Phone</span></label>
-                            <input required type="tel" placeholder="+91" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                                className="w-full bg-slate-50 border border-transparent focus:border-hospital-primary/20 p-4 rounded-xl outline-none text-[11px] font-bold transition-all" />
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <label className="font-['Noto_Sans_Telugu'] text-[10px] font-black uppercase tracking-widest text-hospital-slate/60 ml-1">వయస్సు <span className="text-[8px] opacity-40 ml-1 uppercase">Age</span></label>
-                            <input required type="number" placeholder="సంవత్సరాలు (Years)" value={formData.age} onChange={(e) => setFormData({...formData, age: e.target.value})}
-                                className="w-full bg-slate-50 border border-transparent focus:border-hospital-primary/20 p-4 rounded-xl outline-none text-[11px] font-bold transition-all font-['Noto_Sans_Telugu']" />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="font-['Noto_Sans_Telugu'] text-[10px] font-black uppercase tracking-widest text-hospital-slate/60 ml-1">లింగం <span className="text-[8px] opacity-40 ml-1 uppercase">Gender</span></label>
-                            <select value={formData.gender} onChange={(e) => setFormData({...formData, gender: e.target.value})}
-                                className="w-full bg-slate-50 border border-transparent focus:border-hospital-primary/20 p-4 rounded-xl outline-none text-[11px] font-bold transition-all appearance-none cursor-pointer font-['Noto_Sans_Telugu']">
-                                <option value="Male">పురుషుడు (Male)</option>
-                                <option value="Female">స్త్రీ (Female)</option>
-                                <option value="Other">ఇతర (Other)</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <label className="font-['Noto_Sans_Telugu'] text-[10px] font-black uppercase tracking-widest text-hospital-slate/60 ml-1">విభాగం <span className="text-[8px] opacity-40 ml-1 uppercase">Dept</span></label>
-                            <select value={formData.department} onChange={(e) => setFormData({...formData, department: e.target.value})}
-                                className="w-full bg-slate-50 border border-transparent focus:border-hospital-primary/20 p-4 rounded-xl outline-none text-[11px] font-bold transition-all appearance-none cursor-pointer font-['Noto_Sans_Telugu']">
-                                {departments.map(d => <option key={d.en} value={`${d.en} (${d.te})`}>{d.te} ({d.en})</option>)}
-                            </select>
-                        </div>
-                        <div className="space-y-2">
-                            <label className="font-['Noto_Sans_Telugu'] text-[10px] font-black uppercase tracking-widest text-hospital-slate/60 ml-1">తేదీ <span className="text-[8px] opacity-40 ml-1 uppercase">Date</span></label>
-                            <input required type="date" value={formData.appointmentDate} onChange={(e) => setFormData({...formData, appointmentDate: e.target.value})}
-                                className="w-full bg-slate-50 border border-transparent focus:border-hospital-primary/20 p-4 rounded-xl outline-none text-[11px] font-bold transition-all" />
-                        </div>
-                    </div>
-
-                    <div className="space-y-2">
-                        <label className="font-['Noto_Sans_Telugu'] text-[10px] font-black uppercase tracking-widest text-hospital-slate/60 ml-1">కారణం <span className="text-[8px] opacity-40 ml-1 uppercase">Reason (Optional)</span></label>
-                        <textarea rows="2" placeholder="క్లుప్త లక్షణాలు లేదా గమనికలు (Brief symptoms or notes)" value={formData.reason} onChange={(e) => setFormData({...formData, reason: e.target.value})}
-                            className="w-full bg-slate-50 border border-transparent focus:border-hospital-primary/20 p-4 rounded-xl outline-none text-[11px] font-bold transition-all font-['Noto_Sans_Telugu']" />
-                    </div>
-
-                    <button type="submit" disabled={isSubmitting} className="btn-clinical w-full py-5 rounded-2xl flex items-center justify-center gap-3 group">
-                        <span className="font-['Noto_Sans_Telugu'] text-[12px] font-black tracking-[0.2em]">
-                            {isSubmitting ? "ప్రాసెస్ అవుతోంది... (Processing...)" : "బుకింగ్ నిర్ధారించండి (Confirm Booking)"}
-                        </span>
-                        {!isSubmitting && <ShieldCheck size={18} className="group-hover:rotate-12 transition-transform" />}
-                    </button>
-                    
-                    <p className="text-xs text-center text-slate-500">You will receive a token for reception. Pay at hospital.</p>
-                </motion.form>
+                  <div
+                    className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                      dept.id === 'cardiology' ? 'bg-rose-50 text-rose-600' : 'bg-hospital-primary/10 text-hospital-primary'
+                    }`}
+                  >
+                    <Clock size={16} />
+                  </div>
+                  <div className="min-w-0 text-left">
+                    <p className="font-['Noto_Sans_Telugu'] text-xs font-bold text-hospital-dark">{dept.te}</p>
+                    <p className="text-[10px] text-hospital-slate">
+                      {dept.en} · {dept.scheduleEn}
+                    </p>
+                  </div>
+                </div>
+              ))}
             </div>
+
+            <div className="hidden lg:block pt-6 text-center px-6 border-t border-black/5">
+              <Heart size={28} className="text-hospital-primary mx-auto opacity-20 animate-pulse" />
+            </div>
+          </div>
+
+          <div className="lg:col-span-3 min-w-0">
+            <motion.form
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              onSubmit={handleSubmit}
+              className="pro-card space-y-4 sm:space-y-6"
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-hospital-slate/70">
+                    Full name / పూర్తి పేరు
+                  </label>
+                  <input
+                    required
+                    type="text"
+                    placeholder="Patient name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="pro-input w-full"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-hospital-slate/70">
+                    Phone / ఫోన్
+                  </label>
+                  <input
+                    required
+                    type="tel"
+                    placeholder="10-digit mobile"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className="pro-input w-full"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-hospital-slate/70">Age</label>
+                  <input
+                    required
+                    type="number"
+                    placeholder="Years"
+                    value={formData.age}
+                    onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+                    className="pro-input w-full"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-hospital-slate/70">Gender</label>
+                  <select
+                    value={formData.gender}
+                    onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                    className="pro-input w-full"
+                  >
+                    <option value="Male">Male / పురుషుడు</option>
+                    <option value="Female">Female / స్త్రీ</option>
+                    <option value="Other">Other / ఇతర</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-hospital-slate/70">
+                    Department / విభాగం
+                  </label>
+                  <select
+                    value={formData.department}
+                    onChange={(e) => handleDepartmentChange(e.target.value)}
+                    className="pro-input w-full font-['Noto_Sans_Telugu']"
+                  >
+                    {OP_DEPARTMENTS.map((d) => (
+                      <option key={d.id} value={d.value}>
+                        {d.te} ({d.en})
+                      </option>
+                    ))}
+                  </select>
+                  {scheduleHint && (
+                    <p className="text-[10px] text-hospital-primary font-semibold mt-1">
+                      {scheduleHint.te} · {scheduleHint.en}
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-hospital-slate/70">
+                    Date / తేదీ
+                  </label>
+                  <input
+                    required
+                    type="date"
+                    min={todayIso()}
+                    value={formData.appointmentDate}
+                    onChange={(e) => handleDateChange(e.target.value)}
+                    className="pro-input w-full"
+                  />
+                  {isCardiology && (
+                    <p className="text-[10px] text-amber-700 mt-1">Cardiology: choose a Thursday only</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-hospital-slate/70">
+                  Reason (optional)
+                </label>
+                <textarea
+                  rows="2"
+                  placeholder="Brief symptoms"
+                  value={formData.reason}
+                  onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+                  className="pro-input w-full min-h-[72px] resize-y"
+                />
+              </div>
+
+              {bookingError && (
+                <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{bookingError}</p>
+              )}
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="btn-clinical w-full py-4 rounded-xl flex items-center justify-center gap-2"
+              >
+                <span className="text-xs font-bold tracking-wide">
+                  {isSubmitting ? 'Processing…' : 'Confirm booking / బుకింగ్ నిర్ధారించండి'}
+                </span>
+                {!isSubmitting && <ShieldCheck size={18} />}
+              </button>
+
+              <p className="text-xs text-center text-slate-500">Token for reception. Pay at hospital.</p>
+            </motion.form>
+          </div>
         </div>
       </div>
     </section>

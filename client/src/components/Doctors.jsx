@@ -31,13 +31,15 @@ const Doctors = ({ compact = false }) => {
   };
 
   return (
-    <section id="doctors" className={compact ? 'py-0' : 'py-2'}>
+    <section id="doctors" className={compact ? '' : 'py-2'}>
       <div
-        className={`page-container items-start max-w-6xl ${
-          compact ? 'grid grid-cols-1 gap-4 max-w-4xl' : 'grid grid-cols-1 lg:grid-cols-3 gap-6'
-        }`}
+        className={
+          compact
+            ? 'content-rail space-y-4'
+            : 'page-container items-start max-w-6xl grid grid-cols-1 lg:grid-cols-3 gap-6'
+        }
       >
-        <div className={compact ? 'space-y-1' : 'lg:col-span-1 space-y-3'}>
+        <div className={compact ? 'space-y-1 text-left' : 'lg:col-span-1 space-y-3'}>
           <h2
             className={`font-bold text-hospital-dark font-['Noto_Sans_Telugu'] ${
               compact ? 'text-base' : 'text-xl'
@@ -56,7 +58,7 @@ const Doctors = ({ compact = false }) => {
           </Link>
         </div>
 
-        <div className={compact ? 'flex flex-col gap-4' : 'lg:col-span-2 flex flex-col md:flex-row gap-6'}>
+        <div className={compact ? 'flex flex-col gap-4 w-full' : 'lg:col-span-2 flex flex-col md:flex-row gap-6'}>
           {doctors.map((doctor) => {
             const sched = scheduleFor(doctor.id);
             const onLeave = sched && sched.available === false;
@@ -99,7 +101,7 @@ const Doctors = ({ compact = false }) => {
                   </span>
                 )}
               </div>
-              <div className={compact ? 'p-3 sm:p-4 space-y-2.5 flex-1 min-w-0' : 'p-6 space-y-4'}>
+              <div className={`${compact ? 'p-3 sm:p-4 space-y-2.5 flex-1 min-w-0 flex flex-col' : 'p-6 space-y-4'}`}>
                 <div>
                   <h3 className={`font-bold text-hospital-dark ${compact ? 'text-sm' : 'text-xl'}`}>
                     {doctor.name}
@@ -142,7 +144,7 @@ const Doctors = ({ compact = false }) => {
                   </div>
                 )}
 
-                <div className={compact ? 'flex flex-col sm:flex-row gap-2' : 'space-y-0'}>
+                <div className={compact ? 'flex flex-col sm:flex-row gap-2 mt-auto' : 'space-y-0'}>
                   <button
                     type="button"
                     onClick={() => openConsult(doctor)}

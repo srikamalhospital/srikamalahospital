@@ -15,27 +15,27 @@ function Home() {
   }, []);
 
   return (
-    <div className="bg-hospital-surface min-h-screen selection:bg-hospital-primary selection:text-white overflow-x-clip grainy font-['Plus_Jakarta_Sans'] nav-offset">
+    <div className="bg-hospital-surface min-h-screen selection:bg-hospital-primary selection:text-white overflow-x-clip grainy font-['Plus_Jakarta_Sans'] nav-offset home-page-shell">
       <div className="logo-bg-overlay" />
 
-      <main className="relative z-10 home-compact">
-        <section id="hero" className="relative">
+      <main className="relative z-10 home-compact home-main">
+        <section id="hero" className="home-section !pt-4 sm:!pt-6 !pb-0">
           <Hero />
         </section>
 
-        <section id="actions" className="relative -mt-16 md:-mt-24 px-4 sm:px-6 z-20">
+        <section id="actions" className="home-section">
           <QuickActionGrid />
         </section>
 
-        <section id="doctors" className="relative py-5 px-4 sm:px-6">
+        <section id="doctors" className="home-section">
           <Doctors compact />
         </section>
 
-        <section id="location" className="relative py-6 px-4 sm:px-6">
+        <section id="location" className="home-section">
           <HospitalLocationMap compact />
         </section>
 
-        <section id="reviews" className="relative py-5">
+        <section id="reviews" className="home-section">
           <PatientReviews compact limit={4} />
         </section>
       </main>

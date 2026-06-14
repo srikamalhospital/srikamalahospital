@@ -1,8 +1,19 @@
-/* AI chat panels & emergency ticker — mobile-first, no overflow */
+/* AI chat panels & emergency popup — mobile-first, no overflow */
 
 :root {
   --emergency-bar-h: 2.75rem;
-  --health-bot-offset: calc(var(--emergency-bar-h) + 0.5rem + env(safe-area-inset-bottom, 0px));
+  --emergency-popup-offset: 0px;
+  --health-bot-offset: calc(var(--emergency-popup-offset) + 0.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+body.emergency-popup-visible {
+  --emergency-popup-offset: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+  --health-bot-offset: calc(var(--emergency-popup-offset) + 3.5rem);
+}
+
+body.emergency-popup-dismissed {
+  --emergency-popup-offset: calc(2.75rem + env(safe-area-inset-bottom, 0px));
+  --health-bot-offset: calc(var(--emergency-popup-offset) + 3.25rem);
 }
 
 .emergency-ticker {

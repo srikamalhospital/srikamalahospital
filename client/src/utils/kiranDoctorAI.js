@@ -31,8 +31,8 @@ const BOOKING_SUGGESTIONS = {
     { te: 'స్త్రీ', en: 'Female' },
   ],
   department: [
-    { te: 'General Medicine', en: 'General Medicine' },
-    { te: 'Emergency', en: 'Emergency' },
+    { te: 'జనరల్ మెడిసిన్', en: 'General Medicine (daily)' },
+    { te: 'కార్డియాలజీ', en: 'Cardiology (Thursday only)' },
   ],
   paymentMethod: [
     { te: 'ఆసుపత్రిలో చెల్లిస్తాను', en: 'Pay at hospital' },

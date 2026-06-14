@@ -206,6 +206,7 @@ const requireDiagnostics = (req, res, next) => {
 const { filterAppointments, filterPharmacyOrders, distinctValues } = require('./adminSearch');
 const { deductPharmacyStock } = require('./stockDeduction');
 const { registerFeatureRoutes } = require('./featureRoutes');
+const { validateAppointmentBooking } = require('./appointmentSchedule');
 
 const normalizePharmacyOrder = (row) => ({
     id: row.id,
@@ -651,8 +652,6 @@ registerDiagnosticsAdminRoutes(app, {
     setSiteConfig: (patch) => { siteConfig = { ...siteConfig, ...patch }; },
 });
 
-// ─── APPOINTMENT ROUTES ────────────────────────────────────────────────────
-
 app.post('/api/create-appointment', (req, res) => {
     // Ultra-defensive: synchronous wrapper prevents any async crash from leaking
     const generateToken = (prefix) => {
@@ -666,6 +665,11 @@ app.post('/api/create-appointment', (req, res) => {
             const { name, phone, age, gender, department, appointmentDate, reason, image } = req.body || {};
             if (!name || !phone) {
                 return res.status(400).json({ success: false, message: "Missing required fields: name and phone" });
+            }
+
+            const scheduleCheck = validateAppointmentBooking(department, appointmentDate);
+            if (!scheduleCheck.ok) {
+                return res.status(400).json({ success: false, message: scheduleCheck.message });
             }
 
             const safeDept = (department || '').toLowerCase();

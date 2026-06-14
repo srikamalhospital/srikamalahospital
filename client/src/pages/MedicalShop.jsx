@@ -291,33 +291,33 @@ const MedicalShop = () => {
   ) : null;
 
   return (
-    <div className="pro-page grainy pb-28">
-      <div className="page-container max-w-7xl">
-        <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
-          <div>
+    <div className="pro-page grainy pharmacy-page min-w-0 overflow-x-clip">
+      <div className="page-container max-w-7xl min-w-0">
+        <header className="pharmacy-header">
+          <div className="min-w-0">
             <p className="pro-section-label">Pharmacy</p>
-            <h1 className="pro-title font-['Noto_Sans_Telugu']">మెడికల్ షాప్</h1>
-            <p className="pro-subtitle">
-              Browse medicines, add to cart, then submit for a verification receipt to collect at the hospital
-              pharmacy.
+            <h1 className="text-xl sm:text-2xl md:pro-title font-['Noto_Sans_Telugu'] leading-tight">మెడికల్ షాప్</h1>
+            <p className="text-xs sm:text-sm text-theme-muted mt-1 max-w-xl">
+              Browse medicines, add to cart, then get a verification receipt at the hospital pharmacy.
             </p>
           </div>
           {cart.length > 0 && (
             <button
               type="button"
               onClick={() => setCartOpen(true)}
-              className="pro-btn-primary flex items-center gap-2 px-5 py-3"
+              className="pharmacy-cart-btn-header pro-btn-primary flex items-center gap-2 px-4 py-3 text-sm"
             >
               <ShoppingCart size={18} />
-              Cart ({totals.itemCount})
-              <span className="opacity-90">· ₹{totals.subtotal}</span>
+              <span>
+                Cart ({totals.itemCount}) · ₹{totals.subtotal}
+              </span>
             </button>
           )}
         </header>
 
-        <div className="grid lg:grid-cols-3 gap-6 lg:gap-8 mb-10 min-w-0">
-          <div className="lg:col-span-2 pro-ai-panel min-w-0 overflow-hidden">
-            <p className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
+        <div className="pharmacy-tools-grid mb-6 lg:mb-10 min-w-0">
+          <div className="pro-ai-panel min-w-0 overflow-hidden !p-3 sm:!p-5 flex flex-col h-full">
+            <p className="text-xs sm:text-sm font-semibold text-slate-800 mb-2 sm:mb-3 flex items-center gap-2">
               <Sparkles size={16} className="text-hospital-primary shrink-0" /> Pharmacy AI search
             </p>
             <div className="flex flex-col sm:flex-row gap-2 min-w-0">
@@ -344,8 +344,10 @@ const MedicalShop = () => {
             )}
           </div>
 
-          <div className="pro-card">
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Search catalog</label>
+          <div className="pro-card !p-3 sm:!p-5 min-w-0 flex flex-col h-full">
+            <label className="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wide">
+              Search catalog
+            </label>
             <div className="relative mt-2">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <input
@@ -356,13 +358,13 @@ const MedicalShop = () => {
                 className="pro-input pl-10"
               />
             </div>
-            <p className="text-xs text-slate-500 mt-3">
+            <p className="text-xs text-slate-500 mt-auto pt-3">
               Showing {filteredProducts.length} of {products.length} items
             </p>
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2 mb-8">
+        <div className="pharmacy-category-scroll">
           {categories.map((cat) => (
             <button
               key={cat}
@@ -370,8 +372,8 @@ const MedicalShop = () => {
               onClick={() => setActiveCategory(cat)}
               className={
                 activeCategory === cat
-                  ? 'pro-tab pro-tab-active !min-w-0 !px-4 !py-2'
-                  : 'pro-tab pro-tab-inactive !min-w-0 !px-4 !py-2'
+                  ? 'pro-tab pro-tab-active !px-3 !py-2 text-xs'
+                  : 'pro-tab pro-tab-inactive !px-3 !py-2 text-xs'
               }
             >
               {cat}
@@ -380,20 +382,21 @@ const MedicalShop = () => {
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-20">
+          <div className="flex justify-center py-16 sm:py-20">
             <div className="w-10 h-10 border-2 border-hospital-primary/20 border-t-hospital-primary rounded-full animate-spin" />
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          <div className="pharmacy-product-grid">
             {filteredProducts.map((product) => {
               const inCart = cartQtyFor(product.name);
               return (
                 <motion.article
                   key={product.name}
                   layout
-                  className="pro-card !p-4 flex flex-col hover:shadow-premium transition-shadow"
+                  className="pharmacy-product-card pro-card hover:shadow-premium transition-shadow min-w-0"
                 >
-                  <div className="aspect-square rounded-xl overflow-hidden bg-slate-100 mb-3 relative">
+                  <div className="pharmacy-card-body">
+                  <div className="aspect-square rounded-lg sm:rounded-xl overflow-hidden bg-slate-100 mb-2 sm:mb-3 relative">
                     <img
                       src={getPharmacyProductImage(product)}
                       alt={product.name}
@@ -420,24 +423,25 @@ const MedicalShop = () => {
                   <p className="text-[10px] font-semibold uppercase text-hospital-primary tracking-wide truncate">
                     {product.category}
                   </p>
-                  <h3 className="text-sm font-bold text-slate-900 line-clamp-2 min-h-[2.5rem] leading-snug mt-1">
+                  <h3 className="text-xs sm:text-sm font-bold text-slate-900 line-clamp-2 min-h-[2.25rem] sm:min-h-[2.5rem] leading-snug mt-0.5 sm:mt-1">
                     {product.name}
                   </h3>
-                  <p className="text-lg font-bold text-slate-800 mt-2">₹{product.price}</p>
-                  <div className="mt-3 flex flex-col gap-2">
+                  <p className="text-base sm:text-lg font-bold text-slate-800 mt-1 sm:mt-2">₹{product.price}</p>
+                  </div>
+                  <div className="pharmacy-card-actions flex flex-col gap-1.5 sm:gap-2">
                     <button
                       type="button"
                       onClick={() => handleAddToCart(product)}
-                      className="pro-btn-primary w-full py-2 text-xs flex items-center justify-center gap-1"
+                      className="pro-btn-primary w-full py-2 text-[10px] sm:text-xs flex items-center justify-center gap-1"
                     >
-                      <Plus size={14} /> Add to cart
+                      <Plus size={14} /> Add
                     </button>
                     <button
                       type="button"
                       onClick={() => setActiveInfo(product)}
-                      className="pro-btn-outline w-full py-2 text-xs"
+                      className="pro-btn-outline w-full py-2 text-[10px] sm:text-xs flex items-center justify-center gap-1"
                     >
-                      <Info size={14} /> Details
+                      <Info size={14} /> Info
                     </button>
                   </div>
                 </motion.article>
@@ -450,22 +454,22 @@ const MedicalShop = () => {
           <p className="text-center text-slate-500 py-12">No medicines match your search.</p>
         )}
 
-        <p className="mt-10 text-xs text-slate-500 text-center max-w-2xl mx-auto">
+        <p className="mt-8 sm:mt-10 text-[10px] sm:text-xs text-slate-500 text-center max-w-2xl mx-auto px-2">
           Add medicines to your cart and submit to get a receipt stamped &quot;Verification Required&quot;. Show it at
           the hospital medical shop — staff will verify your prescription before dispensing (especially Rx items).
         </p>
       </div>
 
       {cart.length > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 print:hidden">
+        <div className="pharmacy-fab-cart fixed z-40 print:hidden">
           <button
             type="button"
             onClick={() => setCartOpen(true)}
-            className="btn-clinical px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-3"
+            className="btn-clinical flex items-center justify-center gap-2"
           >
-            <ShoppingCart size={20} />
-            <span className="font-black text-sm uppercase tracking-widest">
-              View cart · {totals.itemCount} items · ₹{totals.subtotal}
+            <ShoppingCart size={18} />
+            <span className="font-bold uppercase tracking-wide truncate">
+              Cart · {totals.itemCount} · ₹{totals.subtotal}
             </span>
           </button>
         </div>
@@ -477,14 +481,14 @@ const MedicalShop = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4"
+            className="pharmacy-info-modal fixed inset-0 z-50 bg-slate-900/50 flex p-0 sm:p-4"
             onClick={() => setActiveInfo(null)}
           >
             <motion.div
-              initial={{ scale: 0.95 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.95 }}
-              className="pro-card max-w-md w-full"
+              initial={{ scale: 0.98, y: 24 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.98, y: 16 }}
+              className="pharmacy-info-sheet pro-card w-full safe-area-pb"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex justify-between items-start mb-4">
@@ -536,7 +540,7 @@ const MedicalShop = () => {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-              className="w-full max-w-md h-full max-h-[100dvh] bg-white shadow-2xl flex flex-col safe-area-pb"
+              className="pharmacy-cart-drawer w-full h-full max-h-[100dvh] bg-white shadow-2xl flex flex-col safe-area-pb"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="p-5 border-b border-slate-200 flex items-center justify-between">

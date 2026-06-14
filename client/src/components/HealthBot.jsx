@@ -16,6 +16,7 @@ import {
   getWelcomeMessage,
   parseDoctorConsultResponse,
 } from '../utils/kiranDoctorAI';
+import { OP_DEPARTMENTS, validateAppointmentBooking, normalizeDepartment, getNextThursday } from '../utils/appointmentSchedule';
 
 const HealthBot = () => {
     const { config } = useSiteConfig();
@@ -38,7 +39,7 @@ const HealthBot = () => {
         { key: 'phone', q: { te: 'మీ మొబైల్ నంబర్?', en: 'Your mobile number?' } },
         { key: 'age', q: { te: 'మీ వయస్సు?', en: 'Your age?' } },
         { key: 'gender', q: { te: 'లింగం? (పురుషుడు / స్త్రీ)', en: 'Gender? (Male / Female)' } },
-        { key: 'department', q: { te: 'ఏ విభాగం? (General Medicine సూచన)', en: 'Department? (General Medicine suggested)' } },
+        { key: 'department', q: { te: 'ఏ విభాగం? జనరల్ మెడిసిన్ (ప్రతి రోజు) లేదా కార్డియాలజీ (గురువారం)', en: 'Department? General Medicine (daily) or Cardiology (Thursday only)' } },
         { key: 'paymentMethod', q: { te: 'చెల్లింపు: ఆసుపత్రిలో లేదా Online?', en: 'Payment: at hospital or online?' } },
     ].filter(s => s.key !== 'paymentMethod' || allowOnlinePayment), [allowOnlinePayment]);
 
@@ -158,10 +159,39 @@ const HealthBot = () => {
                         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                     }]);
                     setSuggestions(getBookingSuggestions(steps[nextStep].key, language));
+                    if (steps[nextStep].key === 'department') {
+                        setSuggestions(
+                            OP_DEPARTMENTS.map((d) => ({
+                                te: d.te,
+                                en: d.en,
+                                label: language === 'en' ? `${d.en} (${d.scheduleEn})` : `${d.te} (${d.scheduleTe})`,
+                            }))
+                        );
+                    }
                 }, 300);
             } else {
                 try {
-                    const bookingPayload = { ...updatedData, department: updatedData.department || 'General Medicine' };
+                    const deptRaw = updatedData.department || OP_DEPARTMENTS[0].value;
+                    const apptDate =
+                        normalizeDepartment(deptRaw) === 'cardiology'
+                            ? getNextThursday()
+                            : new Date().toISOString().slice(0, 10);
+                    const scheduleCheck = validateAppointmentBooking(deptRaw, apptDate);
+                    if (!scheduleCheck.ok) {
+                        setMessages(prev => [...prev, {
+                            id: Date.now() + 2,
+                            text: scheduleCheck.messageEn,
+                            sender: 'bot',
+                        }]);
+                        setBookingState({ active: false, step: 0, data: {} });
+                        setIsTyping(false);
+                        return;
+                    }
+                    const bookingPayload = {
+                        ...updatedData,
+                        department: deptRaw,
+                        appointmentDate: apptDate,
+                    };
                     if (!allowOnlinePayment) bookingPayload.paymentMethod = 'ఆసుపత్రిలో';
                     const resp = await bookAppointment(bookingPayload);
                     const finalData = resp.data.success ? resp.data.appointment : { ...bookingPayload, token: 'ERR' };

@@ -30,16 +30,21 @@ svg {
   padding-bottom: max(5rem, calc(env(safe-area-inset-bottom) + 4.5rem));
 }
 
-/* Main content clears fixed nav + emergency ticker + chat */
+/* Main content clears nav + emergency popup + chat */
 .main-wrapper {
-  padding-bottom: max(5.25rem, calc(env(safe-area-inset-bottom) + var(--emergency-bar-h, 2.75rem) + 2.75rem));
+  padding-bottom: max(5.25rem, calc(env(safe-area-inset-bottom) + var(--emergency-popup-offset, 0px) + 2.75rem));
   min-width: 0;
 }
 
 @media (min-width: 640px) {
   .main-wrapper {
-    padding-bottom: max(4.75rem, calc(env(safe-area-inset-bottom) + var(--emergency-bar-h, 2.75rem) + 2rem));
+    padding-bottom: max(4.75rem, calc(env(safe-area-inset-bottom) + var(--emergency-popup-offset, 0px) + 2rem));
   }
+}
+
+/* Home page — room for floating emergency popup */
+.home-page-shell {
+  padding-bottom: max(6rem, calc(env(safe-area-inset-bottom) + var(--emergency-popup-offset, 5.5rem) + 1rem));
 }
 
 .page-container {
