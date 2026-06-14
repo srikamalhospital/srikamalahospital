@@ -89,7 +89,7 @@ const HospitalLocationMap = ({ variant = 'card', compact = false, className = ''
             ఆసుపత్రి చిరునామా
           </h2>
           <p className={`text-slate-600 ${compact ? 'text-xs mt-0.5' : 'pro-subtitle mt-1'}`}>
-            Find us on M.G. Road, Suryapet — open 24 hours.
+            Find us in Manasa Nagar, Suryapet — open 24 hours.
           </p>
         </div>
         <div className={`flex items-start gap-2 text-slate-600 max-w-md shrink-0 ${compact ? 'text-xs' : 'text-sm'}`}>

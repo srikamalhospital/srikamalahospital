@@ -64,8 +64,13 @@ const HealthBot = () => {
     };
 
     useEffect(() => {
+        if (!isOpen) return;
+        resetConsult();
+    }, [language]);
+
+    useEffect(() => {
         if (isOpen && messages.length === 0) resetConsult();
-    }, [language, isOpen]);
+    }, [isOpen]);
 
     useEffect(() => {
         if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;

@@ -180,7 +180,7 @@ export const deriveSyncedSuggestions = (replyText, language, userTurn = 0) => {
 
 export const buildChatHistory = (messages, limit = 8) =>
   messages
-    .filter((m) => m.sender === 'user' || m.sender === 'bot')
+    .filter((m) => m.sender === 'user' || m.sender === 'bot' || m.sender === 'ai')
     .filter((m) => !m.isReceipt && m.id !== 'welcome')
     .slice(-limit)
     .map((m) => ({

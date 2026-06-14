@@ -89,21 +89,18 @@ const MedicalShop = () => {
     setIsAiLoading(true);
     setAiInsight('');
     try {
-      const { discoverMedicines, chatWithAI } = await import('../utils/api');
+      const { discoverMedicines, pharmacyConsultAI } = await import('../utils/api');
+      const { buildPharmacyCatalogReply } = await import('../utils/aiHelpers');
       const discovery = await discoverMedicines(aiInput.trim());
       const matches = discovery.data?.results || [];
       if (matches.length > 0) {
-        const list = matches.slice(0, 8).join(', ');
-        const resp = await chatWithAI(
-          `Patient asks about "${aiInput}". We stock: ${list}. Explain availability and use in 2 short sentences. Format: [Telugu] ||| [English]`,
-          { mode: 'doctor', doctorName: 'Pharmacy Desk', specialty: 'Hospital Pharmacy' }
-        );
-        setAiInsight(resp.data?.response || `Available: ${list}`);
-      } else {
-        setAiInsight(
-          `మా క్యాటలాగ్‌లో కనిపించలేదు. రిసెప్షన్‌ను సంప్రదించండి. ||| Not found in catalog. Please check with the pharmacy desk.`
-        );
+        setAiInsight(buildPharmacyCatalogReply(aiInput.trim(), matches));
+        return;
       }
+      const resp = await pharmacyConsultAI(
+        `Patient asks about "${aiInput.trim()}". It is not in our catalog. Suggest what to ask at the desk or similar common medicines we may stock.`
+      );
+      setAiInsight(resp.data?.response || 'రిసెప్షన్‌ను సంప్రదించండి. ||| Please check with the pharmacy desk.');
     } catch (err) {
       console.error(err);
       setAiInsight('ఫార్మసీ AI అందుబాటులో లేదు. 99480 76665 కి కాల్ చేయండి. ||| Pharmacy AI unavailable. Call 99480 76665.');

@@ -58,7 +58,7 @@ const limiter = rateLimit({
 
 const aiLimiter = rateLimit({
     windowMs: 60 * 60 * 1000,
-    max: 20,
+    max: 40,
     message: { success: false, message: "AI limit reached. Call +91 99480 76665." },
 });
 
@@ -148,7 +148,7 @@ let siteConfig = {
     hospitalPhone: '99480 76665',
     diagnosticsPhone: '9866895634',
     opTimings: 'Open 24 Hours',
-    hospitalAddress: 'Opp. Tirumala Grand Restaurant, M.G. Road, Suryapet',
+    hospitalAddress: 'SRI KAMALA HOSPITAL, Manasa Nagar, Suryapet, Telangana 508213, India',
     websiteUrl: SITE_URL,
     websiteDomain: SITE_DOMAIN,
     contactEmail: `info@${SITE_DOMAIN}`,
@@ -244,7 +244,34 @@ const normalizeApiKey = (key) => {
     return key.trim().replace(/^Bearer\s+/i, '');
 };
 
-const getChatAI = async (messages, modelCandidates = ['meta/llama-3.1-70b-instruct', 'meta/llama3-70b-instruct', 'meta/llama-3.2-3b-instruct'], tokens = 1024) => {
+const AI_REQUEST_TIMEOUT_MS = 12000;
+const FAST_CHAT_MODELS = ['meta/llama-3.2-3b-instruct', 'meta/llama-3.1-70b-instruct', 'meta/llama3-70b-instruct'];
+const ACCURATE_CHAT_MODELS = ['meta/llama-3.1-70b-instruct', 'meta/llama3-70b-instruct', 'meta/llama-3.2-3b-instruct'];
+
+const HOSPITAL_AI_CTX = 'Sri Kamala Hospital, Suryapet. Phone: 99480 76665. Diagnostics lab: 9866895634. Open 24/7. OP: General Medicine daily; Cardiology Thursdays only.';
+
+const withTimeout = (promise, ms = AI_REQUEST_TIMEOUT_MS) =>
+    Promise.race([
+        promise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('AI request timeout')), ms)),
+    ]);
+
+const extractJson = (raw) => {
+    if (!raw || typeof raw !== 'string') return null;
+    const trimmed = raw.replace(/```json|```/g, '').trim();
+    try { return JSON.parse(trimmed); } catch (_) { /* continue */ }
+    const block = trimmed.match(/\{[\s\S]*\}/);
+    if (block) {
+        try { return JSON.parse(block[0]); } catch (_) { /* continue */ }
+    }
+    const arr = trimmed.match(/\[[\s\S]*\]/);
+    if (arr) {
+        try { return JSON.parse(arr[0]); } catch (_) { /* continue */ }
+    }
+    return null;
+};
+
+const getChatAI = async (messages, modelCandidates = ACCURATE_CHAT_MODELS, tokens = 512, timeoutMs = AI_REQUEST_TIMEOUT_MS) => {
     const keyCandidates = [
         normalizeApiKey(process.env.NVIDIA_API_KEY),
         normalizeApiKey(process.env.NVIDIA_VISION_API_KEY),
@@ -255,7 +282,10 @@ const getChatAI = async (messages, modelCandidates = ['meta/llama-3.1-70b-instru
         const openai = new OpenAI({ apiKey: key, baseURL: 'https://integrate.api.nvidia.com/v1' });
         for (const model of modelCandidates) {
             try {
-                const completion = await openai.chat.completions.create({ model, messages, temperature: 0.2, max_tokens: tokens });
+                const completion = await withTimeout(
+                    openai.chat.completions.create({ model, messages, temperature: 0.15, max_tokens: tokens }),
+                    timeoutMs
+                );
                 if (completion?.choices?.[0]?.message?.content) return completion.choices[0].message.content;
             } catch (e) {
                 if (e?.status === 404) continue;
@@ -265,22 +295,34 @@ const getChatAI = async (messages, modelCandidates = ['meta/llama-3.1-70b-instru
     throw new Error('All AI chat failovers exhausted');
 };
 
+const SYMPTOM_SYSTEM = `You are triage AI for ${HOSPITAL_AI_CTX} Respond ONLY with JSON: { "advice": { "en": "...", "te": "..." }, "department": { "en": "General Medicine|Cardiology|Emergency|Dermatology", "te": "..." } }. Max 2 short sentences per language. Chest pain, breathlessness, stroke signs, severe bleeding, very high fever → department Emergency and urge immediate visit or call 99480 76665.`;
+
+const analyzeSymptomText = async (symptoms, { hasImage = false } = {}) => {
+    const text = String(symptoms || '').trim();
+    if (!text) return null;
+    const imageNote = hasImage ? ' Patient also uploaded a clinical photo for context.' : '';
+    const msg = [
+        { role: 'system', content: SYMPTOM_SYSTEM },
+        { role: 'user', content: text + imageNote }
+    ];
+    const modelText = await getChatAI(msg, FAST_CHAT_MODELS, 420, 10000);
+    const json = extractJson(modelText);
+    if (json?.advice) return json;
+    return {
+        advice: { en: 'Please visit the hospital for evaluation.', te: 'దయచేసి ఆసుపత్రిని సందర్శించండి.' },
+        department: { en: 'General Medicine', te: 'జనరల్ మెడిసిన్' }
+    };
+};
+
 // ─── AI ROUTES ─────────────────────────────────────────────────────────────
 
 app.post('/api/ai/symptom', async (req, res) => {
     try {
         const { symptoms } = req.body;
-        const msg = [
-            { role: "system", content: "You are an AI diagnostic assistant for Sri Kamala Hospital. Respond EXCLUSIVELY with a JSON object: { 'advice': { 'en': '...', 'te': '...' }, 'department': { 'en': '...', 'te': '...' } }. Concise and medical." },
-            { role: "user", content: symptoms }
-        ];
-        const modelText = await getChatAI(msg, ['meta/llama-3.1-405b-instruct', 'meta/llama-3.1-70b-instruct', 'meta/llama-3.2-3b-instruct']);
-        let jsonResponse = null;
-        try {
-            jsonResponse = JSON.parse(modelText.replace(/```json/g, '').replace(/```/g, '').trim());
-        } catch {
-            jsonResponse = { advice: { en: "Please visit the hospital for evaluation.", te: "దయచేసి ఆసుపత్రిని సందర్శించండి." }, department: { en: "General", te: "జనరల్" } };
+        if (!symptoms || !String(symptoms).trim()) {
+            return res.status(400).json({ success: false, message: 'Symptoms required' });
         }
+        const jsonResponse = await analyzeSymptomText(symptoms);
         res.json({ success: true, analysis: jsonResponse });
     } catch (err) {
         res.status(503).json({ success: false, message: "AI services busy." });
@@ -327,6 +369,20 @@ const mapSkinPrediction = (pred) => {
 };
 
 const SKIN_AI_URL = process.env.SKIN_AI_URL || `http://localhost:${process.env.SKIN_AI_PORT || 5005}`;
+
+const runSkinCNNFromBase64 = async (image) => {
+    const base64Data = image.replace(/^data:image\/\w+;base64,/, '');
+    const buffer = Buffer.from(base64Data, 'base64');
+    const FormData = require('form-data');
+    const form = new FormData();
+    form.append('image', buffer, { filename: 'image.jpg', contentType: 'image/jpeg' });
+    const flaskResponse = await axios.post(`${SKIN_AI_URL}/predict`, form, {
+        headers: { ...form.getHeaders() },
+        timeout: 10000
+    });
+    if (flaskResponse.data?.success) return mapSkinPrediction(flaskResponse.data);
+    return null;
+};
 
 const forwardSkinImage = async (req) => {
     const FormData = require('form-data');
@@ -379,43 +435,61 @@ app.post('/predict', express.raw({ type: '*/*', limit: '20mb' }), async (req, re
 app.post('/api/ai/vision', async (req, res) => {
     try {
         const { image, symptoms } = req.body;
-        if (!image) return res.status(400).json({ success: false, message: "No image provided" });
+        if (!image) return res.status(400).json({ success: false, message: 'No image provided' });
 
-        const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
-        const buffer = Buffer.from(base64Data, "base64");
-        const FormData = require('form-data');
-        const form = new FormData();
-        form.append('image', buffer, { filename: 'image.jpg', contentType: 'image/jpeg' });
+        const symptomText = String(symptoms || '').trim();
+        const hasSymptoms = symptomText.length > 0;
 
-        try {
-            const flaskResponse = await axios.post(`${SKIN_AI_URL}/predict`, form, { headers: { ...form.getHeaders() }, timeout: 12000 });
-            if (flaskResponse.data?.success) {
-                const mapped = mapSkinPrediction(flaskResponse.data);
-                return res.json({
-                    success: true,
-                    analysis: {
-                        condition: { en: mapped.condition, te: mapped.condition_te },
-                        risk_level: mapped.risk,
-                        confidence: mapped.confidence,
-                        uncertain: mapped.uncertain,
-                        precautions: [{ en: mapped.description_en, te: mapped.description_te }],
-                        metadata: { source: mapped.model, dx: mapped.dx }
-                    }
-                });
+        const [skinSettled, symptomSettled] = await Promise.allSettled([
+            runSkinCNNFromBase64(image),
+            hasSymptoms ? analyzeSymptomText(symptomText, { hasImage: true }) : Promise.resolve(null),
+        ]);
+
+        const skinMapped = skinSettled.status === 'fulfilled' ? skinSettled.value : null;
+        const symptomAnalysis = symptomSettled.status === 'fulfilled' ? symptomSettled.value : null;
+
+        if (hasSymptoms && symptomAnalysis?.advice) {
+            const analysis = { ...symptomAnalysis };
+            if (skinMapped) {
+                analysis.note = `Skin scan (preliminary): ${skinMapped.condition} (${skinMapped.risk} risk). Visit dermatology for confirmation.`;
+                analysis.skin_scan = {
+                    condition: { en: skinMapped.condition, te: skinMapped.condition_te },
+                    risk_level: skinMapped.risk,
+                    confidence: skinMapped.confidence,
+                };
             }
-        } catch (fErr) { console.warn("Skin CNN fallback:", fErr.message); }
+            return res.json({ success: true, analysis });
+        }
+
+        if (skinMapped) {
+            return res.json({
+                success: true,
+                analysis: {
+                    condition: { en: skinMapped.condition, te: skinMapped.condition_te },
+                    risk_level: skinMapped.risk,
+                    confidence: skinMapped.confidence,
+                    uncertain: skinMapped.uncertain,
+                    precautions: [{ en: skinMapped.description_en, te: skinMapped.description_te }],
+                    metadata: { source: skinMapped.model, dx: skinMapped.dx },
+                },
+            });
+        }
+
+        if (hasSymptoms) {
+            const fallback = await analyzeSymptomText(symptomText).catch(() => null);
+            if (fallback?.advice) return res.json({ success: true, analysis: fallback });
+        }
 
         return res.json({
             success: false,
-            message: "Skin classification model unavailable. Please consult dermatology in person.",
+            message: 'Could not analyze image. Please describe symptoms in text or visit the hospital.',
             analysis: {
-                condition: { en: "Review required", te: "వైద్యుడి సమీక్ష అవసరం" },
-                risk_level: "Medium",
-                precautions: [{ en: "Upload a clear close-up image or visit the hospital.", te: "స్పష్టమైన చిత్రం అప్‌లోడ్ చేయండి లేదా ఆసుపత్రిని సంప్రదించండి." }]
-            }
+                advice: { en: 'Upload a clear photo with symptom description, or call 99480 76665.', te: 'లక్షణాలను వ్రాసండి లేదా 99480 76665 కి కాల్ చేయండి.' },
+                department: { en: 'General Medicine', te: 'జనరల్ మెడిసిన్' },
+            },
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: "Skin AI engine failed." });
+        res.status(500).json({ success: false, message: 'Vision AI engine failed.' });
     }
 });
 
@@ -427,7 +501,7 @@ app.post('/api/ai/ocr', async (req, res) => {
             normalizeApiKey(process.env.NVIDIA_VISION_FALLBACK_API_KEY),
             normalizeApiKey(process.env.NVIDIA_API_KEY)
         ].filter(Boolean);
-        const modelCandidates = ["meta/llama-3.2-90b-vision-instruct", "meta/llama-3.2-11b-vision-instruct", "microsoft/phi-3.5-vision-instruct"];
+        const modelCandidates = ['meta/llama-3.2-11b-vision-instruct', 'microsoft/phi-3.5-vision-instruct', 'meta/llama-3.2-90b-vision-instruct'];
         let response;
         outer: for (const currentKey of keyCandidates) {
             for (const currentModel of modelCandidates) {
@@ -499,12 +573,15 @@ const defaultDoctorSuggestions = () => ([
 
 app.post('/api/ai/chat', async (req, res) => {
     try {
-        const { query, mode, doctorName, specialty, history, language, opHours, doctorAvailable } = req.body;
+        const { query, mode, doctorName, specialty, history, language, opHours, doctorAvailable, testsSummary } = req.body;
         if (!query || !String(query).trim()) {
             return res.status(400).json({ success: false, message: 'Message required' });
         }
 
-        let systemContent = `You are the helpful AI assistant for Sri Kamala Hospital, Suryapet. Website: ${SITE_URL}. Hospital phone: 99480 76665. Diagnostics: 9866895634. Open 24 hours. Be concise, empathetic, professional. Max 3 sentences.`;
+        let systemContent = `You are the helpful AI assistant for ${HOSPITAL_AI_CTX} Website: ${SITE_URL}. Be concise, empathetic, professional. Max 2 sentences. Always format: [Telugu] ||| [English].`;
+        let tokens = 380;
+        let models = FAST_CHAT_MODELS;
+        let useHistory = false;
 
         if (mode === 'doctor') {
             const doc = doctorName || 'Dr. D. Kiran';
@@ -516,10 +593,10 @@ app.post('/api/ai/chat', async (req, res) => {
 
 Clinical rules:
 - Preliminary triage only; never give a final diagnosis.
-- 2-3 short sentences in reply (both languages).
+- 2 short sentences in reply (both languages).
 - Chest pain, breathlessness, stroke signs, severe bleeding, very high fever → tell them to come immediately or call 99480 76665.
 - ${avail ? `You are available for OP today. OP hours: ${hours}.` : 'You are on leave today — urgent cases must go to hospital emergency.'}
-- Hospital 24/7. Lab/diagnostics: 9866895634. Website: ${SITE_URL}
+- ${HOSPITAL_AI_CTX} Website: ${SITE_URL}
 - Prefer ${lang} tone in "reply" but always include both Telugu and English separated by |||
 
 OUTPUT ONLY valid JSON (no markdown):
@@ -527,14 +604,24 @@ OUTPUT ONLY valid JSON (no markdown):
   "reply": "Telugu sentences ||| English sentences",
   "suggestions": [
     { "te": "short natural reply patient might tap next in Telugu", "en": "same in English" },
-    ...exactly 3 or 4 items, each synced to YOUR last reply (follow-up answers, not doctor questions)
+    ...exactly 3 or 4 items, synced to YOUR last reply
   ]
 }`;
+            tokens = 580;
+            models = ACCURATE_CHAT_MODELS;
+            useHistory = true;
+        } else if (mode === 'pharmacy') {
+            systemContent = `You are the hospital pharmacy desk for ${HOSPITAL_AI_CTX}. Answer ONLY about medicine availability, dosage questions, and Rx requirements. No diagnosis. 2 sentences max. OUTPUT ONLY JSON: { "reply": "Telugu ||| English" }`;
+            tokens = 260;
+        } else if (mode === 'diagnostics') {
+            const tests = String(testsSummary || '').trim() || 'CBC, Lipid Profile, Thyroid, HbA1c, LFT, KFT, ECG';
+            systemContent = `You are diagnostics advisor for ${HOSPITAL_AI_CTX}. Available tests (pick ONLY from this list): ${tests}. For patient symptoms, recommend 1-3 most relevant tests with brief reason. No diagnosis. OUTPUT ONLY JSON: { "reply": "Telugu reason ||| English reason", "tests": ["exact test name from list"] }`;
+            tokens = 340;
         }
 
         const msg = [{ role: 'system', content: systemContent }];
-        if (mode === 'doctor' && Array.isArray(history)) {
-            history.slice(-10).forEach((h) => {
+        if (useHistory && Array.isArray(history)) {
+            history.slice(-8).forEach((h) => {
                 const role = h.role === 'assistant' ? 'assistant' : 'user';
                 const content = String(h.content || '').trim();
                 if (content) msg.push({ role, content });
@@ -542,8 +629,7 @@ OUTPUT ONLY valid JSON (no markdown):
         }
         msg.push({ role: 'user', content: String(query).trim() });
 
-        const tokens = mode === 'doctor' ? 900 : 1024;
-        const responseText = await getChatAI(msg, ['meta/llama-3.1-70b-instruct', 'meta/llama3-70b-instruct', 'meta/llama-3.2-3b-instruct'], tokens);
+        const responseText = await getChatAI(msg, models, tokens);
 
         if (mode === 'doctor') {
             const parsed = parseDoctorAIJson(responseText);
@@ -567,7 +653,21 @@ OUTPUT ONLY valid JSON (no markdown):
             });
         }
 
-        const fallback = 'I am currently offline. Call +91 99480 76665.';
+        if (mode === 'pharmacy' || mode === 'diagnostics') {
+            const parsed = extractJson(responseText);
+            if (parsed?.reply) {
+                return res.json({
+                    success: true,
+                    response: String(parsed.reply).trim(),
+                    tests: Array.isArray(parsed.tests) ? parsed.tests.slice(0, 4) : [],
+                });
+            }
+            if (responseText && String(responseText).includes('|||')) {
+                return res.json({ success: true, response: String(responseText).trim(), tests: [] });
+            }
+        }
+
+        const fallback = 'క్షమించండి, ఇప్పుడు అందుబాటులో లేదు. 99480 76665 కి కాల్ చేయండి. ||| AI unavailable. Call +91 99480 76665.';
         res.json({ success: true, response: responseText || fallback });
     } catch (err) {
         console.error('AI chat error:', err.message);
@@ -594,7 +694,7 @@ app.post('/api/ai/discover', async (req, res) => {
             { role: "system", content: "You are a clinical AI. Suggest 2-3 standard medical equivalents. Output strictly a JSON array of strings." },
             { role: "user", content: keyword }
         ];
-        const responseText = await getChatAI(msg, ['meta/llama-3.1-70b-instruct', 'meta/llama-3.2-3b-instruct']);
+        const responseText = await getChatAI(msg, FAST_CHAT_MODELS, 200, 8000);
         let results = [];
         try { results = JSON.parse(responseText.replace(/```json|```/g, '').trim()); if (!Array.isArray(results)) results = []; }
         catch (e) { }

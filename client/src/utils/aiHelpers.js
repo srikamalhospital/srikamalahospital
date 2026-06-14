@@ -42,3 +42,21 @@ export const joinBilingualItems = (value) => {
   if (!list.length) return '-';
   return list.map((item) => getBilingualText(item)).join(', ');
 };
+
+const EMERGENCY_SYMPTOM_KEYWORDS = [
+  'chest pain', 'heart attack', 'breathless', 'cannot breathe', "can't breathe",
+  'stroke', 'unconscious', 'severe bleeding', 'heavy bleeding', 'seizure',
+  'ఛాతీ నొప్పి', 'గుండె', 'శ్వాస', 'అత్యవసర', 'రక్తం', 'స్ట్రోక్', 'మూర్ఛ',
+];
+
+/** Fast client-side emergency screen before AI round-trip */
+export const detectEmergencySymptoms = (text) => {
+  const bag = String(text || '').toLowerCase();
+  return EMERGENCY_SYMPTOM_KEYWORDS.some((k) => bag.includes(k.toLowerCase()));
+};
+
+export const buildPharmacyCatalogReply = (query, matches) => {
+  const list = (matches || []).slice(0, 6).join(', ');
+  const q = String(query || '').trim();
+  return `మీ "${q}" కోసం మా ఫార్మసీలో ఇవి అందుబాటులో: ${list}. Medical shopలో Add చేయండి లేదా కౌంటర్‌ను సంప్రదించండి. ||| For "${q}", we stock: ${list}. Add from the medical shop or ask at the pharmacy desk.`;
+};

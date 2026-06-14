@@ -4,13 +4,17 @@ export const HOSPITAL_MAPS = {
   lat: 17.147934,
   lng: 79.6225782,
   placeUrl:
-    'https://www.google.com/maps/place/SRI+KAMALA+HOSPITAL/@17.1479391,79.6200033,17z/data=!3m1!4b1!4m6!3m5!1s0x3a34dba63f29a213:0x2dfe41301d2da441!8m2!3d17.147934!4d79.6225782!16s%2Fg%2F11ls_d7dtt?entry=ttu',
+    'https://www.google.com/maps/place/SRI+KAMALA+HOSPITAL,+Manasa+Nagar,+Suryapet,+Telangana+508213,+India/@17.147934,79.6225782,17z/data=!3m1!4b1!4m6!3m5!1s0x3a34dba63f29a213:0x2dfe41301d2da441!8m2!3d17.147934!4d79.6225782!16s%2Fg%2F11ls_d7dtt?entry=ttu',
+  /** Turn-by-turn directions (official listing — Manasa Nagar, Suryapet) */
+  directionsUrl:
+    'https://www.google.com/maps/dir//SRI+KAMALA+HOSPITAL,+Manasa+Nagar,+Suryapet,+Telangana+508213,+India/@17.147934,79.6225782,17z/data=!4m8!4m7!1m0!1m5!1m1!1s0x3a34dba63f29a213:0x2dfe41301d2da441!2m2!1d79.6225782!2d17.147934?entry=ttu',
   /** Google local reviews listing (SRI KAMALA HOSPITAL) */
   googleReviewsUrl:
     'https://www.google.com/search?q=SRI+KAMALA+HOSPITAL+Reviews&tbm=lcl&hl=en#lkt=LocalPoiReviews',
-  /** Leave a new review on Google */
-  googleWriteReviewUrl: 'https://g.page/srikamala/review',
-  address: 'SRI KAMALA HOSPITAL, M.G. Road area, Suryapet, Telangana 508213',
+  /** Leave a new review on Google (official SRI KAMALA HOSPITAL review flow) */
+  googleWriteReviewUrl:
+    'https://www.google.com/search?q=SRI+KAMALA+HOSPITAL+Rezensionen&si=AL3DRZEsmMGCryMMFSHJ3StBhOdZ2-6yYkXd_doETEE1OR-qORUWxpUujsDNu046bfG37fIeoTMCCOJF5AXen5-8BRt9XygmE8aTTShUARTWbj2x3IXHXzSCjbJC28BBrZX9zFfZpfjpZlcNtEpEKR_S1RPmBWBobw%3D%3D&hl=en',
+  address: 'SRI KAMALA HOSPITAL, Manasa Nagar, Suryapet, Telangana 508213, India',
 };
 
 const DEFAULT_QUERY = HOSPITAL_MAPS.address;
@@ -25,10 +29,7 @@ export const getMapsEmbedUrl = () => {
 };
 
 /** Turn-by-turn directions to hospital */
-export const getMapsDirectionsUrl = () => {
-  const { lat, lng } = HOSPITAL_MAPS;
-  return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
-};
+export const getMapsDirectionsUrl = () => HOSPITAL_MAPS.directionsUrl;
 
 /** Open official Google Maps listing */
 export const getMapsPlaceUrl = () => HOSPITAL_MAPS.placeUrl;

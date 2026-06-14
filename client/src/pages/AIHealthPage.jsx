@@ -31,7 +31,9 @@ const AIHealthPage = () => {
     const reader = new FileReader();
     reader.onloadend = async () => {
       try {
-        const resp = await analyzeOCR(reader.result);
+        const { compressDataUrl } = await import('../utils/imageCompress');
+        const compressed = await compressDataUrl(reader.result, 1024, 0.85);
+        const resp = await analyzeOCR(compressed);
         if (resp.data?.success !== false && resp.data?.data) {
           setOcrResult(resp.data.data);
         } else {

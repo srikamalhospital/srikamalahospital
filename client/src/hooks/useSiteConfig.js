@@ -9,7 +9,7 @@ const DEFAULTS = {
   hospitalPhone: '99480 76665',
   diagnosticsPhone: '98668 95634',
   opTimings: 'Open 24 Hours',
-  hospitalAddress: 'SRI KAMALA HOSPITAL, M.G. Road, Suryapet, Telangana 508213',
+  hospitalAddress: 'SRI KAMALA HOSPITAL, Manasa Nagar, Suryapet, Telangana 508213, India',
   websiteUrl: SITE_URL,
   websiteDomain: SITE_DOMAIN,
   contactEmail: SITE_EMAIL,

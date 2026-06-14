@@ -82,7 +82,7 @@ const Footer = () => {
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <p className="text-base font-black text-hospital-dark font-['Noto_Sans_Telugu'] leading-tight mb-1">మహాత్మా గాంధీ రోడ్డు, సూర్యాపేట</p>
-                                    <p className="text-[9px] uppercase font-black tracking-[0.3em] text-hospital-slate/40 mb-2">M.G. Road, Suryapet</p>
+                                    <p className="text-[9px] uppercase font-black tracking-[0.3em] text-hospital-slate/40 mb-2">Manasa Nagar, Suryapet</p>
                                     <p className="text-xs text-theme-muted leading-relaxed">{config.hospitalAddress}</p>
                                     <div className="flex flex-wrap gap-3 mt-2">
                                         <a

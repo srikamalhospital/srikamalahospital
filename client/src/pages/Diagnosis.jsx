@@ -67,14 +67,18 @@ const Diagnosis = () => {
     setIsAiLoading(true);
     setAiRecommendation(null);
     try {
-      const { chatWithAI } = await import('../utils/api');
-      const testList = tests.map((t) => t.name).join(', ');
-      const prompt = `Based on these symptoms: "${aiInput}", which lab tests from our clinic are most relevant: [${testList}]? One sentence suggestion, pick 1-2 tests.
-Format: [Telugu]||| [English]`;
-      const resp = await chatWithAI(prompt);
-      setAiRecommendation(resp.data.response);
+      const { diagnosticsAI } = await import('../utils/api');
+      const testsSummary = tests
+        .slice(0, 35)
+        .map((t) => `${t.name}${t.price ? ` (₹${t.price})` : ''}`)
+        .join('; ');
+      const resp = await diagnosticsAI(aiInput.trim(), testsSummary);
+      const reply = resp.data?.response || '';
+      const picked = resp.data?.tests?.length ? ` Tests: ${resp.data.tests.join(', ')}.` : '';
+      setAiRecommendation(`${reply}${picked}`);
     } catch (err) {
       console.error(err);
+      setAiRecommendation('AI advisor busy. Call lab 9866895634. ||| AI advisor busy. Call lab 9866895634.');
     } finally {
       setIsAiLoading(false);
     }

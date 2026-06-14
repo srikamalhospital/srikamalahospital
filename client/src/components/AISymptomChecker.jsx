@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Brain, ShieldAlert, Activity, ChevronRight, RefreshCw, Upload, X, Pill, Syringe, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { getBilingualText, joinBilingualItems, toArray, HOSPITAL_PHONE } from '../utils/aiHelpers';
+import { getBilingualText, joinBilingualItems, toArray, HOSPITAL_PHONE, detectEmergencySymptoms } from '../utils/aiHelpers';
 
 const AISymptomChecker = () => {
     const navigate = useNavigate();
@@ -21,8 +21,11 @@ const AISymptomChecker = () => {
     const joinItems = joinBilingualItems;
 
     const isEmergencyCase = (analysis) => {
+        const dept = (getDepartmentLabel(analysis?.department) || '').toLowerCase();
+        if (dept.includes('emergency') || dept.includes('అత్యవసర')) return true;
         const bag = [
             getBilingualText(analysis?.condition),
+            getBilingualText(analysis?.advice),
             joinItems(analysis?.precautions),
             joinItems(analysis?.requirements),
             joinItems(analysis?.lab_tests),
@@ -51,11 +54,29 @@ const AISymptomChecker = () => {
         setIsAnalyzing(true);
         setResult(null);
 
+        if (detectEmergencySymptoms(symptoms)) {
+            setResult({
+                advice: {
+                    en: `Possible emergency — visit Sri Kamala Hospital emergency now or call ${HOSPITAL_PHONE}.`,
+                    te: `అత్యవసరం కావచ్చు — వెంటనే ఆసుపత్రి ఎమర్జెన్సీకి రండి లేదా ${HOSPITAL_PHONE} కి కాల్ చేయండి.`,
+                },
+                department: { en: 'Emergency', te: 'అత్యవసరం' },
+            });
+            setIsAnalyzing(false);
+            return;
+        }
+
         try {
             const { analyzeSymptoms, analyzeVisionImage } = await import('../utils/api');
+            let imageToSend = imagePreview;
+            if (imagePreview) {
+                const { compressDataUrl } = await import('../utils/imageCompress');
+                imageToSend = await compressDataUrl(imagePreview, 768, 0.82);
+            }
+
             let resp;
             if (imagePreview) {
-                resp = await analyzeVisionImage(imagePreview, symptoms);
+                resp = await analyzeVisionImage(imageToSend, symptoms.trim());
             } else {
                 resp = await analyzeSymptoms(symptoms);
             }
@@ -67,14 +88,14 @@ const AISymptomChecker = () => {
             } else {
                 setResult({
                     advice: { en: "AI system is currently overloaded. Please try again later.", te: "AI సిస్టమ్ ప్రస్తుతం అందుబాటులో లేదు. దయచేసి తర్వాత మళ్లీ ప్రయత్నించండి." },
-                    department: { en: "General", te: "జనరల్" }
+                    department: { en: "General Medicine", te: "జనరల్ మెడిసిన్" }
                 });
             }
         } catch (err) {
             console.error("AI Error:", err);
             setResult({
                 advice: { en: `Cannot reach AI service. Call ${HOSPITAL_PHONE}.`, te: `AI సేవ లేదు. ${HOSPITAL_PHONE} కి కాల్ చేయండి.` },
-                department: { en: "General", te: "జనరల్" }
+                department: { en: "General Medicine", te: "జనరల్ మెడిసిన్" }
             });
         } finally {
             setIsAnalyzing(false);
@@ -218,6 +239,11 @@ const AISymptomChecker = () => {
                                             </div>
                                         ) : (
                                             <div className="space-y-4 min-w-0">
+                                                {isEmergencyCase(result) && (
+                                                    <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="p-4 rounded-2xl bg-red-500/5 border border-red-500/20 text-red-600">
+                                                        <p className="text-sm font-bold">Emergency — visit hospital or call {HOSPITAL_PHONE} immediately.</p>
+                                                    </motion.div>
+                                                )}
                                                 <div>
                                                     <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-2">Telugu</p>
                                                     <p className="text-slate-900 font-bold text-lg sm:text-2xl leading-snug font-['Noto_Sans_Telugu'] break-words">{result.advice?.te}</p>
@@ -226,6 +252,9 @@ const AISymptomChecker = () => {
                                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">English</p>
                                                     <p className="text-sm text-slate-600 leading-relaxed break-words">{result.advice?.en}</p>
                                                 </div>
+                                                {result.note && (
+                                                    <p className="text-xs text-slate-600 bg-slate-50 rounded-lg p-3 border border-black/5">{result.note}</p>
+                                                )}
                                             </div>
                                         )}
 

@@ -107,8 +107,8 @@ export const fetchPharmacyProducts = (category) =>
 export const fetchPharmacyCategories = () => api.get('/pharmacy/categories');
 export const fetchMedicinesCatalog = () => api.get('/medicines/catalog');
 
-export const analyzeSymptoms = (symptoms) => api.post('/ai/symptom', { symptoms });
-export const analyzeVisionImage = (image, symptoms) => api.post('/ai/vision', { image, symptoms });
+export const analyzeSymptoms = (symptoms) => api.post('/ai/symptom', { symptoms }, { timeout: 20000 });
+export const analyzeVisionImage = (image, symptoms) => api.post('/ai/vision', { image, symptoms }, { timeout: 25000 });
 export const predictSkinCancer = async (file) => {
   const { compressImageFile } = await import('./imageCompress');
   const optimized = await compressImageFile(file, 512, 0.88);
@@ -119,9 +119,11 @@ export const predictSkinCancer = async (file) => {
     timeout: 15000
   });
 };
-export const analyzeOCR = (image) => api.post('/ai/ocr', { image });
+export const analyzeOCR = (image) => api.post('/ai/ocr', { image }, { timeout: 45000 });
+const AI_CHAT_TIMEOUT = 22000;
+
 export const chatWithAI = (query, options = {}) =>
-  api.post('/ai/chat', { query, ...options }, { timeout: 45000 });
+  api.post('/ai/chat', { query, ...options }, { timeout: options.timeout || AI_CHAT_TIMEOUT });
 
 /** Dr. Kiran virtual consult — history + synced suggestion chips from server */
 export const doctorConsultAI = (message, doctor, options = {}) =>
@@ -134,7 +136,13 @@ export const doctorConsultAI = (message, doctor, options = {}) =>
     language: options.language || 'te',
     opHours: options.opHours,
     doctorAvailable: options.doctorAvailable,
-  }, { timeout: 45000 });
+  }, { timeout: AI_CHAT_TIMEOUT });
+
+export const pharmacyConsultAI = (query) =>
+  api.post('/ai/chat', { query, mode: 'pharmacy' }, { timeout: AI_CHAT_TIMEOUT });
+
+export const diagnosticsAI = (query, testsSummary) =>
+  api.post('/ai/chat', { query, mode: 'diagnostics', testsSummary }, { timeout: AI_CHAT_TIMEOUT });
 export const discoverMedicines = (keyword) => api.post('/ai/medicine-discovery', { keyword });
 export const savePatientClinicalNote = (data) => api.post('/admin/patient-clinical-note', data);
 export const getPatientClinicalHistory = (patientName, phone) => api.post('/admin/patient-clinical-history', { patientName, phone });
