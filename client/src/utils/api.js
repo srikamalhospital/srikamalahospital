@@ -127,7 +127,7 @@ export const predictSkinCancer = async (file) => {
   });
 };
 export const analyzeOCR = (image) => api.post('/ai/ocr', { image }, { timeout: 45000 });
-const AI_CHAT_TIMEOUT = 22000;
+const AI_CHAT_TIMEOUT = 35000;
 
 export const chatWithAI = (query, options = {}) =>
   api.post('/ai/chat', { query, ...options }, { timeout: options.timeout || AI_CHAT_TIMEOUT });

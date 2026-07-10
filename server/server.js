@@ -864,6 +864,21 @@ app.post('/api/create-appointment', (req, res) => {
                 } catch (e2) {
                     console.warn('Insert attempt 2 exception:', e2.message);
                 }
+
+                // Third attempt: without visit_status (pre-migration databases)
+                try {
+                    const { visit_status, ...legacyBooking } = bookingData;
+                    const { data, error } = await supabase
+                        .from('appointments')
+                        .insert(legacyBooking)
+                        .select();
+                    if (!error && data?.[0]) {
+                        return res.json({ success: true, appointment: data[0], token: finalToken });
+                    }
+                    if (error) console.warn('Insert attempt 3 failed:', error.message);
+                } catch (e3) {
+                    console.warn('Insert attempt 3 exception:', e3.message);
+                }
             }
 
             // Offline fallback — always succeeds

@@ -17,9 +17,21 @@ const isThursday = (dateStr) => {
   return !Number.isNaN(d.getTime()) && d.getDay() === 4;
 };
 
-const todayIso = () => new Date().toISOString().slice(0, 10);
+const todayIso = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+
+const isDiagnosticsBooking = (department) => {
+  const d = String(department || '').toLowerCase();
+  return d.startsWith('lab:') || d.includes('diagnostic test') || d.includes('ల్యాబ్');
+};
 
 const validateAppointmentBooking = (department, appointmentDate) => {
+  if (isDiagnosticsBooking(department)) {
+    if (appointmentDate && appointmentDate < todayIso()) {
+      return { ok: false, message: 'Appointment date cannot be in the past.' };
+    }
+    return { ok: true, departmentId: 'diagnostics' };
+  }
+
   const id = normalizeDepartment(department);
 
   if (id === 'cardiology' && appointmentDate && !isThursday(appointmentDate)) {
@@ -33,7 +45,7 @@ const validateAppointmentBooking = (department, appointmentDate) => {
     return { ok: false, message: 'Appointment date cannot be in the past.' };
   }
 
-  const blocked = ['neuro', 'pediatr', 'ortho', 'derma', 'ల్యాబ్', 'lab', 'diagnosis'];
+  const blocked = ['neuro', 'pediatr', 'ortho', 'derma'];
   const d = String(department || '').toLowerCase();
   if (blocked.some((b) => d.includes(b))) {
     return {
@@ -45,4 +57,4 @@ const validateAppointmentBooking = (department, appointmentDate) => {
   return { ok: true, departmentId: id };
 };
 
-module.exports = { validateAppointmentBooking, normalizeDepartment, isThursday };
+module.exports = { validateAppointmentBooking, normalizeDepartment, isThursday, todayIso, isDiagnosticsBooking };

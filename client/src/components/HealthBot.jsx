@@ -16,7 +16,7 @@ import {
   getWelcomeMessage,
   parseDoctorConsultResponse,
 } from '../utils/kiranDoctorAI';
-import { OP_DEPARTMENTS, validateAppointmentBooking, normalizeDepartment, getNextThursday } from '../utils/appointmentSchedule';
+import { OP_DEPARTMENTS, validateAppointmentBooking, normalizeDepartment, getNextThursday, todayIso } from '../utils/appointmentSchedule';
 
 const HealthBot = () => {
     const { config } = useSiteConfig();
@@ -180,7 +180,7 @@ const HealthBot = () => {
                     const apptDate =
                         normalizeDepartment(deptRaw) === 'cardiology'
                             ? getNextThursday()
-                            : new Date().toISOString().slice(0, 10);
+                            : todayIso();
                     const scheduleCheck = validateAppointmentBooking(deptRaw, apptDate);
                     if (!scheduleCheck.ok) {
                         setMessages(prev => [...prev, {

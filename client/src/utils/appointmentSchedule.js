@@ -32,18 +32,34 @@ export const isThursday = (dateStr) => {
   return !Number.isNaN(d.getTime()) && d.getDay() === 4;
 };
 
+export const todayIso = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+
 export const getNextThursday = (from = new Date()) => {
-  const d = new Date(from);
-  d.setHours(12, 0, 0, 0);
-  const day = d.getDay();
-  const daysToAdd = (4 - day + 7) % 7;
-  d.setDate(d.getDate() + daysToAdd);
-  return d.toISOString().slice(0, 10);
+  const ist = new Date(from.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+  ist.setHours(12, 0, 0, 0);
+  const day = ist.getDay();
+  const daysToAdd = day === 4 ? 0 : (4 - day + 7) % 7;
+  ist.setDate(ist.getDate() + daysToAdd);
+  return ist.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
 };
 
-export const todayIso = () => new Date().toISOString().slice(0, 10);
+const isDiagnosticsBooking = (department) => {
+  const d = String(department || '').toLowerCase();
+  return d.startsWith('lab:') || d.includes('diagnostic test') || d.includes('ల్యాబ్');
+};
 
 export const validateAppointmentBooking = (department, appointmentDate) => {
+  if (isDiagnosticsBooking(department)) {
+    if (appointmentDate && appointmentDate < todayIso()) {
+      return {
+        ok: false,
+        messageEn: 'Appointment date cannot be in the past.',
+        messageTe: 'గత తేదీ ఎంచుకోలేరు.',
+      };
+    }
+    return { ok: true, departmentId: 'diagnostics' };
+  }
+
   const id = normalizeDepartment(department);
   const dept = OP_DEPARTMENTS.find((x) => x.id === id);
 

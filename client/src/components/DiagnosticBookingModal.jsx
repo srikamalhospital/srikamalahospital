@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Calendar, User, Phone, Send, CheckCircle2, FlaskConical as Flask, CreditCard } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { bookAppointment, getConfig } from '../utils/api';
+import { todayIso } from '../utils/appointmentSchedule';
 
 const DiagnosticBookingModal = ({ test, isOpen, onClose }) => {
   const [formData, setFormData] = useState({
@@ -14,6 +15,7 @@ const DiagnosticBookingModal = ({ test, isOpen, onClose }) => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [bookingError, setBookingError] = useState('');
   const [token, setToken] = useState('');
   const [allowOnlinePayment, setAllowOnlinePayment] = useState(true);
 
@@ -28,11 +30,12 @@ const DiagnosticBookingModal = ({ test, isOpen, onClose }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setBookingError('');
     try {
       const bookingData = {
         ...formData,
         department: `Lab: ${test.name}`,
-        appointmentDate: formData.date,
+        appointmentDate: formData.date || todayIso(),
         reason: `Diagnostic Test: ${test.name} (₹${test.price})`
       };
 
@@ -44,10 +47,11 @@ const DiagnosticBookingModal = ({ test, isOpen, onClose }) => {
         setTimeout(() => {
           window.location.href = `/receipt?token=${serverToken}&status=offline`;
         }, 2000);
+      } else if (response.data.message) {
+        setBookingError(response.data.message);
       }
     } catch (err) {
-      console.error(err);
-      alert('Error booking diagnostic test.');
+      setBookingError(err.response?.data?.message || 'Error booking diagnostic test. Call 99480 76665.');
     } finally {
       setIsSubmitting(false);
     }
@@ -143,7 +147,11 @@ const DiagnosticBookingModal = ({ test, isOpen, onClose }) => {
                       </div>
                    </div>
 
-                   <button disabled={isSubmitting} type="submit" 
+                   {bookingError && (
+                     <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{bookingError}</p>
+                   )}
+
+                   <button disabled={isSubmitting} type="submit"
                       className="w-full bg-hospital-dark text-white p-4 rounded-2xl font-black text-[9px] uppercase tracking-[0.2em] shadow-xl hover:bg-hospital-primary transition-all disabled:opacity-50 flex items-center justify-center gap-2 border-none">
                       {isSubmitting ? '...' : <><Send size={14} /> <span className="font-['Noto_Sans_Telugu'] text-base tracking-normal">ఖరారు చేయండి / Confirm</span></>}
                    </button>
