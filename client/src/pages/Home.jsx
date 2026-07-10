@@ -2,6 +2,8 @@ import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Hero from '../components/Hero';
 import QuickActionGrid from '../components/QuickActionGrid';
+import HomeContext from '../components/HomeContext';
+import MatrixCrystalsBackground from '../components/MatrixCrystalsBackground';
 import PatientReviews from '../components/PatientReviews';
 import Doctors from '../components/Doctors';
 import EmergencyBar from '../components/EmergencyBar';
@@ -23,7 +25,8 @@ function Home() {
   }, []);
 
   return (
-    <div className="health-gradient-bg min-h-screen selection:bg-hospital-primary selection:text-white overflow-x-clip font-sans nav-offset home-page-shell">
+    <div className="health-gradient-bg min-h-screen selection:bg-hospital-primary selection:text-white overflow-x-clip font-sans nav-offset home-page-shell relative">
+      <MatrixCrystalsBackground />
       <div className="logo-bg-overlay" />
 
       <main className="relative z-10 home-compact home-main">
@@ -34,6 +37,8 @@ function Home() {
         <motion.section id="actions" className="home-section section-reveal" {...sectionMotion}>
           <QuickActionGrid />
         </motion.section>
+
+        <HomeContext />
 
         <motion.section id="doctors" className="home-section section-reveal" {...sectionMotion}>
           <Doctors compact />

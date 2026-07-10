@@ -50,12 +50,21 @@ const Hero = () => {
               Sri Kamala Hospital
             </motion.p>
 
-            <motion.p variants={staggerItem} className="text-sm sm:text-base text-hospital-slate mb-6 max-w-md leading-relaxed">
-              General medicine, cardiology, diagnostics, pharmacy &amp; 24/7 emergency care — book online or call{' '}
+            <motion.p variants={staggerItem} className="text-sm sm:text-base text-hospital-slate mb-4 max-w-lg leading-relaxed">
+              General medicine, cardiology, diagnostics, pharmacy &amp; 24/7 emergency care in Manasa Nagar, Suryapet.
+              Book OP online, check lab prices, order medicines, or use our AI health desk — all before you reach the hospital.
+            </motion.p>
+
+            <motion.p variants={staggerItem} className="text-xs sm:text-sm text-hospital-slate/90 mb-6 max-w-lg leading-relaxed">
+              Call{' '}
               <a href="tel:+919948076665" className="font-bold text-hospital-primary hover:underline cursor-pointer">
                 99480 76665
-              </a>
-              .
+              </a>{' '}
+              (hospital) ·{' '}
+              <a href="tel:+919866895634" className="font-bold text-hospital-secondary hover:underline cursor-pointer">
+                98668 95634
+              </a>{' '}
+              (lab)
             </motion.p>
 
             <motion.div variants={staggerItem} className="flex flex-wrap items-center gap-3 mb-6">

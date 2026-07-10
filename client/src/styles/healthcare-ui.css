@@ -115,3 +115,126 @@ textarea:focus-visible {
 .ai-tab-panel {
   @apply pro-card min-w-0 overflow-hidden;
 }
+
+/* Matrix crystal background — home page */
+.matrix-crystals-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.matrix-grid {
+  position: absolute;
+  inset: -1px;
+  opacity: 0.35;
+  background-image:
+    linear-gradient(rgba(8, 145, 178, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(8, 145, 178, 0.07) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 85% 75% at 50% 40%, black 20%, transparent 75%);
+}
+
+.matrix-crystal {
+  position: absolute;
+  clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
+  background: linear-gradient(135deg, rgba(34, 211, 238, 0.35), rgba(8, 145, 178, 0.12));
+  border: 1px solid rgba(8, 145, 178, 0.25);
+  box-shadow:
+    0 0 24px rgba(34, 211, 238, 0.15),
+    inset 0 0 12px rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(2px);
+}
+
+.matrix-glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  pointer-events: none;
+}
+
+.matrix-glow-a {
+  width: 320px;
+  height: 320px;
+  top: 8%;
+  left: 5%;
+  background: rgba(8, 145, 178, 0.18);
+}
+
+.matrix-glow-b {
+  width: 280px;
+  height: 280px;
+  bottom: 12%;
+  right: 8%;
+  background: rgba(22, 163, 74, 0.12);
+}
+
+.matrix-scanline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 120px;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    rgba(34, 211, 238, 0.04) 45%,
+    rgba(8, 145, 178, 0.08) 50%,
+    rgba(34, 211, 238, 0.04) 55%,
+    transparent
+  );
+  opacity: 0.6;
+}
+
+.home-context-panel {
+  @apply pro-card p-5 sm:p-8 relative overflow-hidden;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(12px);
+}
+
+.home-context-title {
+  @apply text-xl sm:text-2xl font-bold text-hospital-dark text-center mb-3;
+}
+
+.home-context-lead {
+  @apply text-sm sm:text-base leading-relaxed text-hospital-slate max-w-3xl mx-auto text-center;
+}
+
+.home-context-body {
+  @apply text-xs sm:text-sm leading-relaxed text-hospital-slate/90 max-w-3xl mx-auto text-center mt-3;
+}
+
+.home-context-sub {
+  @apply text-xs sm:text-sm text-hospital-slate;
+}
+
+.home-service-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.home-service-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 40px -12px rgba(8, 145, 178, 0.22);
+}
+
+.home-pillar-card,
+.home-journey-step {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+}
+
+.home-journey-num {
+  @apply absolute top-3 right-3 text-[10px] font-black text-hospital-primary/40;
+}
+
+[data-theme='dark'] .matrix-crystal {
+  background: linear-gradient(135deg, rgba(34, 211, 238, 0.2), rgba(8, 145, 178, 0.08));
+  border-color: rgba(34, 211, 238, 0.2);
+}
+
+[data-theme='dark'] .matrix-grid {
+  background-image:
+    linear-gradient(rgba(34, 211, 238, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34, 211, 238, 0.06) 1px, transparent 1px);
+}
