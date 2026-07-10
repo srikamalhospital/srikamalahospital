@@ -93,8 +93,19 @@
   min-height: 0;
 }
 
-.review-card-equal blockquote,
-.review-card-equal p:first-of-type {
+.review-item-flat {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+}
+
+.review-item-flat blockquote,
+.review-item-flat p:first-of-type {
   flex: 1 1 auto;
 }
 

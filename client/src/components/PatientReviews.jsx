@@ -44,7 +44,7 @@ const PatientReviews = ({ showSubmitForm = false, compact = false, limit = 8 }) 
   const shown = reviews.slice(0, limit);
 
   return (
-    <section className={`bg-hospital-surface grainy ${compact ? '' : 'py-16'}`}>
+    <section className={compact ? '' : 'py-16'}>
       <div className={compact ? 'content-rail' : 'page-container max-w-6xl'}>
         <div className={`section-head-row ${compact ? 'mb-4' : 'mb-12'}`}>
           <div className="min-w-0">
@@ -60,8 +60,10 @@ const PatientReviews = ({ showSubmitForm = false, compact = false, limit = 8 }) 
               href={getGoogleReviewsUrl()}
               target="_blank"
               rel="noopener noreferrer"
-              className={`inline-flex items-center gap-1.5 font-semibold text-hospital-primary border border-hospital-primary/25 bg-white hover:bg-hospital-primary/5 transition-colors ${
-                compact ? 'text-[10px] px-2.5 py-1.5 rounded-lg' : 'text-xs px-4 py-2 rounded-xl'
+              className={`inline-flex items-center gap-1.5 font-semibold text-hospital-primary transition-colors ${
+                compact
+                  ? 'text-[10px] hover:underline'
+                  : 'text-xs px-4 py-2 rounded-xl border border-hospital-primary/25 bg-white hover:bg-hospital-primary/5'
               }`}
             >
               <Star size={compact ? 12 : 14} className="text-amber-500" fill="currentColor" />
@@ -76,18 +78,14 @@ const PatientReviews = ({ showSubmitForm = false, compact = false, limit = 8 }) 
           </div>
         </div>
 
-        <div className={`equal-stretch-grid grid grid-cols-1 md:grid-cols-2 ${compact ? 'lg:grid-cols-2 gap-2.5 sm:gap-3' : 'lg:grid-cols-4 gap-10'}`}>
+        <div className={`equal-stretch-grid grid grid-cols-1 md:grid-cols-2 ${compact ? 'lg:grid-cols-2 gap-4 sm:gap-6' : 'lg:grid-cols-4 gap-8'}`}>
           {shown.map((rev, i) => (
             <motion.div
               key={rev.id || i}
               initial={{ opacity: 0, y: 8 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className={
-                compact
-                  ? 'review-card-equal pro-card !p-3 sm:!p-3.5 rounded-xl'
-                  : 'premium-card group p-12 flex flex-col min-h-[280px] border-white/80'
-              }
+              className="review-item-flat"
             >
               {!compact && (
                 <div className="flex gap-2 mb-4">
@@ -96,10 +94,10 @@ const PatientReviews = ({ showSubmitForm = false, compact = false, limit = 8 }) 
                   ))}
                 </div>
               )}
-              <p className={`italic text-hospital-slate/80 flex-1 ${compact ? 'text-xs line-clamp-2 mb-2' : 'text-base line-clamp-3 mb-8'}`}>
+              <p className={`italic text-hospital-slate/80 flex-1 ${compact ? 'text-xs sm:text-sm line-clamp-3 mb-2' : 'text-base line-clamp-4 mb-4'}`}>
                 &ldquo;{rev.text}&rdquo;
               </p>
-              <p className={`font-bold text-hospital-dark ${compact ? 'text-xs' : 'text-lg'}`}>{rev.name}</p>
+              <p className={`font-bold text-hospital-dark ${compact ? 'text-xs sm:text-sm' : 'text-lg'}`}>{rev.name}</p>
               {!compact && (
                 <p className="text-[9px] uppercase tracking-widest text-hospital-primary opacity-60 mt-1">
                   {rev.role || rev.visit_type || 'Patient'}
@@ -165,7 +163,7 @@ const PatientReviews = ({ showSubmitForm = false, compact = false, limit = 8 }) 
             target="_blank"
             rel="noopener noreferrer"
             className={`inline-flex items-center gap-2 font-semibold text-hospital-slate hover:text-hospital-primary ${
-              compact ? 'text-xs px-3 py-2 rounded-lg border border-black/10 bg-white' : 'text-sm underline'
+              compact ? 'text-xs hover:underline' : 'text-sm underline'
             }`}
           >
             <MessageSquare size={compact ? 14 : 16} />
