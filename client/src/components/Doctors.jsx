@@ -18,7 +18,7 @@ const doctors = [
   },
 ];
 
-const Doctors = ({ compact = false }) => {
+const Doctors = ({ compact = false, hideHeader = false }) => {
   const { config } = useSiteConfig();
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -35,11 +35,12 @@ const Doctors = ({ compact = false }) => {
       <div
         className={
           compact
-            ? 'content-rail space-y-4'
+            ? 'w-full space-y-4'
             : 'page-container items-start max-w-6xl grid grid-cols-1 lg:grid-cols-3 gap-6'
         }
       >
-        <div className={compact ? 'space-y-1 text-left' : 'lg:col-span-1 space-y-3'}>
+        {!hideHeader && (
+        <div className={compact ? 'space-y-1 text-left w-full' : 'lg:col-span-1 space-y-3'}>
           <h2
             className={`font-bold text-hospital-dark font-['Noto_Sans_Telugu'] ${
               compact ? 'text-base' : 'text-xl'
@@ -57,6 +58,7 @@ const Doctors = ({ compact = false }) => {
             View all →
           </Link>
         </div>
+        )}
 
         <div className={compact ? 'flex flex-col gap-4 w-full' : 'lg:col-span-2 flex flex-col md:flex-row gap-6'}>
           {doctors.map((doctor) => {

@@ -46,9 +46,15 @@
   color: var(--hospital-primary);
 }
 
-.health-stat-pill span:last-child {
-  @apply text-[9px] font-bold uppercase tracking-wide mt-1;
+.health-stat-pill span:nth-child(2) {
+  @apply text-[9px] font-bold mt-1 leading-tight;
   color: var(--text-muted);
+}
+
+.health-stat-pill span:nth-child(3) {
+  @apply text-[8px] font-medium normal-case tracking-normal mt-0.5;
+  color: var(--text-muted);
+  opacity: 0.75;
 }
 
 .section-reveal {
@@ -193,35 +199,198 @@ textarea:focus-visible {
   backdrop-filter: blur(12px);
 }
 
+.home-hero-panel,
+.home-panel {
+  width: 100%;
+  padding: 1rem;
+  border-radius: 1.25rem;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 32px -12px rgba(8, 145, 178, 0.15);
+  text-align: left;
+}
+
+@media (min-width: 640px) {
+  .home-hero-panel,
+  .home-panel {
+    padding: 1.25rem 1.5rem;
+    border-radius: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .home-hero-panel,
+  .home-panel {
+    padding: 1.5rem 2rem;
+  }
+}
+
+.home-panel-fill {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+}
+
+.home-panel-inner {
+  width: 100%;
+  padding: 0.875rem;
+  border-radius: 1rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  text-align: left;
+}
+
+@media (min-width: 640px) {
+  .home-panel-inner {
+    padding: 1rem 1.125rem;
+  }
+}
+
+.home-section-head {
+  text-align: left;
+  width: 100%;
+}
+
+.home-section-eyebrow {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
 .home-context-title {
-  @apply text-xl sm:text-2xl font-bold text-hospital-dark text-center mb-3;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  text-align: left;
+  margin-bottom: 0.25rem;
+  line-height: 1.25;
+  width: 100%;
 }
 
-.home-context-lead {
-  @apply text-sm sm:text-base leading-relaxed text-hospital-slate max-w-3xl mx-auto text-center;
+@media (min-width: 640px) {
+  .home-context-title {
+    font-size: 1.5rem;
+  }
 }
 
-.home-context-body {
-  @apply text-xs sm:text-sm leading-relaxed text-hospital-slate/90 max-w-3xl mx-auto text-center mt-3;
+.home-context-title-en {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--hospital-primary);
+  text-align: left;
+  margin-bottom: 0;
+}
+
+.home-bilingual-block {
+  width: 100%;
+}
+
+.home-text-te {
+  font-size: 0.875rem;
+  line-height: 1.65;
+  color: var(--text-primary);
+  width: 100%;
+}
+
+.home-text-en {
+  font-size: 0.75rem;
+  line-height: 1.6;
+  color: var(--text-muted);
+  margin-top: 0.5rem;
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  .home-text-te {
+    font-size: 0.9375rem;
+  }
+
+  .home-text-en {
+    font-size: 0.8125rem;
+  }
 }
 
 .home-context-sub {
-  @apply text-xs sm:text-sm text-hospital-slate;
+  text-align: left;
+  width: 100%;
+}
+
+.home-inline-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--hospital-primary);
+}
+
+.home-inline-link:hover,
+.home-inline-link-muted:hover {
+  text-decoration: underline;
+}
+
+.home-inline-link-muted {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.home-contact-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.625rem 0.875rem;
+  border-radius: 0.875rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  font-size: 0.8125rem;
+  color: var(--text-primary);
+  min-height: 48px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.home-contact-chip:hover {
+  border-color: var(--hospital-primary);
+  box-shadow: 0 4px 16px -8px rgba(8, 145, 178, 0.25);
+}
+
+.home-contact-chip strong {
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.home-context-lead {
+  @apply text-sm sm:text-base leading-relaxed text-hospital-slate w-full text-left;
+}
+
+.home-context-body {
+  @apply text-xs sm:text-sm leading-relaxed text-hospital-slate/90 w-full text-left mt-3;
 }
 
 .home-service-card {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.home-service-card:hover,
+.home-panel-inner:hover {
+  border-color: rgba(8, 145, 178, 0.35);
 }
 
 .home-service-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 16px 40px -12px rgba(8, 145, 178, 0.22);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px -12px rgba(8, 145, 178, 0.2);
 }
 
 .home-pillar-card,
 .home-journey-step {
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  text-align: left;
 }
 
 .home-journey-num {

@@ -3,7 +3,7 @@ import { MapPin, Navigation, ExternalLink } from 'lucide-react';
 import useSiteConfig from '../hooks/useSiteConfig';
 import { getMapsDirectionsUrl, getMapsEmbedUrl, getMapsPlaceUrl } from '../utils/maps';
 
-const HospitalLocationMap = ({ variant = 'card', compact = false, className = '' }) => {
+const HospitalLocationMap = ({ variant = 'card', compact = false, embedded = false, className = '' }) => {
   const { config } = useSiteConfig();
   const address = config.hospitalAddress;
   const embedUrl = getMapsEmbedUrl();
@@ -76,9 +76,23 @@ const HospitalLocationMap = ({ variant = 'card', compact = false, className = ''
   const mapAspect = compact ? 'aspect-[16/10] sm:aspect-[2/1]' : 'aspect-[16/9] sm:aspect-[21/9]';
 
   return (
-    <section className={`${compact ? 'content-rail' : 'page-container max-w-6xl'} ${className}`} aria-labelledby="hospital-location-heading">
-      <div className={`section-head-row sm:items-end ${compact ? 'mb-4' : 'mb-6'}`}>
-        <div className="min-w-0 text-left">
+    <section className={`w-full ${embedded ? '' : compact ? 'content-rail' : 'page-container max-w-6xl'} ${className}`} aria-labelledby="hospital-location-heading">
+      <div className={`${embedded ? 'home-section-head w-full mb-4' : `section-head-row sm:items-end ${compact ? 'mb-4' : 'mb-6'}`}`}>
+        <div className="min-w-0 text-left w-full">
+          {embedded ? (
+            <>
+              <p className="home-section-eyebrow">
+                <span className="font-telugu">చిరునామా</span> · Location
+              </p>
+              <h2 id="hospital-location-heading" className="home-context-title font-telugu">
+                ఆసుపత్రి చిరునామా
+              </h2>
+              <p className="home-context-sub text-xs sm:text-sm text-hospital-slate mt-1 font-telugu">
+                మానసా నగర్, సూర్యపేటలో మమ్మల్ని కనుగొనండి — 24 గంటలు తెరిచి ఉంటుంది.
+              </p>
+            </>
+          ) : (
+            <>
           <p className="pro-section-label mb-0.5 text-[10px]">Location</p>
           <h2
             id="hospital-location-heading"
@@ -91,14 +105,16 @@ const HospitalLocationMap = ({ variant = 'card', compact = false, className = ''
           <p className={`text-slate-600 ${compact ? 'text-xs mt-0.5' : 'pro-subtitle mt-1'}`}>
             Find us in Manasa Nagar, Suryapet — open 24 hours.
           </p>
+            </>
+          )}
         </div>
-        <div className={`flex items-start gap-2 text-slate-600 max-w-md shrink-0 ${compact ? 'text-xs' : 'text-sm'}`}>
-          <MapPin size={compact ? 14 : 18} className="text-sky-600 shrink-0 mt-0.5" />
-          <span>{address}</span>
+        <div className={`flex items-start gap-2 text-slate-600 w-full sm:max-w-none ${compact || embedded ? 'text-xs mt-2' : 'text-sm max-w-md shrink-0'}`}>
+          <MapPin size={compact || embedded ? 14 : 18} className="text-sky-600 shrink-0 mt-0.5" />
+          <span className="leading-relaxed">{address}</span>
         </div>
       </div>
 
-      <div className={`overflow-hidden border border-slate-200/80 bg-white shadow-clinical ${compact ? 'rounded-xl' : 'rounded-2xl'}`}>
+      <div className={`overflow-hidden border border-slate-200/80 bg-white shadow-clinical w-full ${compact || embedded ? 'rounded-xl' : 'rounded-2xl'}`}>
         <div className={`${mapAspect} ${mapMinH} w-full bg-slate-100`}>
           <iframe
             title="Sri Kamala Hospital on Google Maps"
@@ -114,11 +130,12 @@ const HospitalLocationMap = ({ variant = 'card', compact = false, className = ''
             compact ? 'p-3' : 'p-4 sm:p-5 gap-3'
           }`}
         >
-          <p className={`text-slate-500 font-medium ${compact ? 'text-[10px]' : 'text-xs'}`}>
-            Tap <strong>Get directions</strong> for navigation from your current location.
+          <p className={`text-slate-500 font-medium w-full ${compact || embedded ? 'text-[10px] sm:text-xs' : 'text-xs'}`}>
+            <span className="font-telugu">మీ ప్రస్తుత స్థానం నుండి నావిగేషన్ కోసం </span>
+            <strong>Get directions</strong> నొక్కండి.
           </p>
-          <div className="flex flex-wrap gap-2">
-            {compact ? (
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+            {compact || embedded ? (
               <>
                 <a
                   href={directionsUrl}

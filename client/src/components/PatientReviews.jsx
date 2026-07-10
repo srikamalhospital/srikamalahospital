@@ -11,7 +11,7 @@ const FALLBACK = [
   { name: 'Sravanthi G', role: 'Emergency Care', text: 'Very talented Doctor.. Available even in midnight in case of emergency..thanqu very much for your service in hard times', rating: 5 },
 ];
 
-const PatientReviews = ({ showSubmitForm = false, compact = false, limit = 8 }) => {
+const PatientReviews = ({ showSubmitForm = false, compact = false, limit = 8, embedded = false }) => {
   const [reviews, setReviews] = useState(FALLBACK);
   const [form, setForm] = useState({ name: '', phone: '', visitType: 'General', text: '', rating: 5 });
   const [submitMsg, setSubmitMsg] = useState('');
@@ -44,18 +44,32 @@ const PatientReviews = ({ showSubmitForm = false, compact = false, limit = 8 }) 
   const shown = reviews.slice(0, limit);
 
   return (
-    <section className={compact ? '' : 'py-16'}>
-      <div className={compact ? 'content-rail' : 'page-container max-w-6xl'}>
-        <div className={`section-head-row ${compact ? 'mb-4' : 'mb-12'}`}>
-          <div className="min-w-0">
+    <section className={compact && !embedded ? '' : compact ? 'w-full' : 'py-16'}>
+      <div className={embedded ? 'w-full' : compact ? 'content-rail' : 'page-container max-w-6xl'}>
+        <div className={`${embedded ? 'home-section-head w-full mb-4' : `section-head-row ${compact ? 'mb-4' : 'mb-12'}`}`}>
+          <div className="min-w-0 w-full">
+            {embedded ? (
+              <>
+                <p className="home-section-eyebrow">
+                  <span className="font-telugu">రోగి అభిప్రాయాలు</span> · Patient reviews
+                </p>
+                <h2 className="home-context-title font-telugu">మా రోగులు ఏమి చెబుతున్నారు</h2>
+                <p className="home-context-sub text-xs sm:text-sm text-hospital-slate mt-1 font-telugu">
+                  సైట్‌లో ఎంపిక చేసిన సమీక్షలు · మరిన్ని Google లో
+                </p>
+              </>
+            ) : (
+              <>
             <h2 className={`font-bold text-hospital-dark font-['Noto_Sans_Telugu'] ${compact ? 'text-base' : 'heading-clinical'}`}>
               రోగి అభిప్రాయాలు {!compact && <span className="text-hospital-secondary italic">Patient reviews</span>}
             </h2>
             {compact && (
               <p className="text-[10px] text-hospital-slate mt-1">Featured on site · more on Google</p>
             )}
+              </>
+            )}
           </div>
-          <div className={`flex flex-wrap items-center gap-2 shrink-0 ${compact ? '' : 'gap-3'}`}>
+          <div className={`flex flex-wrap items-center gap-2 shrink-0 ${compact ? '' : 'gap-3'} ${embedded ? 'mt-2' : ''}`}>
             <a
               href={getGoogleReviewsUrl()}
               target="_blank"

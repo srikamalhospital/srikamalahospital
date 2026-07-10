@@ -21,15 +21,48 @@
   max-width: 72rem;
 }
 
+/* Home — mobile-first full-width panels */
+.home-rail {
+  width: 100%;
+  max-width: 72rem;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: max(0.875rem, env(safe-area-inset-left));
+  padding-right: max(0.875rem, env(safe-area-inset-right));
+  min-width: 0;
+}
+
+@media (min-width: 640px) {
+  .home-rail {
+    padding-left: max(1.25rem, env(safe-area-inset-left));
+    padding-right: max(1.25rem, env(safe-area-inset-right));
+  }
+}
+
+@media (min-width: 1024px) {
+  .home-rail {
+    padding-left: max(1.5rem, env(safe-area-inset-left));
+    padding-right: max(1.5rem, env(safe-area-inset-right));
+  }
+}
+
 .home-main .home-section {
-  padding-top: 1.25rem;
-  padding-bottom: 1.25rem;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  width: 100%;
 }
 
 @media (min-width: 640px) {
   .home-main .home-section {
-    padding-top: 1.5rem;
-    padding-bottom: 1.5rem;
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .home-main .home-section {
+    padding-top: 1.25rem;
+    padding-bottom: 1.25rem;
   }
 }
 
