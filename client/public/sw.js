@@ -1,5 +1,6 @@
-const CACHE = 'sk-hospital-v3';
-const STATIC_CACHE = 'sk-hospital-static-v3';
+const CACHE = 'sk-hospital-v4';
+const STATIC_CACHE = 'sk-hospital-static-v4';
+const SPA_SHELL = '/index.html';
 
 const ADMIN_PATHS = ['/6665', '/lab-admin'];
 
@@ -9,11 +10,47 @@ const offlineResponse = () =>
     headers: { 'Content-Type': 'text/plain' },
   });
 
+const isNavigationRequest = (request, url) =>
+  request.mode === 'navigate' ||
+  request.destination === 'document' ||
+  url.pathname.endsWith('.html') ||
+  (!/\.[a-z0-9]+$/i.test(url.pathname) && url.origin === self.location.origin);
+
+const isStaticAsset = (url) =>
+  url.pathname.startsWith('/assets/') ||
+  /\.(js|css|png|jpg|jpeg|webp|svg|ico|woff2?|webmanifest)$/i.test(url.pathname);
+
+const cacheShell = async (response) => {
+  if (!response?.ok) return;
+  const copy = response.clone();
+  const cache = await caches.open(STATIC_CACHE);
+  await cache.put(SPA_SHELL, copy);
+  await cache.put('/', copy);
+};
+
+const getCachedShell = async () => {
+  const cache = await caches.open(STATIC_CACHE);
+  return (await cache.match(SPA_SHELL)) || (await cache.match('/'));
+};
+
+const fetchShellFromNetwork = async () => {
+  try {
+    const response = await fetch(SPA_SHELL, { cache: 'no-store' });
+    if (response.ok) {
+      await cacheShell(response);
+      return response.clone();
+    }
+  } catch {
+    /* network unavailable */
+  }
+  return null;
+};
+
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
     caches.open(STATIC_CACHE).then((cache) =>
-      cache.addAll(['/logo.png', '/manifest.webmanifest']).catch(() => undefined)
+      cache.addAll([SPA_SHELL, '/', '/logo.png', '/manifest.webmanifest']).catch(() => undefined)
     )
   );
 });
@@ -37,49 +74,42 @@ self.addEventListener('fetch', (event) => {
   if (url.pathname.startsWith('/api') || url.hostname.includes('render.com')) return;
 
   if (ADMIN_PATHS.includes(url.pathname)) {
-    event.respondWith(
-      fetch(request).catch(() => offlineResponse())
-    );
+    event.respondWith(fetch(request).catch(() => offlineResponse()));
     return;
   }
 
-  const isNavigate =
-    request.mode === 'navigate' ||
-    request.destination === 'document' ||
-    url.pathname.endsWith('.html') ||
-    url.pathname === '/';
-
-  const isStaticAsset =
-    url.pathname.startsWith('/assets/') ||
-    /\.(js|css|png|jpg|jpeg|webp|svg|woff2?)$/i.test(url.pathname);
-
-  if (isNavigate || (!isStaticAsset && url.origin === self.location.origin)) {
+  if (isNavigationRequest(request, url)) {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          if (response && response.ok) {
-            const copy = response.clone();
-            caches.open(CACHE).then((cache) => cache.put(request, copy));
+      (async () => {
+        try {
+          const response = await fetch(request);
+          if (response.ok) {
+            await cacheShell(response);
+            return response;
           }
-          return response;
-        })
-        .catch(async () => {
-          const cached = await caches.match(request);
-          if (cached) return cached;
-          const shell = await caches.match('/index.html');
-          return shell || offlineResponse();
-        })
+        } catch {
+          /* fall through to cached shell */
+        }
+
+        const cachedShell = await getCachedShell();
+        if (cachedShell) return cachedShell;
+
+        const networkShell = await fetchShellFromNetwork();
+        if (networkShell) return networkShell;
+
+        return offlineResponse();
+      })()
     );
     return;
   }
 
-  if (isStaticAsset) {
+  if (isStaticAsset(url)) {
     event.respondWith(
       caches.match(request).then(
         (cached) =>
           cached ||
           fetch(request).then((response) => {
-            if (response && response.ok) {
+            if (response?.ok) {
               const copy = response.clone();
               caches.open(STATIC_CACHE).then((cache) => cache.put(request, copy));
             }
