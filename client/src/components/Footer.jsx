@@ -10,12 +10,10 @@ import { getMapsDirectionsUrl, getMapsPlaceUrl } from '../utils/maps';
 const Footer = () => {
     const { config, hospitalTel, diagnosticsTel } = useSiteConfig();
     return (
-        <footer className="pt-12 sm:pt-20 md:pt-28 pb-24 sm:pb-20 px-4 sm:px-6 safe-area-pb relative overflow-hidden grainy border-t border-theme" style={{ backgroundColor: 'var(--surface-bg)', color: 'var(--text-primary)' }}>
+        <footer className="pt-12 sm:pt-16 md:pt-20 pb-24 sm:pb-20 px-4 sm:px-6 safe-area-pb relative overflow-hidden border-t border-theme health-gradient-bg" style={{ backgroundColor: 'var(--surface-bg)', color: 'var(--text-primary)' }}>
 
-            {/* Clinical Accents */}
-            <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-hospital-primary/20 to-transparent"></div>
-            <div className="absolute -bottom-40 -right-40 w-[600px] h-[600px] bg-hospital-primary/5 rounded-full blur-[160px] pointer-events-none animate-pulse-soft"></div>
-            <div className="absolute top-1/4 -left-20 w-[500px] h-[500px] bg-hospital-secondary/5 rounded-full blur-[140px] pointer-events-none animate-pulse-soft" style={{ animationDelay: '2s' }}></div>
+            <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-hospital-primary/25 to-transparent" />
+            <div className="absolute -bottom-32 -right-32 w-[480px] h-[480px] bg-hospital-primary/8 rounded-full blur-[120px] pointer-events-none" />
 
             <div className="page-container max-w-7xl relative z-10">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-12 mb-12 sm:mb-16">
@@ -28,15 +26,17 @@ const Footer = () => {
                                 <div className="absolute inset-0 bg-gradient-to-br from-hospital-primary/10 to-transparent opacity-40"></div>
                             </div>
                             <div className="space-y-2">
-                                <h2 className="text-3xl font-black tracking-tighter leading-none text-theme font-['Noto_Sans_Telugu'] group-hover:text-hospital-secondary transition-colors">శ్రీ కమల <span className="text-hospital-primary italic">హాస్పిటల్</span></h2>
+                                <h2 className="text-2xl sm:text-3xl font-bold tracking-tight leading-none text-theme font-telugu group-hover:text-hospital-primary transition-colors duration-200">
+                                  శ్రీ కమల <span className="text-hospital-secondary">హాస్పిటల్</span>
+                                </h2>
                                 <div className="flex items-center gap-2">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-hospital-secondary"></div>
-                                    <p className="text-[10px] font-black tracking-[0.4em] text-hospital-slate/60">PRIME CLINICAL HUB</p>
+                                    <div className="w-1.5 h-1.5 rounded-full bg-hospital-secondary" />
+                                    <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-hospital-slate/70 font-display">Suryapet · Telangana</p>
                                 </div>
                             </div>
                         </Link>
-                        <p className="text-theme-muted text-xs font-bold leading-relaxed max-w-sm italic font-['Plus_Jakarta_Sans'] border-l-2 border-hospital-primary/20 pl-4 py-2 opacity-80">
-                            "Deploying next-gen clinical intelligence and humanitarian precision to the heart of Suryapet DT."
+                        <p className="text-theme-muted text-sm leading-relaxed max-w-sm border-l-2 border-hospital-primary/25 pl-4 py-1">
+                            Compassionate care, modern diagnostics, and 24/7 emergency support for Suryapet and nearby communities.
                         </p>
                         <a href={SITE_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-hospital-primary hover:text-hospital-secondary transition-colors">
                             {SITE_DOMAIN}

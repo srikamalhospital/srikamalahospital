@@ -1,50 +1,100 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowRight, Sparkles, Clock, Shield, MapPin } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { fadeUp, staggerContainer, staggerItem, scaleIn } from '../utils/motionPresets';
+
+const stats = [
+  { value: '24/7', label: 'Emergency' },
+  { value: 'OP', label: 'Daily' },
+  { value: 'AI', label: 'Health desk' },
+];
 
 const Hero = () => {
   return (
-    <section className="relative bg-hospital-surface grainy">
-      <div className="content-rail">
-        <div className="grid lg:grid-cols-2 gap-6 lg:gap-8 items-center">
-          <div className="min-w-0 text-left">
+    <section className="relative health-gradient-bg overflow-hidden">
+      <motion.div
+        aria-hidden
+        className="absolute -top-20 -right-16 w-64 h-64 rounded-full bg-hospital-primary/10 blur-3xl pointer-events-none"
+        animate={{ scale: [1, 1.08, 1], opacity: [0.5, 0.7, 0.5] }}
+        transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+      />
+
+      <div className="content-rail py-2 sm:py-4">
+        <div className="grid lg:grid-cols-2 gap-8 lg:gap-10 items-center">
+          <motion.div
+            className="min-w-0 text-left"
+            variants={staggerContainer}
+            initial="initial"
+            animate="animate"
+          >
+            <motion.div variants={staggerItem} className="flex flex-wrap gap-2 mb-4">
+              <span className="health-hero-badge">
+                <Shield size={12} className="text-hospital-secondary" />
+                <strong>Trusted</strong> healthcare
+              </span>
+              <span className="health-hero-badge">
+                <MapPin size={12} className="text-hospital-primary" />
+                Manasa Nagar, Suryapet
+              </span>
+            </motion.div>
+
             <motion.h1
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-3xl sm:text-4xl font-black text-hospital-dark leading-tight mb-2 font-['Noto_Sans_Telugu']"
+              variants={staggerItem}
+              className="text-3xl sm:text-4xl lg:text-[2.6rem] font-extrabold text-hospital-dark leading-tight mb-3 font-telugu"
             >
               శ్రీ కమలా ఆసుపత్రి
             </motion.h1>
-            <p className="text-base sm:text-lg text-hospital-slate mb-2">Sri Kamala Hospital · Suryapet</p>
-            <p className="text-sm text-hospital-slate/80 mb-5 max-w-md leading-relaxed">
-              OP, diagnostics, pharmacy &amp; 24/7 emergency — book online or call 99480 76665.
-            </p>
 
-            <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
-              <Link
-                to="/book"
-                className="btn-clinical inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold"
-              >
-                Book appointment <ArrowRight size={14} />
+            <motion.p variants={staggerItem} className="text-lg sm:text-xl font-display font-semibold text-hospital-primary mb-2">
+              Sri Kamala Hospital
+            </motion.p>
+
+            <motion.p variants={staggerItem} className="text-sm sm:text-base text-hospital-slate mb-6 max-w-md leading-relaxed">
+              General medicine, cardiology, diagnostics, pharmacy &amp; 24/7 emergency care — book online or call{' '}
+              <a href="tel:+919948076665" className="font-bold text-hospital-primary hover:underline cursor-pointer">
+                99480 76665
+              </a>
+              .
+            </motion.p>
+
+            <motion.div variants={staggerItem} className="flex flex-wrap items-center gap-3 mb-6">
+              <Link to="/book" className="btn-clinical inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-bold cursor-pointer">
+                Book appointment <ArrowRight size={16} />
               </Link>
-              <Link
-                to="/ai-health"
-                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-black/5 rounded-xl text-sm font-bold text-hospital-dark hover:shadow-md"
-              >
-                <Sparkles size={14} className="text-hospital-primary" /> AI Health
+              <Link to="/ai-health" className="btn-outline-health">
+                <Sparkles size={16} className="text-hospital-primary" /> AI Health
               </Link>
-            </div>
-          </div>
+            </motion.div>
+
+            <motion.div variants={staggerItem} className="flex flex-wrap gap-2.5">
+              {stats.map((s) => (
+                <div key={s.label} className="health-stat-pill">
+                  <span>{s.value}</span>
+                  <span>{s.label}</span>
+                </div>
+              ))}
+            </motion.div>
+
+            <motion.p variants={staggerItem} className="mt-4 text-xs text-hospital-slate flex items-center gap-1.5">
+              <Clock size={12} className="text-hospital-secondary shrink-0" />
+              Open 24 hours · Cardiology OP on Thursdays
+            </motion.p>
+          </motion.div>
 
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
+            {...scaleIn}
             className="hidden sm:flex justify-center lg:justify-end"
           >
-            <div className="w-full max-w-[11rem] sm:max-w-[12rem] lg:max-w-[14rem] aspect-square rounded-2xl overflow-hidden shadow-lg border-4 border-white">
-              <img src="/logo.png" alt="Sri Kamala Hospital" loading="lazy" className="w-full h-full object-cover" />
-            </div>
+            <motion.div
+              whileHover={{ y: -4, transition: { duration: 0.2 } }}
+              className="relative w-full max-w-[13rem] lg:max-w-[15rem]"
+            >
+              <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-hospital-primary/20 to-hospital-secondary/15 blur-xl scale-95" />
+              <div className="relative aspect-square rounded-3xl overflow-hidden shadow-premium border-4 border-white/90 ring-2 ring-hospital-primary/10">
+                <img src="/logo.png" alt="Sri Kamala Hospital" loading="lazy" className="w-full h-full object-cover" />
+              </div>
+            </motion.div>
           </motion.div>
         </div>
       </div>

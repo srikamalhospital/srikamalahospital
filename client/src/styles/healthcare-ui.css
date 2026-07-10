@@ -1,0 +1,117 @@
+/* Sri Kamala Hospital — Accessible & Ethical UI layer (ui-ux-pro-max) */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (pointer: coarse) {
+  .custom-cursor-root {
+    display: none !important;
+  }
+}
+
+.health-gradient-bg {
+  background:
+    radial-gradient(ellipse 80% 60% at 10% 0%, rgba(8, 145, 178, 0.12), transparent 55%),
+    radial-gradient(ellipse 70% 50% at 90% 20%, rgba(22, 163, 74, 0.08), transparent 50%),
+    var(--page-bg);
+}
+
+.health-hero-badge {
+  @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+}
+
+.health-hero-badge strong {
+  color: var(--hospital-primary);
+}
+
+.health-stat-pill {
+  @apply flex flex-col items-center justify-center rounded-2xl px-4 py-3 text-center min-w-[5.5rem];
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 20px -8px rgba(8, 145, 178, 0.2);
+}
+
+.health-stat-pill span:first-child {
+  @apply text-lg font-black leading-none;
+  color: var(--hospital-primary);
+}
+
+.health-stat-pill span:last-child {
+  @apply text-[9px] font-bold uppercase tracking-wide mt-1;
+  color: var(--text-muted);
+}
+
+.section-reveal {
+  @apply relative;
+}
+
+/* Focus rings — WCAG */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid var(--hospital-primary);
+  outline-offset: 2px;
+}
+
+.pro-card,
+.premium-card,
+.action-card {
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+}
+
+.pro-card:hover,
+.premium-card:hover {
+  border-color: rgba(8, 145, 178, 0.25);
+}
+
+.page-hero-actions a,
+.page-hero-actions button {
+  @apply inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer;
+}
+
+.page-hero-actions .hero-btn-primary {
+  @apply bg-white text-hospital-dark hover:bg-white/90 shadow-md;
+}
+
+.page-hero-actions .hero-btn-ghost {
+  @apply bg-white/15 hover:bg-white/25 text-white border border-white/20;
+}
+
+.health-test-card {
+  @apply pro-card !p-0 overflow-hidden flex flex-col cursor-default;
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+
+.health-test-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 20px 50px -15px rgba(8, 145, 178, 0.2);
+}
+
+.health-chip-active {
+  @apply bg-hospital-primary text-white shadow-md border-transparent;
+}
+
+.health-chip-inactive {
+  @apply bg-[var(--card-bg)] border border-[var(--border-color)] hover:border-hospital-primary/40;
+  color: var(--text-muted);
+}
+
+.health-chip-inactive:hover {
+  color: var(--text-primary);
+}
+
+.ai-tab-panel {
+  @apply pro-card min-w-0 overflow-hidden;
+}

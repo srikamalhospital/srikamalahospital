@@ -27,6 +27,9 @@ import {
 } from '../utils/pharmacyCart';
 
 import { getPharmacyProductImage } from '../utils/pharmacyImages';
+import AnimatedPage from '../components/AnimatedPage';
+import PageHero from '../components/PageHero';
+import { sectionReveal } from '../utils/motionPresets';
 
 const MedicalShop = () => {
   const navigate = useNavigate();
@@ -288,31 +291,28 @@ const MedicalShop = () => {
   ) : null;
 
   return (
-    <div className="pro-page grainy pharmacy-page min-w-0 overflow-x-clip">
-      <div className="page-container max-w-7xl min-w-0">
-        <header className="pharmacy-header">
-          <div className="min-w-0">
-            <p className="pro-section-label">Pharmacy</p>
-            <h1 className="text-xl sm:text-2xl md:pro-title font-['Noto_Sans_Telugu'] leading-tight">మెడికల్ షాప్</h1>
-            <p className="text-xs sm:text-sm text-theme-muted mt-1 max-w-xl">
-              Browse medicines, add to cart, then get a verification receipt at the hospital pharmacy.
-            </p>
-          </div>
+    <>
+    <AnimatedPage wide className="pharmacy-page min-w-0">
+        <PageHero
+          variant="pharmacy"
+          eyebrow="Sri Kamala Hospital · Pharmacy"
+          title="మెడికల్ షాప్"
+          subtitle="Browse medicines, add to cart, then get a verification receipt at the hospital pharmacy."
+          icon={Pill}
+        >
           {cart.length > 0 && (
             <button
               type="button"
               onClick={() => setCartOpen(true)}
-              className="pharmacy-cart-btn-header pro-btn-primary flex items-center gap-2 px-4 py-3 text-sm"
+              className="hero-btn-primary flex items-center gap-2"
             >
               <ShoppingCart size={18} />
-              <span>
-                Cart ({totals.itemCount}) · ₹{totals.subtotal}
-              </span>
+              Cart ({totals.itemCount}) · ₹{totals.subtotal}
             </button>
           )}
-        </header>
+        </PageHero>
 
-        <div className="pharmacy-tools-grid mb-6 lg:mb-10 min-w-0">
+        <motion.div className="pharmacy-tools-grid mb-6 lg:mb-10 min-w-0" {...sectionReveal}>
           <div className="pro-ai-panel min-w-0 overflow-hidden !p-3 sm:!p-5 flex flex-col h-full">
             <p className="text-xs sm:text-sm font-semibold text-slate-800 mb-2 sm:mb-3 flex items-center gap-2">
               <Sparkles size={16} className="text-hospital-primary shrink-0" /> Pharmacy AI search
@@ -359,9 +359,9 @@ const MedicalShop = () => {
               Showing {filteredProducts.length} of {products.length} items
             </p>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="pharmacy-category-scroll">
+        <motion.div className="pharmacy-category-scroll" {...sectionReveal}>
           {categories.map((cat) => (
             <button
               key={cat}
@@ -376,8 +376,9 @@ const MedicalShop = () => {
               {cat}
             </button>
           ))}
-        </div>
+        </motion.div>
 
+        <motion.div {...sectionReveal}>
         {loading ? (
           <div className="flex justify-center py-16 sm:py-20">
             <div className="w-10 h-10 border-2 border-hospital-primary/20 border-t-hospital-primary rounded-full animate-spin" />
@@ -455,7 +456,8 @@ const MedicalShop = () => {
           Add medicines to your cart and submit to get a receipt stamped &quot;Verification Required&quot;. Show it at
           the hospital medical shop — staff will verify your prescription before dispensing (especially Rx items).
         </p>
-      </div>
+        </motion.div>
+    </AnimatedPage>
 
       {cart.length > 0 && (
         <div className="pharmacy-fab-cart fixed z-40 print:hidden">
@@ -634,7 +636,7 @@ const MedicalShop = () => {
       </AnimatePresence>
 
       {submitModal}
-    </div>
+    </>
   );
 };
 

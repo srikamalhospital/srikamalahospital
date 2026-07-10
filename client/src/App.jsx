@@ -16,6 +16,7 @@ import ReviewsPage from './pages/ReviewsPage';
 import AIHealthPage from './pages/AIHealthPage';
 import LabReportsPage from './pages/LabReportsPage';
 import SiteInfoPage from './pages/SiteInfoPage';
+import PageTransition from './components/PageTransition';
 import CustomCursor from './components/CustomCursor';
 import BackgroundIcons from './components/BackgroundIcons';
 import { ThemeProvider } from './context/ThemeContext';
@@ -50,15 +51,17 @@ const Layout = ({ children }) => {
     }
 
     return (
-        <div className="site-shell relative selection:bg-hospital-primary selection:text-white overflow-x-clip min-h-screen min-h-[100dvh] scan-effect">
+        <div className="site-shell relative selection:bg-hospital-primary selection:text-white overflow-x-clip min-h-screen min-h-[100dvh] health-gradient-bg">
             <ScrollToTop />
-            <CustomCursor />
+            <div className="custom-cursor-root hidden md:block">
+              <CustomCursor />
+            </div>
             <BackgroundIcons />
             
             {!isMinimal && <Navbar />}
             
             <main className={`${!isMinimal ? 'main-wrapper' : ''} min-h-screen relative z-10 antialiased`}>
-                {children}
+                <PageTransition>{children}</PageTransition>
                 
                 {!isMinimal && (
                     <>

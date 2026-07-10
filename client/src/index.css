@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Outfit:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Noto+Sans+Telugu:wght@400;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=Noto+Sans:wght@400;500;600;700&family=Noto+Sans+Telugu:wght@400;700;900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,42 +6,44 @@
 
 :root,
 [data-theme="light"] {
-  --hospital-primary: #0ea5e9;
-  --hospital-secondary: #10b981;
-  --hospital-dark: #0f172a;
-  --page-bg: #f8fafc;
+  --hospital-primary: #0891b2;
+  --hospital-secondary: #16a34a;
+  --hospital-accent: #22d3ee;
+  --hospital-dark: #134e4a;
+  --page-bg: #f0fdfa;
   --surface-bg: #ffffff;
   --card-bg: #ffffff;
-  --card-muted-bg: #f8fafc;
-  --text-primary: #0f172a;
-  --text-muted: #64748b;
-  --border-color: rgba(15, 23, 42, 0.08);
-  --nav-bg: rgba(255, 255, 255, 0.72);
+  --card-muted-bg: #e8f1f6;
+  --text-primary: #134e4a;
+  --text-muted: #5b7a78;
+  --border-color: #ccfbf1;
+  --nav-bg: rgba(255, 255, 255, 0.88);
   --input-bg: #ffffff;
-  --glass-border: rgba(255, 255, 255, 0.4);
-  --glass-bg: rgba(255, 255, 255, 0.7);
-  --clinical-shadow: 0 10px 30px -5px rgba(14, 165, 233, 0.1);
-  --grain-opacity: 0.02;
+  --glass-border: rgba(8, 145, 178, 0.12);
+  --glass-bg: rgba(255, 255, 255, 0.82);
+  --clinical-shadow: 0 10px 30px -8px rgba(8, 145, 178, 0.18);
+  --grain-opacity: 0.015;
 }
 
 [data-theme="dark"] {
   color-scheme: dark;
-  --hospital-primary: #38bdf8;
-  --hospital-secondary: #34d399;
-  --hospital-dark: #e2e8f0;
-  --page-bg: #0b1220;
-  --surface-bg: #111827;
-  --card-bg: #1e293b;
-  --card-muted-bg: #0f172a;
-  --text-primary: #f1f5f9;
-  --text-muted: #94a3b8;
-  --border-color: rgba(148, 163, 184, 0.2);
-  --nav-bg: rgba(15, 23, 42, 0.88);
-  --input-bg: #0f172a;
-  --glass-border: rgba(148, 163, 184, 0.15);
-  --glass-bg: rgba(30, 41, 59, 0.85);
-  --clinical-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5);
-  --grain-opacity: 0.04;
+  --hospital-primary: #22d3ee;
+  --hospital-secondary: #4ade80;
+  --hospital-accent: #0891b2;
+  --hospital-dark: #ecfeff;
+  --page-bg: #0c1a1a;
+  --surface-bg: #102828;
+  --card-bg: #153535;
+  --card-muted-bg: #0f2222;
+  --text-primary: #ecfeff;
+  --text-muted: #94b8b5;
+  --border-color: rgba(34, 211, 238, 0.15);
+  --nav-bg: rgba(12, 26, 26, 0.92);
+  --input-bg: #0f2222;
+  --glass-border: rgba(34, 211, 238, 0.12);
+  --glass-bg: rgba(21, 53, 53, 0.9);
+  --clinical-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.55);
+  --grain-opacity: 0.03;
 }
 
 .site-shell {
@@ -97,13 +99,18 @@
     scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
     font-size: 16px;
-    line-height: 1.5;
+    line-height: 1.55;
+    font-family: 'Noto Sans', system-ui, sans-serif;
   }
 
-  h1 { @apply text-2xl sm:text-3xl md:text-4xl font-outfit tracking-tighter; }
-  h2 { @apply text-xl sm:text-2xl md:text-3xl font-outfit tracking-tight; }
-  h3 { @apply text-lg sm:text-xl md:text-2xl font-outfit tracking-tight; }
-  h4 { @apply text-base sm:text-lg font-outfit tracking-tight; }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: Figtree, 'Noto Sans', system-ui, sans-serif;
+  }
+
+  h1 { @apply text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight; }
+  h2 { @apply text-xl sm:text-2xl md:text-3xl font-bold tracking-tight; }
+  h3 { @apply text-lg sm:text-xl md:text-2xl font-semibold tracking-tight; }
+  h4 { @apply text-base sm:text-lg font-semibold tracking-tight; }
 
   section {
     @apply relative py-6 md:py-10;
@@ -133,8 +140,8 @@
   color: var(--text-muted);
 }
 
-.pro-card {
-  @apply rounded-2xl shadow-clinical p-4 sm:p-6 md:p-8;
+  .pro-card {
+  @apply rounded-2xl shadow-clinical p-4 sm:p-6 md:p-8 cursor-default;
   background-color: var(--card-bg);
   border: 1px solid var(--border-color);
   color: var(--text-primary);
@@ -209,7 +216,7 @@
 
 .pro-tab-active {
   @apply border-transparent shadow-clinical text-white;
-  background-color: #0f172a;
+  background-color: var(--hospital-primary);
 }
 
 [data-theme="dark"] .pro-tab-active {
@@ -255,27 +262,47 @@
   }
 
   .btn-clinical {
-    @apply relative inline-flex items-center justify-center px-6 py-3 rounded-xl font-bold text-xs tracking-widest uppercase overflow-hidden transition-all duration-300 hover:scale-105 active:scale-95 shadow-md;
-    background-color: #0f172a;
+    @apply relative inline-flex items-center justify-center px-6 py-3 rounded-xl font-bold text-xs tracking-wide uppercase overflow-hidden transition-all duration-200 active:scale-[0.98] shadow-md cursor-pointer;
+    background-color: var(--hospital-primary);
     color: #fff;
   }
 
   [data-theme="dark"] .btn-clinical {
     background-color: var(--hospital-primary);
-    color: #0b1220;
+    color: #0c1a1a;
   }
 
   .btn-clinical::before {
     content: '';
-    @apply absolute inset-0 bg-gradient-to-r from-hospital-primary to-hospital-secondary opacity-0 transition-opacity duration-300;
+    @apply absolute inset-0 opacity-0 transition-opacity duration-200;
+    background: linear-gradient(135deg, var(--hospital-primary), var(--hospital-secondary));
   }
 
   .btn-clinical:hover::before {
     @apply opacity-100;
   }
 
-  .btn-clinical span {
+  .btn-clinical:hover {
+    @apply shadow-lg;
+    transform: translateY(-1px);
+  }
+
+  .btn-clinical > * {
     @apply relative z-10;
+  }
+
+  .btn-outline-health {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+  }
+
+  .btn-outline-health:hover {
+    border-color: var(--hospital-primary);
+    color: var(--hospital-primary);
+    box-shadow: 0 4px 16px -6px rgba(8, 145, 178, 0.25);
+    transform: translateY(-1px);
   }
 
   /* Logo Background Overlay */

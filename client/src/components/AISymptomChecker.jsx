@@ -3,6 +3,7 @@ import { Brain, ShieldAlert, Activity, ChevronRight, RefreshCw, Upload, X, Pill,
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { getBilingualText, joinBilingualItems, toArray, HOSPITAL_PHONE, detectEmergencySymptoms } from '../utils/aiHelpers';
+import { sectionReveal } from '../utils/motionPresets';
 
 const AISymptomChecker = () => {
     const navigate = useNavigate();
@@ -105,7 +106,7 @@ const AISymptomChecker = () => {
     return (
         <section className="py-2 sm:py-4 min-w-0 overflow-hidden">
             <div className="flex flex-col lg:flex-row gap-6 lg:gap-12 min-w-0">
-                    <div className="lg:w-2/5 min-w-0">
+                    <motion.div className="lg:w-2/5 min-w-0" {...sectionReveal}>
                         <div className="pro-ai-panel min-h-0 sm:min-h-[240px] flex flex-col justify-between">
                             <div>
                                 <div className="w-12 h-12 rounded-xl bg-hospital-primary/10 flex items-center justify-center text-hospital-primary mb-6">
@@ -118,9 +119,9 @@ const AISymptomChecker = () => {
                                 Emergency? Call hospital immediately: {HOSPITAL_PHONE}
                             </p>
                         </div>
-                    </div>
+                    </motion.div>
 
-                    <div className="lg:w-3/5 space-y-4 sm:space-y-6 min-w-0">
+                    <motion.div className="lg:w-3/5 space-y-4 sm:space-y-6 min-w-0" {...sectionReveal}>
                         <div className="min-w-0">
                             <p className="pro-section-label mb-2">Symptom check</p>
                             <h3 className="text-lg sm:text-2xl font-bold text-hospital-dark font-['Noto_Sans_Telugu']">మీ లక్షణాలు ఏమిటి?</h3>
@@ -275,7 +276,7 @@ const AISymptomChecker = () => {
                                 </motion.div>
                             )}
                         </AnimatePresence>
-                    </div>
+                    </motion.div>
                 </div>
         </section>
     );

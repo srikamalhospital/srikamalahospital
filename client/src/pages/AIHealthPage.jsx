@@ -5,6 +5,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import AISymptomChecker from '../components/AISymptomChecker';
 import { analyzeOCR, predictSkinCancer, matchPharmacyMedicines } from '../utils/api';
 import { addToCart } from '../utils/pharmacyCart';
+import AnimatedPage from '../components/AnimatedPage';
+import PageHero from '../components/PageHero';
+import { sectionReveal } from '../utils/motionPresets';
 const TABS = [
   { id: 'symptoms', icon: Stethoscope, labelTe: 'లక్షణాలు', labelEn: 'Symptoms', hint: 'Live AI symptom analysis' },
   { id: 'ocr', icon: Scan, labelTe: 'రిపోర్టులు', labelEn: 'Reports', hint: 'Upload prescription / lab report' },
@@ -105,18 +108,18 @@ const AIHealthPage = () => {
   };
 
   return (
-    <div className="pro-page grainy">
-      <div className="page-container max-w-6xl">
-        <header className="text-center mb-6 sm:mb-10">
-          <p className="pro-section-label mb-2">Sri Kamala Hospital</p>
-          <h1 className="pro-title font-['Noto_Sans_Telugu']">AI ఆరోగ్య కేంద్రం</h1>
-          <p className="pro-subtitle mx-auto">
-            Three live tools connected to our hospital server: symptom check, report reader, and skin screening.
-            Not a substitute for a doctor visit.
-          </p>
-        </header>
+    <AnimatedPage wide>
+        <PageHero
+          variant="ai"
+          eyebrow="Sri Kamala Hospital · AI Health"
+          title="AI ఆరోగ్య కేంద్రం"
+          subtitle="Symptom check, report reader, and skin screening connected to our hospital server. Preliminary guidance only — not a substitute for a doctor visit."
+          icon={Stethoscope}
+        >
+          <Link to="/book" className="hero-btn-primary">Book OP</Link>
+        </PageHero>
 
-        <div className="pro-tabs-row mb-6 sm:mb-8">
+        <motion.div className="pro-tabs-row mb-6 sm:mb-8" {...sectionReveal}>
           {TABS.map((tab) => (
             <button
               key={tab.id}
@@ -129,9 +132,9 @@ const AIHealthPage = () => {
               <span className="text-[10px] opacity-70">{tab.labelEn}</span>
             </button>
           ))}
-        </div>
+        </motion.div>
 
-        <div className="pro-card min-h-0 sm:min-h-[400px] overflow-hidden min-w-0">
+        <motion.div className="pro-card min-h-0 sm:min-h-[400px] overflow-hidden min-w-0" {...sectionReveal}>
           <p className="text-xs font-semibold text-hospital-primary uppercase tracking-wider mb-6 pb-4 border-b border-theme">
             {active?.labelEn} — {active?.hint}
           </p>
@@ -309,9 +312,9 @@ const AIHealthPage = () => {
               </motion.div>
             )}
           </AnimatePresence>
-        </div>
+        </motion.div>
 
-        <div className="mt-8 flex flex-wrap justify-center gap-4 text-center">
+        <motion.div className="mt-8 flex flex-wrap justify-center gap-4 text-center" {...sectionReveal}>
           <p className="text-xs text-theme-muted max-w-xl">
             For medicines and cart receipts, use the{' '}
             <Link to="/medical-shop" className="text-hospital-primary font-semibold hover:underline">
@@ -326,9 +329,8 @@ const AIHealthPage = () => {
           <Link to="/book" className="inline-flex items-center gap-1 text-xs font-bold text-hospital-primary">
             Book appointment <ExternalLink size={12} />
           </Link>
-        </div>
-      </div>
-    </div>
+        </motion.div>
+    </AnimatedPage>
   );
 };
 

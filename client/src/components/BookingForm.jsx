@@ -106,13 +106,13 @@ const BookingForm = () => {
   };
 
   return (
-    <section className="py-6 sm:py-8">
+    <section className="py-4 sm:py-6">
       <div className="page-container max-w-4xl">
         <div className="grid lg:grid-cols-5 gap-6 lg:gap-8 items-start">
           <div className="lg:col-span-2 space-y-4 sm:space-y-6">
             <div>
               <p className="pro-section-label mb-2">Appointments</p>
-              <h2 className="pro-title font-['Noto_Sans_Telugu'] mb-2 sm:mb-3">అపాయింట్‌మెంట్ బుకింగ్</h2>
+              <h2 className="pro-title font-telugu mb-2 sm:mb-3">Booking details</h2>
               <p className="pro-subtitle text-sm">
                 General Medicine — daily. Cardiology — Thursdays only. Pay at hospital reception.
               </p>
@@ -122,7 +122,7 @@ const BookingForm = () => {
               {OP_DEPARTMENTS.map((dept) => (
                 <div
                   key={dept.id}
-                  className="flex gap-3 items-center p-3 sm:p-4 bg-white border border-black/5 rounded-xl shadow-sm"
+                  className="flex gap-3 items-center p-3 sm:p-4 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-xl shadow-sm transition-colors duration-200 hover:border-hospital-primary/30"
                 >
                   <div
                     className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
@@ -132,7 +132,7 @@ const BookingForm = () => {
                     <Clock size={16} />
                   </div>
                   <div className="min-w-0 text-left">
-                    <p className="font-['Noto_Sans_Telugu'] text-xs font-bold text-hospital-dark">{dept.te}</p>
+                    <p className="font-telugu text-xs font-bold text-hospital-dark">{dept.te}</p>
                     <p className="text-[10px] text-hospital-slate">
                       {dept.en} · {dept.scheduleEn}
                     </p>
@@ -216,7 +216,7 @@ const BookingForm = () => {
                   <select
                     value={formData.department}
                     onChange={(e) => handleDepartmentChange(e.target.value)}
-                    className="pro-input w-full font-['Noto_Sans_Telugu']"
+                    className="pro-input w-full font-telugu"
                   >
                     {OP_DEPARTMENTS.map((d) => (
                       <option key={d.id} value={d.value}>
