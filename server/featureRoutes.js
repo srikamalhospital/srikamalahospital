@@ -2,6 +2,17 @@ const { deductPharmacyStock } = require('./stockDeduction');
 
 const LAB_STATUSES = ['submitted', 'sample_received', 'processing', 'report_ready'];
 
+const sanitizeLabRow = (row) => {
+    if (!row) return row;
+    const { report_file, ...rest } = row;
+    return {
+        ...rest,
+        hasReport: !!(row.report_url || row.report_file),
+    };
+};
+
+const LAB_LIST_FIELDS = 'id, token, patient_name, phone, test_name, status, admin_notes, report_url, appointment_token, notes, ready_at, created_at, updated_at';
+
 function registerFeatureRoutes(app, ctx) {
     const { supabase, getSiteConfig, setSiteConfig, requireAdmin, requireDiagnostics, normalizePharmacyOrder, pharmacyOrdersMemory } = ctx;
     const requireLabAdmin = requireDiagnostics || requireAdmin;
@@ -187,16 +198,16 @@ function registerFeatureRoutes(app, ctx) {
             const { phone, token } = req.query;
             if (!phone && !token) return res.status(400).json({ success: false, message: 'phone or token required' });
             if (supabase) {
-                let q = supabase.from('lab_report_requests').select('*').order('created_at', { ascending: false }).limit(20);
+                let q = supabase.from('lab_report_requests').select(LAB_LIST_FIELDS).order('created_at', { ascending: false }).limit(20);
                 if (token) q = q.eq('token', token);
                 else q = q.eq('phone', String(phone).trim());
                 const { data, error } = await q;
-                if (!error) return res.json({ success: true, requests: data || [] });
+                if (!error) return res.json({ success: true, requests: (data || []).map(sanitizeLabRow) });
             }
             const filtered = labReportsMemory.filter(
                 (r) => (token && r.token === token) || (phone && r.phone === String(phone).trim())
             );
-            return res.json({ success: true, requests: filtered });
+            return res.json({ success: true, requests: filtered.map(sanitizeLabRow) });
         } catch (err) {
             return res.status(500).json({ success: false, message: err.message });
         }
@@ -205,10 +216,10 @@ function registerFeatureRoutes(app, ctx) {
     app.get('/api/admin/lab-reports', requireLabAdmin, async (req, res) => {
         try {
             if (supabase) {
-                const { data, error } = await supabase.from('lab_report_requests').select('*').order('created_at', { ascending: false }).limit(200);
-                if (!error) return res.json({ success: true, requests: data || [], statuses: LAB_STATUSES });
+                const { data, error } = await supabase.from('lab_report_requests').select(LAB_LIST_FIELDS).order('created_at', { ascending: false }).limit(200);
+                if (!error) return res.json({ success: true, requests: (data || []).map(sanitizeLabRow), statuses: LAB_STATUSES });
             }
-            return res.json({ success: true, requests: labReportsMemory, statuses: LAB_STATUSES });
+            return res.json({ success: true, requests: labReportsMemory.map(sanitizeLabRow), statuses: LAB_STATUSES });
         } catch (err) {
             return res.status(500).json({ success: false, message: err.message });
         }
@@ -216,22 +227,76 @@ function registerFeatureRoutes(app, ctx) {
 
     app.patch('/api/admin/lab-reports', requireLabAdmin, async (req, res) => {
         try {
-            const { id, token, status, adminNotes } = req.body || {};
-            if (!status || (!id && !token)) return res.status(400).json({ success: false, message: 'status and id or token required' });
-            const patch = { status, admin_notes: adminNotes || null, updated_at: new Date().toISOString() };
-            if (status === 'report_ready') patch.ready_at = new Date().toISOString();
+            const { id, token, status, adminNotes, reportUrl, reportFile } = req.body || {};
+            if (!status && reportUrl === undefined && reportFile === undefined) {
+                return res.status(400).json({ success: false, message: 'status, reportUrl, or reportFile required' });
+            }
+            if (!id && !token) return res.status(400).json({ success: false, message: 'id or token required' });
+            const patch = { updated_at: new Date().toISOString() };
+            if (status) {
+                patch.status = status;
+                if (status === 'report_ready') patch.ready_at = new Date().toISOString();
+            }
+            if (adminNotes !== undefined) patch.admin_notes = adminNotes || null;
+            if (reportUrl !== undefined) patch.report_url = reportUrl ? String(reportUrl).trim() : null;
+            if (reportFile !== undefined) {
+                const raw = reportFile ? String(reportFile).replace(/^data:application\/pdf;base64,/, '') : null;
+                if (raw && raw.length > 25 * 1024 * 1024) {
+                    return res.status(400).json({ success: false, message: 'PDF too large (max ~20MB)' });
+                }
+                patch.report_file = raw || null;
+                if (raw && reportUrl === undefined) patch.report_url = 'embedded://pdf';
+            }
             if (supabase) {
                 let q = supabase.from('lab_report_requests').update(patch);
                 q = id ? q.eq('id', id) : q.eq('token', token);
-                const { data, error } = await q.select().maybeSingle();
-                if (!error) return res.json({ success: true, request: data });
+                const { data, error } = await q.select(LAB_LIST_FIELDS).maybeSingle();
+                if (!error) return res.json({ success: true, request: sanitizeLabRow(data) });
             }
             const idx = labReportsMemory.findIndex((r) => (id && r.id === id) || r.token === token);
             if (idx >= 0) {
                 labReportsMemory[idx] = { ...labReportsMemory[idx], ...patch };
-                return res.json({ success: true, request: labReportsMemory[idx] });
+                return res.json({ success: true, request: sanitizeLabRow(labReportsMemory[idx]) });
             }
             return res.status(404).json({ success: false, message: 'Not found' });
+        } catch (err) {
+            return res.status(500).json({ success: false, message: err.message });
+        }
+    });
+
+    app.get('/api/lab-reports/download/:token', async (req, res) => {
+        try {
+            const phone = String(req.query.phone || '').replace(/\D/g, '').slice(-10);
+            const { token } = req.params;
+            if (!token) return res.status(400).json({ success: false, message: 'Token required' });
+            if (phone.length !== 10) return res.status(400).json({ success: false, message: 'Valid 10-digit phone required' });
+
+            let row = null;
+            if (supabase) {
+                const { data, error } = await supabase
+                    .from('lab_report_requests')
+                    .select('token, phone, patient_name, test_name, status, report_url, report_file')
+                    .eq('token', token)
+                    .maybeSingle();
+                if (error) throw error;
+                row = data;
+            } else {
+                row = labReportsMemory.find((r) => r.token === token);
+            }
+            if (!row) return res.status(404).json({ success: false, message: 'Lab request not found' });
+            const rowPhone = String(row.phone || '').replace(/\D/g, '').slice(-10);
+            if (rowPhone !== phone) return res.status(403).json({ success: false, message: 'Phone does not match this report' });
+            if (row.status !== 'report_ready') {
+                return res.status(400).json({ success: false, message: 'Report is not ready yet' });
+            }
+            if (row.report_url && !row.report_url.startsWith('embedded://')) return res.redirect(row.report_url);
+            if (row.report_file) {
+                const buf = Buffer.from(row.report_file, 'base64');
+                res.setHeader('Content-Type', 'application/pdf');
+                res.setHeader('Content-Disposition', `attachment; filename="lab-${token}.pdf"`);
+                return res.send(buf);
+            }
+            return res.status(404).json({ success: false, message: 'Report file not uploaded yet' });
         } catch (err) {
             return res.status(500).json({ success: false, message: err.message });
         }
@@ -260,10 +325,11 @@ function registerFeatureRoutes(app, ctx) {
                     department: a.department,
                     date: a.appointment_date,
                     paymentStatus: a.payment_status,
+                    visitStatus: a.visit_status || 'booked',
                     createdAt: a.created_at,
                 }));
                 journey.pharmacyOrders = (pharma.data || []).map(normalizePharmacyOrder);
-                journey.labReports = lab.data || [];
+                journey.labReports = (lab.data || []).map(sanitizeLabRow);
                 journey.clinicalNotes = (notes.data || []).map((n) => ({
                     token: n.token,
                     diagnosisType: n.diagnosis_type,
@@ -308,6 +374,70 @@ function registerFeatureRoutes(app, ctx) {
                 }
             }
             return res.json({ success: true, products, matchedCount: unique.length });
+        } catch (err) {
+            return res.status(500).json({ success: false, message: err.message });
+        }
+    });
+
+    // ─── Patient self-service summary (public, no clinical notes) ───────────
+    const summaryHits = new Map();
+    app.get('/api/patient/summary', async (req, res) => {
+        try {
+            const phone = String(req.query.phone || '').replace(/\D/g, '').slice(-10);
+            if (phone.length !== 10) {
+                return res.status(400).json({ success: false, message: 'Valid 10-digit phone required' });
+            }
+            const now = Date.now();
+            const hit = summaryHits.get(phone) || { count: 0, reset: now };
+            if (now - hit.reset > 3600000) {
+                hit.count = 0;
+                hit.reset = now;
+            }
+            hit.count += 1;
+            summaryHits.set(phone, hit);
+            if (hit.count > 30) {
+                return res.status(429).json({ success: false, message: 'Too many lookups. Try again later.' });
+            }
+
+            const summary = { phone, appointments: [], pharmacyOrders: [], labReports: [] };
+
+            if (supabase) {
+                const [apt, pharma, lab] = await Promise.all([
+                    supabase.from('appointments').select('token, department, appointment_date, payment_status, visit_status, created_at').eq('phone', phone).order('created_at', { ascending: false }).limit(15),
+                    supabase.from('pharmacy_orders').select('token, status, subtotal, created_at, items').eq('phone', phone).order('created_at', { ascending: false }).limit(15),
+                    supabase.from('lab_report_requests').select('token, test_name, status, created_at, admin_notes, report_url').eq('phone', phone).order('created_at', { ascending: false }).limit(15),
+                ]);
+                summary.appointments = (apt.data || []).map((a) => ({
+                    token: a.token,
+                    department: a.department,
+                    date: a.appointment_date,
+                    paymentStatus: a.payment_status,
+                    visitStatus: a.visit_status || 'booked',
+                    createdAt: a.created_at,
+                }));
+                summary.pharmacyOrders = (pharma.data || []).map((o) => ({
+                    token: o.token,
+                    status: o.status,
+                    subtotal: o.subtotal,
+                    itemCount: Array.isArray(o.items) ? o.items.length : 0,
+                    createdAt: o.created_at,
+                }));
+                summary.labReports = (lab.data || []).map((r) => ({
+                    token: r.token,
+                    testName: r.test_name,
+                    status: r.status,
+                    note: r.admin_notes || null,
+                    hasReport: !!(r.report_url),
+                    createdAt: r.created_at,
+                }));
+            } else {
+                summary.pharmacyOrders = pharmacyOrdersMemory
+                    .filter((o) => String(o.phone || '').replace(/\D/g, '').slice(-10) === phone)
+                    .map(normalizePharmacyOrder);
+                summary.labReports = labReportsMemory.filter((r) => String(r.phone || '').replace(/\D/g, '').slice(-10) === phone);
+            }
+
+            return res.json({ success: true, summary });
         } catch (err) {
             return res.status(500).json({ success: false, message: err.message });
         }

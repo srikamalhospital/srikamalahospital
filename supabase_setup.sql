@@ -32,6 +32,11 @@ CREATE TABLE IF NOT EXISTS public.appointments (
 ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS order_id TEXT;
 ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS image TEXT;
 ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
+ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS visit_status TEXT NOT NULL DEFAULT 'booked';
+ALTER TABLE public.appointments DROP CONSTRAINT IF EXISTS appointments_visit_status_check;
+ALTER TABLE public.appointments ADD CONSTRAINT appointments_visit_status_check
+    CHECK (visit_status IN ('booked', 'checked_in', 'in_consult', 'completed', 'no_show'));
+CREATE INDEX IF NOT EXISTS appointments_visit_status_idx ON public.appointments (visit_status);
 
 CREATE UNIQUE INDEX IF NOT EXISTS appointments_token_key ON public.appointments (token);
 CREATE INDEX IF NOT EXISTS appointments_phone_idx ON public.appointments (phone);
@@ -467,6 +472,9 @@ CREATE TABLE IF NOT EXISTS public.lab_report_requests (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+ALTER TABLE public.lab_report_requests ADD COLUMN IF NOT EXISTS report_url TEXT;
+ALTER TABLE public.lab_report_requests ADD COLUMN IF NOT EXISTS report_file TEXT;
+
 CREATE INDEX IF NOT EXISTS lab_report_requests_phone_idx ON public.lab_report_requests (phone);
 CREATE INDEX IF NOT EXISTS lab_report_requests_token_idx ON public.lab_report_requests (token);
 
@@ -506,6 +514,11 @@ CREATE POLICY "Service role manage lab_report_requests"
 -- 8. SEED LAB TESTS (run once if labtests is empty — optional)
 -- -----------------------------------------------------------------------------
 -- Copy tests from server/labTestsCatalog.js or use Diagnostics Admin → Test catalog → Add.
+
+-- -----------------------------------------------------------------------------
+-- 9. OPS UPGRADES (visit queue, lab PDF delivery)
+-- -----------------------------------------------------------------------------
+-- Run sections above if upgrading an existing database; safe to re-run.
 
 -- =============================================================================
 -- Render env reminder (backend):

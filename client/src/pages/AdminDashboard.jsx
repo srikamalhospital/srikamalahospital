@@ -5,6 +5,7 @@ import {
     updateConfig,
     getConfig,
     fetchPharmacyProducts,
+    getAdminProducts,
     getAppointments,
     updateAppointment,
     discoverMedicines,
@@ -22,6 +23,15 @@ import AdminPharmacyPanel from '../admin/AdminPharmacyPanel';
 import AdminReviewsPanel from '../admin/AdminReviewsPanel';
 import AdminDoctorSchedule from '../admin/AdminDoctorSchedule';
 import AdminPatientJourney from '../admin/AdminPatientJourney';
+import AdminInventoryPanel from '../admin/AdminInventoryPanel';
+
+const VISIT_STATUSES = [
+    { value: 'booked', label: 'Booked' },
+    { value: 'checked_in', label: 'Checked in' },
+    { value: 'in_consult', label: 'In consult' },
+    { value: 'completed', label: 'Completed' },
+    { value: 'no_show', label: 'No show' },
+];
 
 const AdminDashboard = () => {
     const navigate = useNavigate();
@@ -103,7 +113,7 @@ const AdminDashboard = () => {
         try {
             const [aptResp, prodResp, confResp, pharmaResp, statsResp] = await Promise.all([
                 getAppointments(params),
-                fetchPharmacyProducts(),
+                getAdminProducts().catch(() => fetchPharmacyProducts()),
                 getConfig(),
                 getAdminPharmacyOrders(params).catch(() => ({ data: { success: false, orders: [] } })),
                 getAdminDashboardStats().catch(() => ({ data: { success: false } })),
@@ -272,7 +282,14 @@ const AdminDashboard = () => {
 
     const updateAptStatus = async (id, status) => {
         try {
-            await updateAppointment(id, status);
+            await updateAppointment(id, { paymentStatus: status });
+            fetchData();
+        } catch (err) { console.error(err); }
+    };
+
+    const updateAptVisitStatus = async (id, visitStatus) => {
+        try {
+            await updateAppointment(id, { visitStatus });
             fetchData();
         } catch (err) { console.error(err); }
     };
@@ -399,7 +416,34 @@ const AdminDashboard = () => {
                                     <p className="mt-8 text-xs text-green-700 font-semibold flex items-center gap-2"><ShieldCheck size={14} /> {t('overview.systemOk')}</p>
                                     <p className="mt-2 text-xs text-slate-400">{t('overview.revenueHint')}: ₹{appointments.length * 100}</p>
                                     <p className="mt-1 text-xs text-slate-500">{t('overview.pharmacyDone')}: {dashboardStats?.pharmacyDispensed ?? 0}</p>
+                                    <a
+                                        href="/op-board"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-hospital-primary hover:underline"
+                                    >
+                                        Open live OP board (/op-board) ↗
+                                    </a>
                                 </div>
+
+                                {(dashboardStats?.lowStockCount > 0) && (
+                                    <div className="bg-amber-50 border border-amber-200 rounded-3xl p-8 shadow-sm">
+                                        <h4 className="font-bold text-lg text-amber-900 mb-2 flex items-center gap-2">
+                                            <Package size={20} /> Low stock alert ({dashboardStats.lowStockCount})
+                                        </h4>
+                                        <p className="text-sm text-amber-800 mb-4">
+                                            Medicines below {dashboardStats.lowStockThreshold ?? 10} units — restock soon.
+                                        </p>
+                                        <ul className="space-y-2 text-sm">
+                                            {(dashboardStats.lowStockItems || []).map((item) => (
+                                                <li key={item.id || item.name} className="flex justify-between gap-4 text-amber-900">
+                                                    <span className="font-semibold">{item.name}</span>
+                                                    <span className="font-mono text-amber-700">{item.stock} left</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
                             </motion.div>
                         )}
 
@@ -415,18 +459,19 @@ const AdminDashboard = () => {
                                         <button className="px-10 py-5 bg-slate-50 border border-black/5 rounded-full text-[11px] font-black uppercase tracking-[0.4em] italic hover:bg-slate-100 active:scale-95 transition-all text-slate-900">Download Audit CSV</button>
                                     </div>
                                     <div className="table-scroll relative z-10 scrollbar-hide">
-                                        <table className="w-full text-left min-w-[900px]">
+                                        <table className="w-full text-left min-w-[1100px]">
                                             <thead>
                                                 <tr className="border-b border-black/5">
                                                     <th className="py-8 px-6 text-xs font-bold text-slate-500">{t('apt.token')}</th>
                                                     <th className="py-8 px-6 text-xs font-bold text-slate-500">{t('apt.patient')}</th>
                                                     <th className="py-8 px-6 text-xs font-bold text-slate-500">{t('apt.dept')}</th>
+                                                    <th className="py-8 px-6 text-xs font-bold text-slate-500">Visit status</th>
                                                     <th className="py-8 px-6 text-xs font-bold text-slate-500 text-right">{t('apt.action')}</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {appointments.length === 0 ? (
-                                                    <tr><td colSpan={4} className="py-12 text-center text-slate-500">{t('apt.empty')}</td></tr>
+                                                    <tr><td colSpan={5} className="py-12 text-center text-slate-500">{t('apt.empty')}</td></tr>
                                                 ) : appointments.map((apt, i) => (
                                                     <motion.tr initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} key={apt._id || i} className="group hover:bg-slate-50 transition-all cursor-default border-b border-black/5 last:border-none">
                                                         <td className="py-10 px-6 font-mono font-black text-lg text-hospital-primary italic group-hover:scale-105 transition-transform origin-left">{apt.token}</td>
@@ -441,6 +486,17 @@ const AdminDashboard = () => {
                                                         </td>
                                                         <td className="py-10 px-6">
                                                             <span className={`px-6 py-2 bg-slate-50 border border-black/5 text-slate-600 text-[10px] font-black uppercase tracking-[0.4em] rounded-full italic group-hover:border-hospital-secondary transition-colors`}>{apt.department}</span>
+                                                        </td>
+                                                        <td className="py-10 px-6">
+                                                            <select
+                                                                value={apt.visitStatus || 'booked'}
+                                                                onChange={(e) => updateAptVisitStatus(apt._id, e.target.value)}
+                                                                className="border border-black/10 rounded-xl px-3 py-2 text-[10px] font-bold uppercase tracking-wider bg-white"
+                                                            >
+                                                                {VISIT_STATUSES.map((s) => (
+                                                                    <option key={s.value} value={s.value}>{s.label}</option>
+                                                                ))}
+                                                            </select>
                                                         </td>
                                                         <td className="py-10 px-6 text-right">
                                                             <button onClick={() => updateAptStatus(apt._id, 'Paid')}
@@ -745,28 +801,8 @@ const AdminDashboard = () => {
                                     </div>
                                 </div>
 
-                                <div className="bg-white rounded-[75px] shadow-xl border border-black/5 p-16 lg:p-24 space-y-16 backdrop-blur-3xl relative overflow-hidden">
-                                    <div className="absolute top-0 left-0 p-16 text-slate-100 opacity-5 pointer-events-none -rotate-12"><Pill size={300} /></div>
-                                    <div className="flex items-center justify-between relative z-10">
-                                        <h3 className="text-4xl font-black italic tracking-tighter uppercase leading-none text-slate-900">Inventory Master</h3>
-                                        <div className="flex gap-4">
-                                            <button className="px-10 py-5 bg-[#0f172a] text-white rounded-full text-[11px] font-black uppercase tracking-[0.4em] italic hover:bg-hospital-primary transition-all active:scale-95 shadow-lg">Add Compound</button>
-                                        </div>
-                                    </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-12 relative z-10">
-                                        {products.map((p, i) => (
-                                            <div key={i} className="p-10 bg-slate-50 rounded-[50px] border border-black/5 hover:border-black/10 transition-all group relative overflow-hidden shadow-md">
-                                                <div className="absolute -top-10 -right-10 opacity-5 group-hover:scale-125 transition-transform duration-[2s] text-slate-900"><Pill size={150} /></div>
-                                                <div className="flex justify-between items-start mb-10">
-                                                    <div className="w-20 h-20 bg-white border border-black/5 rounded-[30px] shadow-inner flex items-center justify-center text-hospital-secondary group-hover:rotate-12 transition-transform italic text-5xl font-serif">M</div>
-                                                    <div className="px-6 py-2 bg-white border border-black/5 rounded-full text-[9px] font-black uppercase tracking-[0.3em] italic text-slate-400">{p.category}</div>
-                                                </div>
-                                                <h4 className="text-2xl font-black text-slate-900 italic tracking-tighter uppercase mb-2 leading-none">{p.name}</h4>
-                                                <p className="text-4xl font-black text-hospital-primary mb-10 italic">₹{p.price}</p>
-                                                <button className="w-full py-6 bg-white border border-black/5 text-slate-400 rounded-[28px] text-[10px] font-black uppercase tracking-[0.5em] hover:bg-[#0f172a] hover:text-white hover:border-transparent transition-all italic active:scale-95 shadow-sm">Adjust Stock Node</button>
-                                            </div>
-                                        ))}
-                                    </div>
+                                <div className="bg-white rounded-[75px] shadow-xl border border-black/5 p-8 lg:p-12 relative overflow-hidden">
+                                    <AdminInventoryPanel products={products} onRefresh={fetchData} />
                                 </div>
                             </motion.div>
                         )}

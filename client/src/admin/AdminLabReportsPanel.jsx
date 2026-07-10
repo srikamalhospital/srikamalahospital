@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { FileUp, Link2 } from 'lucide-react';
 import { getAdminLabReports, updateAdminLabReport } from '../utils/api';
 
 const STATUSES = ['submitted', 'sample_received', 'processing', 'report_ready'];
@@ -7,6 +8,8 @@ const AdminLabReportsPanel = ({ t }) => {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [notes, setNotes] = useState({});
+  const [reportUrls, setReportUrls] = useState({});
+  const [uploading, setUploading] = useState({});
 
   const load = async () => {
     setLoading(true);
@@ -22,14 +25,45 @@ const AdminLabReportsPanel = ({ t }) => {
     load();
   }, []);
 
-  const setStatus = async (r, status) => {
+  const saveReport = async (r, extra = {}) => {
+    const key = r.id || r.token;
     await updateAdminLabReport({
       id: r.id,
       token: r.token,
-      status,
-      adminNotes: notes[r.id || r.token] || r.admin_notes || '',
+      status: extra.status || r.status,
+      adminNotes: notes[key] ?? r.admin_notes ?? '',
+      reportUrl: extra.reportUrl !== undefined ? extra.reportUrl : (reportUrls[key] ?? r.report_url ?? ''),
+      ...extra,
     });
     load();
+  };
+
+  const setStatus = async (r, status) => {
+    await saveReport(r, { status });
+  };
+
+  const handlePdfUpload = async (r, file) => {
+    if (!file || file.type !== 'application/pdf') return;
+    const key = r.id || r.token;
+    setUploading((u) => ({ ...u, [key]: true }));
+    try {
+      const reader = new FileReader();
+      const base64 = await new Promise((resolve, reject) => {
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      await updateAdminLabReport({
+        id: r.id,
+        token: r.token,
+        status: r.status === 'report_ready' ? r.status : 'report_ready',
+        adminNotes: notes[key] ?? r.admin_notes ?? '',
+        reportFile: base64,
+      });
+      await load();
+    } finally {
+      setUploading((u) => ({ ...u, [key]: false }));
+    }
   };
 
   return (
@@ -42,13 +76,14 @@ const AdminLabReportsPanel = ({ t }) => {
         <p className="text-slate-400">{t('lab.empty')}</p>
       ) : (
         <div className="table-scroll">
-          <table className="w-full text-left text-sm min-w-[800px]">
+          <table className="w-full text-left text-sm min-w-[1000px]">
             <thead>
               <tr className="text-slate-400 uppercase text-[10px]">
                 <th className="p-3">Token</th>
                 <th className="p-3">Patient</th>
                 <th className="p-3">Test</th>
                 <th className="p-3">Status</th>
+                <th className="p-3">Report PDF / URL</th>
                 <th className="p-3">Staff notes</th>
                 <th className="p-3">Update</th>
               </tr>
@@ -66,6 +101,42 @@ const AdminLabReportsPanel = ({ t }) => {
                     </td>
                     <td className="p-3">{r.test_name}</td>
                     <td className="p-3 capitalize text-xs">{r.status?.replace(/_/g, ' ')}</td>
+                    <td className="p-3 space-y-2 min-w-[180px]">
+                      <div className="flex items-center gap-2">
+                        <Link2 size={12} className="text-slate-400 shrink-0" />
+                        <input
+                          type="url"
+                          placeholder="External report URL"
+                          value={reportUrls[key] ?? (r.report_url?.startsWith('embedded://') ? '' : r.report_url || '')}
+                          onChange={(e) => setReportUrls({ ...reportUrls, [key]: e.target.value })}
+                          className="w-full border border-slate-200 rounded-lg px-2 py-1 text-xs"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => saveReport(r, { reportUrl: reportUrls[key] ?? '' })}
+                        className="text-[10px] font-bold text-hospital-primary uppercase tracking-wider"
+                      >
+                        Save URL
+                      </button>
+                      <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-600">
+                        <FileUp size={14} />
+                        <span>{uploading[key] ? 'Uploading…' : r.hasReport ? 'Replace PDF' : 'Upload PDF'}</span>
+                        <input
+                          type="file"
+                          accept="application/pdf"
+                          className="hidden"
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            if (f) handlePdfUpload(r, f);
+                            e.target.value = '';
+                          }}
+                        />
+                      </label>
+                      {r.hasReport && (
+                        <p className="text-[10px] text-green-600 font-semibold">Report attached</p>
+                      )}
+                    </td>
                     <td className="p-3">
                       <input
                         type="text"

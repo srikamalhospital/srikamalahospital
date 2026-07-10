@@ -88,7 +88,10 @@ const QuickActionGrid = () => (
           ))}
         </motion.div>
 
-        <p className="mt-4 sm:mt-5 w-full">
+        <p className="mt-4 sm:mt-5 w-full flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4">
+          <Link to="/my-care" className="home-inline-link font-telugu text-xs sm:text-sm">
+            నా రికార్డులు (My Care) →
+          </Link>
           <Link to="/lab-reports" className="home-inline-link font-telugu text-xs sm:text-sm">
             ల్యాబ్ రిపోర్ట్ స్థితి చూడండి →
           </Link>

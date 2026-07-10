@@ -100,7 +100,14 @@ export const updateAdminLabReport = (payload) => api.patch('/admin/lab-reports',
 export const getPatientJourney = (phone, name) =>
   api.get('/admin/patient-journey', { params: { phone, name: name || undefined } });
 export const matchPharmacyMedicines = (names) => api.post('/pharmacy/match-medicines', { names });
-export const updateAppointment = (id, status) => api.post('/admin/update-appointment', { id, paymentStatus: status });
+export const updateAppointment = (id, payload) =>
+  api.post('/admin/update-appointment', typeof payload === 'string' ? { id, paymentStatus: payload } : { id, ...payload });
+export const getOpQueueToday = () => api.get('/op-queue/today');
+export const getLabReportDownloadUrl = (token, phone) => {
+  const digits = String(phone || '').replace(/\D/g, '').slice(-10);
+  const base = (api.defaults.baseURL || '').replace(/\/$/, '');
+  return `${base}/lab-reports/download/${encodeURIComponent(token)}?phone=${encodeURIComponent(digits)}`;
+};
 export const fetchLabTests = () => api.get('/lab/tests');
 export const fetchPharmacyProducts = (category) =>
   api.get('/pharmacy/products', { params: category && category !== 'All' ? { category } : {} });
@@ -146,5 +153,9 @@ export const diagnosticsAI = (query, testsSummary) =>
 export const discoverMedicines = (keyword) => api.post('/ai/medicine-discovery', { keyword });
 export const savePatientClinicalNote = (data) => api.post('/admin/patient-clinical-note', data);
 export const getPatientClinicalHistory = (patientName, phone) => api.post('/admin/patient-clinical-history', { patientName, phone });
+export const getPatientSummary = (phone) => api.get('/patient/summary', { params: { phone } });
+export const getAdminProducts = () => api.get('/admin/products');
+export const createAdminProduct = (data) => api.post('/admin/products', data);
+export const updateAdminProduct = (data) => api.patch('/admin/products', data);
 
 export default api;

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { FlaskConical, Search, Send } from 'lucide-react';
+import { FlaskConical, Search, Send, Download } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { submitLabReport, trackLabReports } from '../utils/api';
+import { submitLabReport, trackLabReports, getLabReportDownloadUrl } from '../utils/api';
 import AnimatedPage from '../components/AnimatedPage';
 import PageHero from '../components/PageHero';
 import { sectionReveal } from '../utils/motionPresets';
@@ -161,6 +161,16 @@ const LabReportsPage = () => {
                   </span>
                 </div>
                 {r.admin_notes && <p className="text-xs text-theme-muted mt-2">Note: {r.admin_notes}</p>}
+                {r.status === 'report_ready' && (r.hasReport || r.report_url) && (
+                  <a
+                    href={getLabReportDownloadUrl(r.token, trackPhone || r.phone)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 inline-flex items-center gap-2 text-xs font-bold text-hospital-primary hover:underline"
+                  >
+                    <Download size={14} /> Download PDF
+                  </a>
+                )}
               </motion.li>
             ))}
           </ul>

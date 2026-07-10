@@ -234,6 +234,36 @@ const {
 } = require('./hospitalPharmacyCatalog');
 const medicineCatalog = getMedicineNames();
 
+const VISIT_STATUSES = ['booked', 'checked_in', 'in_consult', 'completed', 'no_show'];
+const LOW_STOCK_THRESHOLD = 10;
+
+const todayIstDate = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+
+const mapAppointmentRow = (item) => ({
+    _id: item.id,
+    name: item.name,
+    token: item.token,
+    department: item.department,
+    phone: item.phone,
+    age: item.age,
+    gender: item.gender,
+    reason: item.reason,
+    paymentStatus: item.payment_status,
+    visitStatus: item.visit_status || 'booked',
+    appointmentDate: item.appointment_date,
+    orderId: item.order_id,
+    image: item.image,
+});
+
+const isAppointmentToday = (row, todayStr) => {
+    if (row.appointment_date === todayStr) return true;
+    if (!row.appointment_date && row.created_at) {
+        const created = new Date(row.created_at).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+        return created === todayStr;
+    }
+    return false;
+};
+
 const openai = new OpenAI({
     apiKey: process.env.NVIDIA_API_KEY || 'dummy_key_to_prevent_crash_if_missing',
     baseURL: process.env.NVIDIA_BASE_URL || 'https://integrate.api.nvidia.com/v1',
@@ -801,6 +831,7 @@ app.post('/api/create-appointment', (req, res) => {
                 appointment_date: appointmentDate || null,
                 reason: reason || (isDia ? 'Diagnostic Test' : 'General Checkup'),
                 payment_status: 'Pay at Hospital',
+                visit_status: 'booked',
                 order_id: `OFFLINE_${Date.now()}`,
             };
 
@@ -873,6 +904,8 @@ app.get('/api/admin/dashboard-stats', requireAdmin, async (req, res) => {
         let appointmentsCount = 0;
         let pharmacyPending = 0;
         let pharmacyDispensed = 0;
+        let lowStockCount = 0;
+        let lowStockItems = [];
         if (supabase) {
             const { count: aptCount } = await supabase.from('appointments').select('*', { count: 'exact', head: true });
             appointmentsCount = aptCount || 0;
@@ -881,6 +914,20 @@ app.get('/api/admin/dashboard-stats', requireAdmin, async (req, res) => {
             const { count: disp } = await supabase.from('pharmacy_orders').select('*', { count: 'exact', head: true }).eq('status', 'dispensed');
             pharmacyPending = (pend || 0) + (ver || 0);
             pharmacyDispensed = disp || 0;
+            const { data: lowRows } = await supabase
+                .from('products')
+                .select('id, name, stock, category')
+                .eq('is_active', true)
+                .lt('stock', LOW_STOCK_THRESHOLD)
+                .order('stock', { ascending: true })
+                .limit(20);
+            lowStockItems = (lowRows || []).map((p) => ({
+                id: p.id,
+                name: p.name,
+                stock: Number(p.stock) || 0,
+                category: p.category,
+            }));
+            lowStockCount = lowStockItems.length;
         } else {
             appointmentsCount = 0;
             pharmacyPending = pharmacyOrdersMemory.filter((o) => o.status === 'pending_verification' || o.status === 'verified').length;
@@ -893,6 +940,9 @@ app.get('/api/admin/dashboard-stats', requireAdmin, async (req, res) => {
                 pharmacyPending,
                 pharmacyDispensed,
                 medicines: medicineCatalog.length,
+                lowStockCount,
+                lowStockItems,
+                lowStockThreshold: LOW_STOCK_THRESHOLD,
             },
         });
     } catch (err) {
@@ -912,20 +962,7 @@ app.get('/api/admin/appointments', requireAdmin, async (req, res) => {
                 .order('created_at', { ascending: false })
                 .limit(500);
             if (error) throw error;
-            transformed = (data || []).map((item) => ({
-                _id: item.id,
-                name: item.name,
-                token: item.token,
-                department: item.department,
-                phone: item.phone,
-                age: item.age,
-                gender: item.gender,
-                reason: item.reason,
-                paymentStatus: item.payment_status,
-                appointmentDate: item.appointment_date,
-                orderId: item.order_id,
-                image: item.image,
-            }));
+            transformed = (data || []).map(mapAppointmentRow);
         }
         const { results, filters, total } = filterAppointments(transformed, req.query);
         return res.json({
@@ -950,11 +987,11 @@ app.get('/api/appointments/:token', async (req, res) => {
     try {
         const { token } = req.params;
         if (!token) return res.status(400).json({ success: false, message: 'Token required' });
-        if (!supabase) return res.json({ success: true, appointment: { token, name: 'Demo Patient', phone: '0000000000', age: 30, gender: 'Male', department: 'General OP', paymentStatus: 'Pay at Hospital', appointmentDate: '2026-03-22', reason: 'Demo booking' } });
+        if (!supabase) return res.json({ success: true, appointment: { token, name: 'Demo Patient', phone: '0000000000', age: 30, gender: 'Male', department: 'General OP', paymentStatus: 'Pay at Hospital', visitStatus: 'booked', appointmentDate: '2026-03-22', reason: 'Demo booking' } });
         const { data, error } = await supabase.from('appointments').select('*').eq('token', token).order('created_at', { ascending: false }).limit(1).maybeSingle();
         if (error) throw error;
         if (!data) return res.status(404).json({ success: false, message: 'Appointment not found' });
-        return res.json({ success: true, appointment: { _id: data.id, name: data.name, token: data.token, department: data.department, phone: data.phone, age: data.age, gender: data.gender, reason: data.reason, paymentStatus: data.payment_status, appointmentDate: data.appointment_date, orderId: data.order_id, image: data.image } });
+        return res.json({ success: true, appointment: mapAppointmentRow(data) });
     } catch (err) {
         return res.status(500).json({ success: false, message: err.message });
     }
@@ -962,13 +999,83 @@ app.get('/api/appointments/:token', async (req, res) => {
 
 app.post('/api/admin/update-appointment', requireAdmin, async (req, res) => {
     try {
-        const { id, paymentStatus } = req.body;
+        const { id, paymentStatus, visitStatus } = req.body;
         if (!supabase) return res.status(503).json({ success: false, message: 'Database not connected' });
-        const { data, error } = await supabase.from('appointments').update({ payment_status: paymentStatus, updated_at: new Date() }).eq('id', id).select();
+        const patch = { updated_at: new Date() };
+        if (paymentStatus) patch.payment_status = paymentStatus;
+        if (visitStatus) {
+            if (!VISIT_STATUSES.includes(visitStatus)) {
+                return res.status(400).json({ success: false, message: 'Invalid visit status' });
+            }
+            patch.visit_status = visitStatus;
+        }
+        if (!patch.payment_status && !patch.visit_status) {
+            return res.status(400).json({ success: false, message: 'paymentStatus or visitStatus required' });
+        }
+        const { data, error } = await supabase.from('appointments').update(patch).eq('id', id).select();
         if (error) throw error;
         res.json({ success: true, appointment: data[0] });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+app.get('/api/op-queue/today', async (req, res) => {
+    try {
+        const todayStr = todayIstDate();
+        const queueRow = (row) => ({
+            token: row.token,
+            name: row.name,
+            department: row.department || 'General OP',
+            visitStatus: row.visit_status || 'booked',
+            paymentStatus: row.payment_status,
+        });
+        if (!supabase) {
+            return res.json({
+                success: true,
+                date: todayStr,
+                nowServing: [{ token: 'KAMALA-OP-0001-DEMO', name: 'Demo Patient', department: 'General OP', visitStatus: 'in_consult' }],
+                waiting: [{ token: 'KAMALA-OP-0002-DEMO', name: 'Waiting Patient', department: 'General OP', visitStatus: 'checked_in' }],
+                completed: [],
+                stats: { total: 2, waiting: 1, inConsult: 1 },
+                refreshedAt: new Date().toISOString(),
+            });
+        }
+        const { data, error } = await supabase
+            .from('appointments')
+            .select('token, name, department, visit_status, payment_status, appointment_date, created_at')
+            .order('created_at', { ascending: true })
+            .limit(400);
+        if (error) throw error;
+        const todayRows = (data || []).filter((row) => isAppointmentToday(row, todayStr));
+        const active = todayRows.filter((r) => !['completed', 'no_show'].includes(r.visit_status || 'booked'));
+        const nowServing = active.filter((r) => r.visit_status === 'in_consult').map(queueRow);
+        const waiting = active
+            .filter((r) => r.visit_status !== 'in_consult')
+            .sort((a, b) => {
+                const order = { checked_in: 0, booked: 1 };
+                return (order[a.visit_status] ?? 2) - (order[b.visit_status] ?? 2);
+            })
+            .map(queueRow);
+        const completed = todayRows
+            .filter((r) => r.visit_status === 'completed')
+            .slice(-12)
+            .map(queueRow);
+        return res.json({
+            success: true,
+            date: todayStr,
+            nowServing,
+            waiting,
+            completed,
+            stats: {
+                total: todayRows.length,
+                waiting: waiting.length,
+                inConsult: nowServing.length,
+            },
+            refreshedAt: new Date().toISOString(),
+        });
+    } catch (err) {
+        return res.status(500).json({ success: false, message: err.message });
     }
 });
 
@@ -1130,6 +1237,69 @@ app.patch('/api/admin/pharmacy-orders', requireAdmin, async (req, res) => {
 
 app.get('/api/pharmacy/categories', (req, res) => {
     res.json({ success: true, categories: getPharmacyCategories() });
+});
+
+app.get('/api/admin/products', requireAdmin, async (req, res) => {
+    try {
+        if (!supabase) return res.status(503).json({ success: false, message: 'Database not connected' });
+        const { data, error } = await supabase.from('products').select('*').order('name');
+        if (error) throw error;
+        return res.json({ success: true, products: (data || []).map(normalizePharmacyRow) });
+    } catch (err) {
+        return res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+app.post('/api/admin/products', requireAdmin, async (req, res) => {
+    try {
+        const { name, category, price, stock, description } = req.body || {};
+        if (!name?.trim()) return res.status(400).json({ success: false, message: 'name required' });
+        if (!supabase) return res.status(503).json({ success: false, message: 'Database not connected' });
+        const row = {
+            name: String(name).trim(),
+            category: String(category || 'General').trim(),
+            price: Number(price) || 0,
+            stock: Math.max(0, Number(stock) || 0),
+            description: description ? String(description).trim() : null,
+            is_active: true,
+        };
+        const { data, error } = await supabase.from('products').insert(row).select().maybeSingle();
+        if (error) throw error;
+        return res.json({ success: true, product: normalizePharmacyRow(data) });
+    } catch (err) {
+        return res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+app.patch('/api/admin/products', requireAdmin, async (req, res) => {
+    try {
+        const { id, name, category, price, stock, description, is_active, stockDelta } = req.body || {};
+        if (!id) return res.status(400).json({ success: false, message: 'id required' });
+        if (!supabase) return res.status(503).json({ success: false, message: 'Database not connected' });
+
+        if (stockDelta != null && stockDelta !== '') {
+            const { data: current, error: fetchErr } = await supabase.from('products').select('stock').eq('id', id).maybeSingle();
+            if (fetchErr) throw fetchErr;
+            if (!current) return res.status(404).json({ success: false, message: 'Product not found' });
+            const nextStock = Math.max(0, (Number(current.stock) || 0) + Number(stockDelta));
+            const { data, error } = await supabase.from('products').update({ stock: nextStock }).eq('id', id).select().maybeSingle();
+            if (error) throw error;
+            return res.json({ success: true, product: normalizePharmacyRow(data) });
+        }
+
+        const patch = {};
+        if (name != null) patch.name = String(name).trim();
+        if (category != null) patch.category = String(category).trim();
+        if (price != null) patch.price = Number(price);
+        if (stock != null) patch.stock = Math.max(0, Number(stock));
+        if (description != null) patch.description = String(description).trim();
+        if (is_active != null) patch.is_active = !!is_active;
+        const { data, error } = await supabase.from('products').update(patch).eq('id', id).select().maybeSingle();
+        if (error) throw error;
+        return res.json({ success: true, product: normalizePharmacyRow(data) });
+    } catch (err) {
+        return res.status(500).json({ success: false, message: err.message });
+    }
 });
 
 app.get('/api/pharmacy/products', async (req, res) => {

@@ -15,6 +15,8 @@ import DoctorsPage from './pages/DoctorsPage';
 import ReviewsPage from './pages/ReviewsPage';
 import AIHealthPage from './pages/AIHealthPage';
 import LabReportsPage from './pages/LabReportsPage';
+import MyCarePage from './pages/MyCarePage';
+import OPBoard from './components/OPBoard';
 import SiteInfoPage from './pages/SiteInfoPage';
 import PageTransition from './components/PageTransition';
 import CustomCursor from './components/CustomCursor';
@@ -33,7 +35,8 @@ const Layout = ({ children }) => {
     const { pathname } = useLocation();
     const isAdmin = pathname === '/6665' || pathname === '/lab-admin';
     const isReceipt = pathname === '/receipt' || pathname === '/pharmacy-receipt';
-    const isMinimal = isAdmin || isReceipt;
+    const isOpBoard = pathname === '/op-board';
+    const isMinimal = isAdmin || isReceipt || isOpBoard;
 
     useEffect(() => {
         if (isReceipt) document.body.classList.add('receipt-route');
@@ -41,11 +44,11 @@ const Layout = ({ children }) => {
         return () => document.body.classList.remove('receipt-route');
     }, [isReceipt]);
 
-    if (isReceipt) {
+    if (isReceipt || isOpBoard) {
         return (
             <div className="site-shell min-h-screen min-h-[100dvh] bg-[var(--page-bg)] text-theme">
                 <ScrollToTop />
-                <main className="receipt-page-root relative z-10">{children}</main>
+                <main className={isReceipt ? 'receipt-page-root relative z-10' : 'relative z-10'}>{children}</main>
             </div>
         );
     }
@@ -88,6 +91,8 @@ const App = () => {
                     <Route path="/medical-shop" element={<MedicalShop />} />
                     <Route path="/ai-health" element={<AIHealthPage />} />
                     <Route path="/lab-reports" element={<LabReportsPage />} />
+                    <Route path="/my-care" element={<MyCarePage />} />
+                    <Route path="/op-board" element={<OPBoard />} />
                     <Route path="/info/:slug" element={<SiteInfoPage />} />
                     <Route path="/6665" element={<AdminDashboard />} />
                     <Route path="/lab-admin" element={<DiagnosticsAdminDashboard />} />
