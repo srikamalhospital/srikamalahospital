@@ -1,0 +1,269 @@
+/* Sri Kamala Hospital — Admin HMS */
+
+.admin-hms {
+  --admin-sidebar: #0f172a;
+  --admin-sidebar-hover: #1e293b;
+  --admin-sidebar-active: #0891b2;
+  --admin-bg: #f1f5f9;
+  --admin-card: #ffffff;
+  --admin-border: #e2e8f0;
+  --admin-text: #0f172a;
+  --admin-muted: #64748b;
+  min-height: 100dvh;
+  background: var(--admin-bg);
+  color: var(--admin-text);
+  font-family: 'Figtree', 'Noto Sans', system-ui, sans-serif;
+}
+
+.admin-sidebar {
+  background: var(--admin-sidebar);
+  color: #e2e8f0;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.admin-sidebar-brand {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.admin-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #94a3b8;
+  transition: background 0.15s, color 0.15s;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.admin-nav-btn:hover {
+  background: var(--admin-sidebar-hover);
+  color: #f8fafc;
+}
+
+.admin-nav-btn.active {
+  background: linear-gradient(135deg, #0891b2, #0e7490);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(8, 145, 178, 0.35);
+}
+
+.admin-nav-btn .badge {
+  margin-left: auto;
+  font-size: 0.625rem;
+  font-weight: 800;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  background: rgba(251, 191, 36, 0.2);
+  color: #fbbf24;
+}
+
+.admin-header {
+  background: var(--admin-card);
+  border-bottom: 1px solid var(--admin-border);
+  backdrop-filter: blur(12px);
+}
+
+.admin-page {
+  padding: 1.25rem;
+}
+
+@media (min-width: 1024px) {
+  .admin-page {
+    padding: 1.75rem 2rem;
+  }
+}
+
+.admin-card {
+  background: var(--admin-card);
+  border: 1px solid var(--admin-border);
+  border-radius: 1rem;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+.admin-card-pad {
+  padding: 1.25rem;
+}
+
+@media (min-width: 640px) {
+  .admin-card-pad {
+    padding: 1.5rem;
+  }
+}
+
+.admin-kpi {
+  padding: 1.25rem;
+  border-radius: 1rem;
+  background: var(--admin-card);
+  border: 1px solid var(--admin-border);
+  position: relative;
+  overflow: hidden;
+}
+
+.admin-kpi-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 145, 178, 0.1);
+  color: #0891b2;
+}
+
+.admin-kpi-value {
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--admin-text);
+}
+
+.admin-kpi-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--admin-muted);
+  margin-top: 0.25rem;
+}
+
+.admin-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.admin-table {
+  width: 100%;
+  min-width: 720px;
+  font-size: 0.8125rem;
+  text-align: left;
+}
+
+.admin-table th {
+  padding: 0.75rem 1rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--admin-muted);
+  border-bottom: 1px solid var(--admin-border);
+  background: #f8fafc;
+}
+
+.admin-table td {
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid var(--admin-border);
+  vertical-align: middle;
+}
+
+.admin-table tr:hover td {
+  background: #f8fafc;
+}
+
+.admin-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: 1px solid var(--admin-border);
+  background: var(--admin-card);
+  color: var(--admin-text);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.admin-btn:hover {
+  border-color: #0891b2;
+  color: #0891b2;
+}
+
+.admin-btn-primary {
+  background: #0891b2;
+  border-color: #0891b2;
+  color: #fff;
+}
+
+.admin-btn-primary:hover {
+  background: #0e7490;
+  color: #fff;
+}
+
+.admin-input {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--admin-border);
+  font-size: 0.875rem;
+  background: #fff;
+  color: var(--admin-text);
+  outline: none;
+}
+
+.admin-input:focus {
+  border-color: #0891b2;
+  box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.15);
+}
+
+.admin-section-title {
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: var(--admin-text);
+}
+
+.admin-section-sub {
+  font-size: 0.8125rem;
+  color: var(--admin-muted);
+  margin-top: 0.25rem;
+}
+
+.admin-alert {
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid #fcd34d;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.admin-ai-bubble {
+  border-radius: 0.75rem;
+  padding: 0.875rem 1rem;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  max-width: 90%;
+}
+
+.admin-ai-bubble.user {
+  background: #0891b2;
+  color: #fff;
+  margin-left: auto;
+}
+
+.admin-ai-bubble.bot {
+  background: #f1f5f9;
+  color: var(--admin-text);
+  border: 1px solid var(--admin-border);
+}
+
+.admin-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.admin-chip-green { background: #dcfce7; color: #166534; }
+.admin-chip-amber { background: #fef3c7; color: #92400e; }
+.admin-chip-blue { background: #e0f2fe; color: #075985; }
+.admin-chip-slate { background: #f1f5f9; color: #475569; }

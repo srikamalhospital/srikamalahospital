@@ -89,8 +89,8 @@ const DiagnosticBookingModal = ({ test, isOpen, onClose }) => {
           </div>
 
           {/* Form Side */}
-          <div className="md:w-2/3 p-10 relative bg-white">
-             <button onClick={onClose} className="absolute top-4 right-4 p-1.5 bg-gray-50 rounded-full hover:bg-rose-50 hover:text-rose-500 transition-all"><X size={16} /></button>
+          <div className="md:w-2/3 p-10 relative bg-theme-card text-theme">
+             <button onClick={onClose} className="absolute top-4 right-4 p-1.5 bg-theme-card border border-theme rounded-full hover:bg-red-50 hover:text-rose-500 transition-all text-theme"><X size={16} /></button>
              
              {isSuccess ? (
                 <div className="flex flex-col items-center justify-center py-10 text-center">
@@ -98,49 +98,49 @@ const DiagnosticBookingModal = ({ test, isOpen, onClose }) => {
                       <CheckCircle2 size={32} />
                    </div>
                    <h3 className="text-xl font-black text-hospital-dark mb-1 font-['Noto_Sans_Telugu']">బుకింగ్ ఖరారైంది!</h3>
-                   <p className="text-[8px] font-black uppercase tracking-widest text-gray-300">Generating Receipt...</p>
+                   <p className="text-[8px] font-black uppercase tracking-widest text-theme-muted">Generating Receipt...</p>
                 </div>
              ) : (
                 <form onSubmit={handleSubmit} className="space-y-4">
                    <div className="space-y-3">
                       <div>
-                         <label className="text-[8px] font-black uppercase tracking-widest text-gray-400 ml-1 font-['Noto_Sans_Telugu'] text-[10px] tracking-normal mb-2 block">పేరు (Patient Name)</label>
+                         <label className="text-[8px] font-black uppercase tracking-widest text-theme-muted ml-1 font-['Noto_Sans_Telugu'] text-[10px] tracking-normal mb-2 block">పేరు (Patient Name)</label>
                          <div className="relative">
-                            <User size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-hospital-primary/30" />
+                            <User size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-hospital-primary/50" />
                             <input required type="text" placeholder="Full Name" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})}
-                               className="w-full bg-gray-50 border border-transparent focus:border-hospital-primary p-3 pl-11 rounded-xl outline-none text-xs font-bold" />
+                               className="w-full pro-input pl-11 text-xs font-bold" />
                          </div>
                       </div>
                       
                       <div className="grid grid-cols-2 gap-3">
                          <div>
-                            <label className="text-[8px] font-black uppercase tracking-widest text-gray-400 ml-1 font-['Noto_Sans_Telugu'] text-[10px] tracking-normal mb-2 block">ఫోన్ (Phone)</label>
+                            <label className="text-[8px] font-black uppercase tracking-widest text-theme-muted ml-1 font-['Noto_Sans_Telugu'] text-[10px] tracking-normal mb-2 block">ఫోన్ (Phone)</label>
                             <div className="relative">
-                               <Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-hospital-primary/30" />
+                               <Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-hospital-primary/50" />
                                <input required type="tel" placeholder="91..." value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                                  className="w-full bg-gray-50 border border-transparent focus:border-hospital-primary p-3 pl-11 rounded-xl outline-none text-xs font-bold" />
+                                  className="w-full pro-input pl-11 text-xs font-bold" />
                             </div>
                          </div>
                          <div>
-                            <label className="text-[8px] font-black uppercase tracking-widest text-gray-400 ml-1 font-['Noto_Sans_Telugu'] text-[10px] tracking-normal mb-2 block">వయస్సు (Age)</label>
+                            <label className="text-[8px] font-black uppercase tracking-widest text-theme-muted ml-1 font-['Noto_Sans_Telugu'] text-[10px] tracking-normal mb-2 block">వయస్సు (Age)</label>
                             <input required type="number" placeholder="00" value={formData.age} onChange={(e) => setFormData({...formData, age: e.target.value})}
-                               className="w-full bg-gray-50 border border-transparent focus:border-hospital-primary p-3 rounded-xl outline-none text-xs font-bold" />
+                               className="w-full pro-input text-xs font-bold" />
                          </div>
                       </div>
 
                       <div className="relative group">
-                         <label className="text-[8px] font-black uppercase tracking-widest text-gray-400 ml-1 font-['Noto_Sans_Telugu'] text-[10px] tracking-normal mb-2 block">తేదీ (Target Date)</label>
+                         <label className="text-[8px] font-black uppercase tracking-widest text-theme-muted ml-1 font-['Noto_Sans_Telugu'] text-[10px] tracking-normal mb-2 block">తేదీ (Target Date)</label>
                          <div className="relative">
-                            <Calendar size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-hospital-primary/30" />
+                            <Calendar size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-hospital-primary/50" />
                             <input required type="date" value={formData.date} onChange={(e) => setFormData({...formData, date: e.target.value})}
-                               className="w-full bg-gray-50 border border-transparent focus:border-hospital-primary p-3 pl-11 rounded-xl outline-none text-xs font-bold" />
+                               className="w-full pro-input pl-11 text-xs font-bold" />
                          </div>
                       </div>
 
                       <div className={`grid ${allowOnlinePayment ? 'grid-cols-2' : 'grid-cols-1'} gap-3 pt-2`}>
                          {['Online', 'ఆసుపత్రిలో'].filter(m => allowOnlinePayment || m !== 'Online').map(m => (
                             <button key={m} type="button" onClick={() => setFormData({...formData, paymentMethod: m})}
-                               className={`p-3 rounded-xl font-black text-[8px] uppercase tracking-widest border transition-all flex items-center justify-center gap-2 ${formData.paymentMethod === m ? 'border-hospital-primary bg-hospital-primary/5 text-hospital-primary' : 'border-gray-50 text-gray-300'}`}>
+                               className={`p-3 rounded-xl font-black text-[8px] uppercase tracking-widest border transition-all flex items-center justify-center gap-2 ${formData.paymentMethod === m ? 'border-hospital-primary bg-hospital-primary/5 text-hospital-primary' : 'border-theme text-theme-muted'}`}>
                                <span className="font-['Noto_Sans_Telugu'] tracking-normal lowercase text-[10px]">{m}</span> {m === 'Online' ? '(UPI Link)' : '(Counter Node)'}
                             </button>
                          ))}

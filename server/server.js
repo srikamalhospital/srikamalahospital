@@ -647,6 +647,19 @@ OUTPUT ONLY valid JSON (no markdown):
             const tests = String(testsSummary || '').trim() || 'CBC, Lipid Profile, Thyroid, HbA1c, LFT, KFT, ECG';
             systemContent = `You are diagnostics advisor for ${HOSPITAL_AI_CTX}. Available tests (pick ONLY from this list): ${tests}. For patient symptoms, recommend 1-3 most relevant tests with brief reason. No diagnosis. OUTPUT ONLY JSON: { "reply": "Telugu reason ||| English reason", "tests": ["exact test name from list"] }`;
             tokens = 340;
+        } else if (mode === 'admin') {
+            const statsBlock = String(req.body.statsSummary || '').trim() || 'No live stats provided.';
+            systemContent = `You are the Hospital Management System AI for Sri Kamala Hospital admin staff (reception, pharmacy, doctors, management).
+
+Use this live operations snapshot when relevant:
+${statsBlock}
+
+Help with: OP queue flow, appointments, pharmacy orders, lab reports, inventory, patient lookup tips, daily priorities, and staff workflows.
+Be professional, actionable, and concise. Use bullet points when listing tasks.
+Never invent patient names or tokens. If data is missing, say what to check in the admin panel.
+OUTPUT ONLY JSON: { "reply": "Telugu summary ||| English summary", "actions": ["short actionable step 1", "step 2", "step 3"] }`;
+            tokens = 520;
+            models = ACCURATE_CHAT_MODELS;
         }
 
         const msg = [{ role: 'system', content: systemContent }];
@@ -694,6 +707,20 @@ OUTPUT ONLY valid JSON (no markdown):
             }
             if (responseText && String(responseText).includes('|||')) {
                 return res.json({ success: true, response: String(responseText).trim(), tests: [] });
+            }
+        }
+
+        if (mode === 'admin') {
+            const parsed = extractJson(responseText);
+            if (parsed?.reply) {
+                return res.json({
+                    success: true,
+                    response: String(parsed.reply).trim(),
+                    actions: Array.isArray(parsed.actions) ? parsed.actions.slice(0, 6) : [],
+                });
+            }
+            if (responseText && String(responseText).includes('|||')) {
+                return res.json({ success: true, response: String(responseText).trim(), actions: [] });
             }
         }
 
@@ -921,6 +948,13 @@ app.get('/api/admin/dashboard-stats', requireAdmin, async (req, res) => {
         let pharmacyDispensed = 0;
         let lowStockCount = 0;
         let lowStockItems = [];
+        let todayAppointments = 0;
+        let opQueueWaiting = 0;
+        let opInConsult = 0;
+        let labReportsPending = 0;
+        let reviewsPending = 0;
+        let pharmacyRevenueEst = 0;
+        const todayStr = todayIstDate();
         if (supabase) {
             const { count: aptCount } = await supabase.from('appointments').select('*', { count: 'exact', head: true });
             appointmentsCount = aptCount || 0;
@@ -943,6 +977,31 @@ app.get('/api/admin/dashboard-stats', requireAdmin, async (req, res) => {
                 category: p.category,
             }));
             lowStockCount = lowStockItems.length;
+            const { data: todayApts } = await supabase
+                .from('appointments')
+                .select('visit_status, appointment_date, created_at')
+                .order('created_at', { ascending: false })
+                .limit(400);
+            const todayRows = (todayApts || []).filter((row) => isAppointmentToday(row, todayStr));
+            todayAppointments = todayRows.length;
+            opInConsult = todayRows.filter((r) => r.visit_status === 'in_consult').length;
+            opQueueWaiting = todayRows.filter((r) => ['booked', 'checked_in'].includes(r.visit_status || 'booked')).length;
+            const { count: labPend } = await supabase
+                .from('lab_report_requests')
+                .select('*', { count: 'exact', head: true })
+                .neq('status', 'report_ready');
+            labReportsPending = labPend || 0;
+            const { count: revPend } = await supabase
+                .from('patient_reviews')
+                .select('*', { count: 'exact', head: true })
+                .eq('approved', false);
+            reviewsPending = revPend || 0;
+            const { data: pharmaSum } = await supabase
+                .from('pharmacy_orders')
+                .select('subtotal')
+                .eq('status', 'dispensed')
+                .limit(500);
+            pharmacyRevenueEst = (pharmaSum || []).reduce((s, o) => s + (Number(o.subtotal) || 0), 0);
         } else {
             appointmentsCount = 0;
             pharmacyPending = pharmacyOrdersMemory.filter((o) => o.status === 'pending_verification' || o.status === 'verified').length;
@@ -958,6 +1017,13 @@ app.get('/api/admin/dashboard-stats', requireAdmin, async (req, res) => {
                 lowStockCount,
                 lowStockItems,
                 lowStockThreshold: LOW_STOCK_THRESHOLD,
+                todayAppointments,
+                opQueueWaiting,
+                opInConsult,
+                labReportsPending,
+                reviewsPending,
+                pharmacyRevenueEst,
+                date: todayStr,
             },
         });
     } catch (err) {

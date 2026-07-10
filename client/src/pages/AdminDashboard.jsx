@@ -24,6 +24,13 @@ import AdminReviewsPanel from '../admin/AdminReviewsPanel';
 import AdminDoctorSchedule from '../admin/AdminDoctorSchedule';
 import AdminPatientJourney from '../admin/AdminPatientJourney';
 import AdminInventoryPanel from '../admin/AdminInventoryPanel';
+import AdminLayout from '../admin/AdminLayout';
+import AdminOverviewPanel from '../admin/AdminOverviewPanel';
+import AdminOpQueuePanel from '../admin/AdminOpQueuePanel';
+import AdminAppointmentsPanel from '../admin/AdminAppointmentsPanel';
+import AdminAiDeskPanel from '../admin/AdminAiDeskPanel';
+import AdminAnalyticsPanel from '../admin/AdminAnalyticsPanel';
+import AdminLabReportsPanel from '../admin/AdminLabReportsPanel';
 
 const VISIT_STATUSES = [
     { value: 'booked', label: 'Booked' },
@@ -164,7 +171,6 @@ const AdminDashboard = () => {
     const handleLogout = () => {
         clearAdminSession();
         setIsAuthenticated(false);
-        setPassword('');
     };
 
     const toggleLang = () => {
@@ -298,222 +304,83 @@ const AdminDashboard = () => {
         return <AdminLoginScreen defaultPanel="hospital" onSuccess={handleLoginSuccess} />;
     }
 
+    const navBadges = {
+        opqueue: dashboardStats?.opQueueWaiting || 0,
+        pharmacy: dashboardStats?.pharmacyPending || 0,
+        lab: dashboardStats?.labReportsPending || 0,
+        reviews: dashboardStats?.reviewsPending || 0,
+    };
+
     return (
-        <div className="min-h-screen min-h-[100dvh] bg-slate-50 flex font-['Outfit'] text-slate-900 overflow-hidden relative">
+        <AdminLayout
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            sidebarOpen={isSidebarOpen}
+            onSidebarToggle={setIsSidebarOpen}
+            lang={lang}
+            onToggleLang={toggleLang}
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+            searchPlaceholder={t('search')}
+            title={t(`tabs.${activeTab}`) || activeTab}
+            badges={navBadges}
+            onLogout={handleLogout}
+            onLabAdmin={() => navigate('/lab-admin')}
+            t={t}
+        >
+            <AnimatePresence mode="wait">
+                {activeTab === 'overview' && (
+                    <motion.div key="overview" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+                        <AdminOverviewPanel t={t} stats={dashboardStats} patientsCount={patients.length} onNavigate={setActiveTab} />
+                    </motion.div>
+                )}
 
-            {isSidebarOpen && (
-                <button
-                    type="button"
-                    aria-label="Close menu"
-                    className="fixed inset-0 z-30 bg-slate-900/40 lg:hidden"
-                    onClick={() => setIsSidebarOpen(false)}
-                />
-            )}
+                {activeTab === 'opqueue' && (
+                    <motion.div key="opqueue" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+                        <AdminOpQueuePanel t={t} appointments={appointments} onUpdateVisit={updateAptVisitStatus} />
+                    </motion.div>
+                )}
 
-            {/* Nav Rail */}
-            <aside
-                className={`bg-white border-r border-black/5 flex flex-col transition-transform duration-300 overflow-hidden fixed lg:static inset-y-0 left-0 z-40 shadow-xl
-                ${isSidebarOpen ? 'translate-x-0 w-[min(18rem,88vw)]' : '-translate-x-full lg:translate-x-0'}
-                ${isSidebarOpen ? 'lg:w-80' : 'lg:w-24'}`}
-            >
-                <div className="p-10 flex items-center justify-center lg:justify-start gap-5 border-b border-black/5 h-28 italic">
-                    <div className="w-14 h-14 bg-slate-50 border border-black/5 rounded-2xl shadow-md flex items-center justify-center shrink-0 hover:rotate-12 transition-transform text-hospital-secondary"><LayoutDashboard size={26} /></div>
-                    {isSidebarOpen && <h1 className="text-xl font-black text-slate-900 leading-none font-['Noto_Sans_Telugu']">శ్రీ కమల</h1>}
-                </div>
+                {activeTab === 'appointments' && (
+                    <motion.div key="appointments" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+                        <AdminAppointmentsPanel
+                            t={t}
+                            lang={lang}
+                            appointments={appointments}
+                            total={aptTotal}
+                            onUpdatePayment={updateAptStatus}
+                            onUpdateVisit={updateAptVisitStatus}
+                        />
+                    </motion.div>
+                )}
 
-                <nav className="p-8 space-y-4 flex-1 overflow-y-auto scrollbar-hide">
-                    {[
-                        { id: 'overview', icon: <Activity size={22} />, label: t('tabs.overview') },
-                        { id: 'appointments', icon: <Calendar size={22} />, label: t('tabs.appointments') },
-                        { id: 'pharmacy', icon: <Package size={22} />, label: t('tabs.pharmacy') },
-                        { id: 'patients', icon: <Users size={22} />, label: t('tabs.patients') },
-                        { id: 'medicines', icon: <Pill size={22} />, label: t('tabs.medicines') },
-                        { id: 'reviews', icon: <MessageSquare size={22} />, label: t('tabs.reviews') },
-                        { id: 'website', icon: <BookOpen size={22} />, label: t('tabs.website') },
-                        { id: 'settings', icon: <Settings size={22} />, label: t('tabs.settings') }
-                    ].map(item => (
-                        <button key={item.id} onClick={() => setActiveTab(item.id)}
-                            className={`w-full flex items-center gap-6 p-5 rounded-[28px] font-black text-[11px] uppercase tracking-[0.4em] transition-all border group italic ${activeTab === item.id ? 'bg-[#0f172a] text-white border-transparent shadow-xl' : 'text-slate-400 border-black/5 hover:border-black/20 hover:text-slate-900 bg-white'}`}>
-                            <div className={`shrink-0 ${activeTab === item.id ? 'text-hospital-secondary' : 'group-hover:text-hospital-primary transition-colors'}`}>{item.icon}</div>
-                            {isSidebarOpen && <span>{item.label}</span>}
-                        </button>
-                    ))}
-                </nav>
+                {activeTab === 'aidesk' && (
+                    <motion.div key="aidesk" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+                        <AdminAiDeskPanel t={t} lang={lang} stats={dashboardStats} />
+                    </motion.div>
+                )}
 
-                <div className="p-8 border-t border-black/5 space-y-3">
-                    {isSidebarOpen && (
-                        <button
-                            type="button"
-                            onClick={() => navigate('/lab-admin')}
-                            className="w-full flex items-center gap-4 p-4 rounded-2xl text-teal-700 bg-teal-50 border border-teal-100 text-xs font-bold hover:bg-teal-100"
-                        >
-                            <Microscope size={20} />
-                            Diagnostics lab panel
-                        </button>
-                    )}
-                    <button type="button" onClick={handleLogout} className="w-full flex items-center justify-center lg:justify-start gap-6 p-5 rounded-[28px] text-red-500 hover:bg-red-50 transition-all bg-white border border-black/5 active:scale-95">
-                        <LogOut size={22} />
-                        {isSidebarOpen && <span className="text-sm font-bold">{t('logout')}</span>}
-                    </button>
-                </div>
-            </aside>
+                {activeTab === 'analytics' && (
+                    <motion.div key="analytics" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+                        <AdminAnalyticsPanel
+                            t={t}
+                            appointments={appointments}
+                            pharmacyOrders={pharmacyOrders}
+                            products={products}
+                            stats={dashboardStats}
+                        />
+                    </motion.div>
+                )}
 
-            {/* Main Area */}
-            <main className="flex-1 flex flex-col h-screen relative bg-slate-50 overflow-hidden">
+                {activeTab === 'lab' && (
+                    <motion.div key="lab" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+                        <AdminLabReportsPanel t={t} />
+                    </motion.div>
+                )}
 
-                <header className="min-h-[4.5rem] px-4 sm:px-8 lg:px-12 py-3 flex flex-wrap justify-between items-center gap-3 border-b border-black/5 shrink-0 relative z-20 backdrop-blur-3xl bg-white/80">
-                    <div className="flex items-center gap-3 sm:gap-6 min-w-0">
-                        <button type="button" onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="w-11 h-11 flex items-center justify-center bg-slate-50 border border-black/5 rounded-2xl hover:bg-slate-100 text-slate-500 shrink-0" aria-label="Toggle menu"><MoreVertical size={22} /></button>
-                        <h2 className="text-lg sm:text-2xl font-bold text-slate-900 leading-tight truncate">{t(`tabs.${activeTab}`) || activeTab}</h2>
-                    </div>
-                    <div className="flex items-center gap-2 sm:gap-4 flex-wrap w-full sm:w-auto">
-                        <button type="button" onClick={toggleLang} className="flex items-center gap-2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-bold hover:bg-white min-h-[44px]">
-                            <Languages size={18} /> {lang === 'en' ? 'తెలుగు' : 'English'}
-                        </button>
-                        <div className="relative group flex-1 sm:flex-none min-w-0">
-                            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
-                            <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} type="search" placeholder={t('search')}
-                                className="bg-slate-50 border border-black/5 pl-10 pr-4 py-2.5 rounded-2xl text-base sm:text-sm outline-none focus:border-hospital-primary w-full sm:w-64 lg:w-80 min-h-[44px]" />
-                        </div>
-                        <div className="text-right hidden sm:block">
-                            <p className="text-xs text-green-600 font-semibold">{t('live')}</p>
-                            <p className="text-sm font-bold text-slate-800">{t('role')}</p>
-                        </div>
-                    </div>
-                </header>
-
-                <div className="flex-1 overflow-y-auto p-4 sm:p-8 lg:p-16 scrollbar-hide relative z-10 min-w-0">
-                    <AnimatePresence mode="wait">
-                        {activeTab === 'overview' && (
-                            <motion.div key="overview" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -20, opacity: 0 }} className="space-y-16">
-                                <h3 className="text-xl font-bold text-slate-900 mb-2">{t('overview.title')}</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
-                                    {[
-                                        { l: t('overview.bookings'), v: dashboardStats?.appointments ?? appointments.length, i: <Clock /> },
-                                        { l: t('overview.patients'), v: patients.length, i: <Users /> },
-                                        { l: t('overview.pharmacyPending'), v: dashboardStats?.pharmacyPending ?? pharmacyOrders.filter((o) => o.status !== 'dispensed' && o.status !== 'cancelled').length, i: <ClipboardList /> },
-                                        { l: t('overview.medicines'), v: dashboardStats?.medicines ?? products.length, i: <Pill /> },
-                                    ].map((stat, i) => (
-                                        <div key={i} className="bg-white p-10 rounded-[50px] shadow-xl border border-black/5 hover:border-black/10 transition-all relative overflow-hidden group">
-                                            <div className="absolute -top-10 -right-10 opacity-5 group-hover:scale-110 transition-transform duration-1000 rotate-12">{stat.i}</div>
-                                            <div className="flex items-start justify-between mb-8">
-                                                <div className={`w-16 h-16 bg-slate-50 border border-black/5 text-slate-900 rounded-[24px] flex items-center justify-center shadow-inner group-hover:rotate-12 transition-transform`}>{stat.i}</div>
-                                                <div className="w-1.5 h-1.5 rounded-full bg-hospital-primary animate-ping"></div>
-                                            </div>
-                                            <p className="text-[10px] font-black uppercase tracking-[0.5em] text-slate-400 mb-2 italic leading-none">{stat.l}</p>
-                                            <h3 className="text-5xl font-black text-slate-900 tracking-tighter italic">{stat.v}</h3>
-                                        </div>
-                                    ))}
-                                </div>
-                                <div className="bg-white p-10 rounded-3xl border border-slate-200 shadow-sm">
-                                    <h4 className="font-bold text-lg text-slate-900 mb-6">{t('overview.quickTitle')}</h4>
-                                    <ul className="space-y-4 text-sm text-slate-600">
-                                        <li className="flex gap-3"><span className="text-hospital-primary font-bold">1.</span>{t('overview.q1')}</li>
-                                        <li className="flex gap-3"><span className="text-hospital-primary font-bold">2.</span>{t('overview.q2')}</li>
-                                        <li className="flex gap-3"><span className="text-hospital-primary font-bold">3.</span>{t('overview.q3')}</li>
-                                        <li className="flex gap-3"><span className="text-hospital-primary font-bold">4.</span>{t('overview.q4')}</li>
-                                    </ul>
-                                    <p className="mt-8 text-xs text-green-700 font-semibold flex items-center gap-2"><ShieldCheck size={14} /> {t('overview.systemOk')}</p>
-                                    <p className="mt-2 text-xs text-slate-400">{t('overview.revenueHint')}: ₹{appointments.length * 100}</p>
-                                    <p className="mt-1 text-xs text-slate-500">{t('overview.pharmacyDone')}: {dashboardStats?.pharmacyDispensed ?? 0}</p>
-                                    <a
-                                        href="/op-board"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-hospital-primary hover:underline"
-                                    >
-                                        Open live OP board (/op-board) ↗
-                                    </a>
-                                </div>
-
-                                {(dashboardStats?.lowStockCount > 0) && (
-                                    <div className="bg-amber-50 border border-amber-200 rounded-3xl p-8 shadow-sm">
-                                        <h4 className="font-bold text-lg text-amber-900 mb-2 flex items-center gap-2">
-                                            <Package size={20} /> Low stock alert ({dashboardStats.lowStockCount})
-                                        </h4>
-                                        <p className="text-sm text-amber-800 mb-4">
-                                            Medicines below {dashboardStats.lowStockThreshold ?? 10} units — restock soon.
-                                        </p>
-                                        <ul className="space-y-2 text-sm">
-                                            {(dashboardStats.lowStockItems || []).map((item) => (
-                                                <li key={item.id || item.name} className="flex justify-between gap-4 text-amber-900">
-                                                    <span className="font-semibold">{item.name}</span>
-                                                    <span className="font-mono text-amber-700">{item.stock} left</span>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                )}
-                            </motion.div>
-                        )}
-
-                        {activeTab === 'appointments' && (
-                            <motion.div key="appointments" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-12">
-                                <div className="bg-white rounded-[60px] shadow-xl border border-black/5 p-12 lg:p-16 relative overflow-hidden backdrop-blur-3xl">
-                                    <div className="absolute top-0 right-0 p-12 opacity-5 text-slate-900 rotate-12 pointer-events-none scale-150"><Calendar size={300} strokeWidth={1} /></div>
-                                    <div className="flex items-center justify-between mb-16 relative z-10">
-                                        <div>
-                                            <h3 className="text-2xl font-bold text-slate-900">{t('apt.title')}</h3>
-                                            <p className="text-sm text-slate-500 mt-2">{t('apt.sub')} — {tAdmin(lang, 'filter.showing')} {aptTotal}</p>
-                                        </div>
-                                        <button className="px-10 py-5 bg-slate-50 border border-black/5 rounded-full text-[11px] font-black uppercase tracking-[0.4em] italic hover:bg-slate-100 active:scale-95 transition-all text-slate-900">Download Audit CSV</button>
-                                    </div>
-                                    <div className="table-scroll relative z-10 scrollbar-hide">
-                                        <table className="w-full text-left min-w-[1100px]">
-                                            <thead>
-                                                <tr className="border-b border-black/5">
-                                                    <th className="py-8 px-6 text-xs font-bold text-slate-500">{t('apt.token')}</th>
-                                                    <th className="py-8 px-6 text-xs font-bold text-slate-500">{t('apt.patient')}</th>
-                                                    <th className="py-8 px-6 text-xs font-bold text-slate-500">{t('apt.dept')}</th>
-                                                    <th className="py-8 px-6 text-xs font-bold text-slate-500">Visit status</th>
-                                                    <th className="py-8 px-6 text-xs font-bold text-slate-500 text-right">{t('apt.action')}</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {appointments.length === 0 ? (
-                                                    <tr><td colSpan={5} className="py-12 text-center text-slate-500">{t('apt.empty')}</td></tr>
-                                                ) : appointments.map((apt, i) => (
-                                                    <motion.tr initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} key={apt._id || i} className="group hover:bg-slate-50 transition-all cursor-default border-b border-black/5 last:border-none">
-                                                        <td className="py-10 px-6 font-mono font-black text-lg text-hospital-primary italic group-hover:scale-105 transition-transform origin-left">{apt.token}</td>
-                                                        <td className="py-10 px-6">
-                                                            <div className="flex items-center gap-5">
-                                                                <div className="w-14 h-14 bg-slate-50 border border-black/5 rounded-2xl flex items-center justify-center text-slate-900 font-black italic shadow-inner group-hover:border-hospital-primary/40 transition-colors">P-{i}</div>
-                                                                <div>
-                                                                    <p className="font-black text-xl italic tracking-tighter uppercase leading-none mb-2 text-slate-900">{apt.name}</p>
-                                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] italic">{apt.phone}{apt.age != null && apt.age !== '' ? ` · ${apt.age}y` : ''}{apt.gender ? ` · ${apt.gender}` : ''}</p>
-                                                                </div>
-                                                            </div>
-                                                        </td>
-                                                        <td className="py-10 px-6">
-                                                            <span className={`px-6 py-2 bg-slate-50 border border-black/5 text-slate-600 text-[10px] font-black uppercase tracking-[0.4em] rounded-full italic group-hover:border-hospital-secondary transition-colors`}>{apt.department}</span>
-                                                        </td>
-                                                        <td className="py-10 px-6">
-                                                            <select
-                                                                value={apt.visitStatus || 'booked'}
-                                                                onChange={(e) => updateAptVisitStatus(apt._id, e.target.value)}
-                                                                className="border border-black/10 rounded-xl px-3 py-2 text-[10px] font-bold uppercase tracking-wider bg-white"
-                                                            >
-                                                                {VISIT_STATUSES.map((s) => (
-                                                                    <option key={s.value} value={s.value}>{s.label}</option>
-                                                                ))}
-                                                            </select>
-                                                        </td>
-                                                        <td className="py-10 px-6 text-right">
-                                                            <button onClick={() => updateAptStatus(apt._id, 'Paid')}
-                                                                className={`px-10 py-4 rounded-[30px] text-[10px] font-black uppercase tracking-[0.6em] border transition-all active:scale-90 italic ${apt.paymentStatus === 'Paid' ? 'bg-green-50 border-green-200 text-green-600' : 'bg-transparent border-black/5 text-slate-300 hover:border-hospital-primary hover:text-slate-900 hover:bg-white'}`}>
-                                                                {apt.paymentStatus === 'Paid' ? t('apt.paid') : t('apt.unpaid')}
-                                                            </button>
-                                                        </td>
-                                                    </motion.tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </motion.div>
-                        )}
-
-                        {activeTab === 'pharmacy' && (
+                {/* Legacy clinical modules */}
+                {activeTab === 'pharmacy' && (
+                    <motion.div key="pharmacy" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
                             <AdminPharmacyPanel
                                 lang={lang}
                                 orders={pharmacyOrders}
@@ -526,14 +393,17 @@ const AdminDashboard = () => {
                                 onRefresh={fetchData}
                                 onUpdateStatus={handlePharmacyStatus}
                             />
-                        )}
+                    </motion.div>
+                )}
 
-                        {activeTab === 'reviews' && (
+                {activeTab === 'reviews' && (
+                    <motion.div key="reviews" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
                             <AdminReviewsPanel lang={lang} t={t} />
-                        )}
+                    </motion.div>
+                )}
 
-                        {activeTab === 'website' && (
-                            <motion.div key="website" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-3xl bg-white rounded-3xl border border-slate-200 p-10 shadow-sm space-y-6">
+                {activeTab === 'website' && (
+                    <motion.div key="website" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="admin-card max-w-3xl p-8 space-y-6">
                                 <h3 className="text-2xl font-bold text-slate-900">{t('website.title')}</h3>
                                 <ul className="space-y-4 text-slate-700">
                                     <li className="flex gap-3"><Calendar className="shrink-0 text-hospital-primary" size={20} /><span>{t('website.book')}</span></li>
@@ -541,12 +411,12 @@ const AdminDashboard = () => {
                                     <li className="flex gap-3"><Pill className="shrink-0 text-amber-600" size={20} /><span>{t('website.shop')}</span></li>
                                     <li className="flex gap-3"><Sparkles className="shrink-0 text-purple-500" size={20} /><span>{t('website.ai')}</span></li>
                                 </ul>
-                                <p className="text-sm text-slate-500 border-t pt-6">{t('website.adminPath')}</p>
-                            </motion.div>
-                        )}
+                                <p className="text-sm text-theme-muted border-t border-theme pt-6">{t('website.adminPath')}</p>
+                    </motion.div>
+                )}
 
-                        {activeTab === 'patients' && (
-                            <motion.div key="patients" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col lg:flex-row gap-16 h-full min-h-[800px]">
+                {activeTab === 'patients' && (
+                    <motion.div key="patients" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-col lg:flex-row gap-8 min-h-[700px]">
                                 <div className="lg:w-1/3 space-y-10">
                                     <div className="bg-white rounded-[55px] border border-black/5 p-10 shadow-xl h-[750px] flex flex-col backdrop-blur-3xl overflow-hidden relative">
                                         <div className="absolute bottom-0 left-0 w-full h-1 bg-hospital-secondary opacity-20"></div>
@@ -739,11 +609,11 @@ const AdminDashboard = () => {
                                         )}
                                     </AnimatePresence>
                                 </div>
-                            </motion.div>
-                        )}
+                    </motion.div>
+                )}
 
-                        {activeTab === 'medicines' && (
-                            <motion.div key="medicines" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="space-y-16">
+                {activeTab === 'medicines' && (
+                    <motion.div key="medicines" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-8">
                                 <div className="bg-white p-16 lg:p-24 rounded-[75px] shadow-xl border border-black/5 relative overflow-hidden backdrop-blur-3xl group">
                                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-hospital-secondary opacity-[0.01] pointer-events-none group-hover:scale-110 transition-transform duration-[3s]"></div>
                                     <div className="absolute -top-20 -right-20 w-[600px] h-[600px] bg-hospital-secondary opacity-[0.03] rounded-full blur-[140px] animate-pulse-soft"></div>
@@ -804,11 +674,11 @@ const AdminDashboard = () => {
                                 <div className="bg-white rounded-[75px] shadow-xl border border-black/5 p-8 lg:p-12 relative overflow-hidden">
                                     <AdminInventoryPanel products={products} onRefresh={fetchData} />
                                 </div>
-                            </motion.div>
-                        )}
+                    </motion.div>
+                )}
 
-                        {activeTab === 'settings' && (
-                            <motion.div key="settings" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-5xl space-y-16 pb-24 mx-auto">
+                {activeTab === 'settings' && (
+                    <motion.div key="settings" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="max-w-5xl space-y-8 pb-12 mx-auto">
                                 <div className="bg-white p-16 lg:p-24 rounded-[75px] shadow-xl border border-black/5 backdrop-blur-3xl relative overflow-hidden group">
                                     <div className="absolute top-0 right-0 p-16 opacity-5 text-slate-900 rotate-12 transition-transform duration-[3s] group-hover:rotate-45"><Settings size={300} strokeWidth={1} /></div>
                                     <div className="space-y-4 mb-20">
@@ -933,17 +803,10 @@ const AdminDashboard = () => {
                                         <span>Core: Autonomous</span>
                                     </div>
                                 </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                </div>
-            </main>
-
-            {/* Ambient Background elements */}
-            <div className="fixed top-[20%] left-[-10%] opacity-5 text-slate-100 rotate-12 pointer-events-none scale-150"><Scissors size={400} strokeWidth={1} /></div>
-            <div className="fixed bottom-[20%] right-[-10%] opacity-5 text-hospital-secondary/20 -rotate-12 pointer-events-none scale-150"><Syringe size={400} strokeWidth={1} /></div>
-
-        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </AdminLayout>
     );
 };
 

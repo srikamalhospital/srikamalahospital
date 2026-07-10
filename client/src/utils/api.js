@@ -154,6 +154,13 @@ export const discoverMedicines = (keyword) => api.post('/ai/medicine-discovery',
 export const savePatientClinicalNote = (data) => api.post('/admin/patient-clinical-note', data);
 export const getPatientClinicalHistory = (patientName, phone) => api.post('/admin/patient-clinical-history', { patientName, phone });
 export const getPatientSummary = (phone) => api.get('/patient/summary', { params: { phone } });
+export const adminAiDesk = (query, options = {}) =>
+  api.post('/ai/chat', {
+    query,
+    mode: 'admin',
+    statsSummary: options.statsSummary,
+    language: options.language || 'en',
+  }, { timeout: 35000 });
 export const getAdminProducts = () => api.get('/admin/products');
 export const createAdminProduct = (data) => api.post('/admin/products', data);
 export const updateAdminProduct = (data) => api.patch('/admin/products', data);

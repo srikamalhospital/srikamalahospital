@@ -8,6 +8,7 @@ import './styles/ai-mobile.css'
 import './styles/pharmacy-mobile.css'
 import './styles/site-align.css'
 import './styles/healthcare-ui.css'
+import './styles/admin-dashboard.css'
 
 const stored = localStorage.getItem('sk_theme')
 if (stored === 'dark' || stored === 'light') {

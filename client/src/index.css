@@ -10,6 +10,11 @@
   --hospital-secondary: #16a34a;
   --hospital-accent: #22d3ee;
   --hospital-dark: #134e4a;
+  --hospital-primary-rgb: 8 145 178;
+  --hospital-secondary-rgb: 22 163 74;
+  --hospital-accent-rgb: 34 211 238;
+  --text-primary-rgb: 19 78 74;
+  --text-muted-rgb: 91 122 120;
   --page-bg: #f0fdfa;
   --surface-bg: #ffffff;
   --card-bg: #ffffff;
@@ -23,6 +28,8 @@
   --glass-bg: rgba(255, 255, 255, 0.82);
   --clinical-shadow: 0 10px 30px -8px rgba(8, 145, 178, 0.18);
   --grain-opacity: 0.015;
+  --btn-dark-bg: #134e4a;
+  --btn-dark-fg: #ffffff;
 }
 
 [data-theme="dark"] {
@@ -31,6 +38,11 @@
   --hospital-secondary: #4ade80;
   --hospital-accent: #0891b2;
   --hospital-dark: #ecfeff;
+  --hospital-primary-rgb: 34 211 238;
+  --hospital-secondary-rgb: 74 222 128;
+  --hospital-accent-rgb: 8 145 178;
+  --text-primary-rgb: 236 254 255;
+  --text-muted-rgb: 148 184 181;
   --page-bg: #0c1a1a;
   --surface-bg: #102828;
   --card-bg: #153535;
@@ -44,6 +56,8 @@
   --glass-bg: rgba(21, 53, 53, 0.9);
   --clinical-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.55);
   --grain-opacity: 0.03;
+  --btn-dark-bg: #0e7490;
+  --btn-dark-fg: #ecfeff;
 }
 
 .site-shell {
@@ -383,7 +397,8 @@
 
 /* Minimalist Text Hierarchy */
 .text-overline {
-  @apply text-[9px] font-black uppercase tracking-[0.3em] text-hospital-slate/50;
+  @apply text-[9px] font-black uppercase tracking-[0.3em];
+  color: var(--text-muted);
 }
 
 .heading-clinical {
@@ -452,4 +467,100 @@
 
 [data-theme="dark"] ::-webkit-scrollbar-thumb {
   background: #334155;
+}
+
+/* === Theme contrast — readable text in light & dark === */
+@layer utilities {
+  [class*='text-hospital-dark'] {
+    color: var(--text-primary) !important;
+  }
+
+  [class*='text-hospital-slate'] {
+    color: var(--text-muted) !important;
+  }
+
+  .bg-hospital-dark {
+    background-color: var(--btn-dark-bg) !important;
+    color: var(--btn-dark-fg) !important;
+  }
+
+  .bg-hospital-surface {
+    background-color: var(--card-bg) !important;
+    color: var(--text-primary);
+  }
+}
+
+[data-theme='dark'] .text-gray-700,
+[data-theme='dark'] .text-gray-600 {
+  color: var(--text-primary) !important;
+}
+
+[data-theme='dark'] .text-gray-500,
+[data-theme='dark'] .text-gray-400,
+[data-theme='dark'] .text-gray-300 {
+  color: var(--text-muted) !important;
+}
+
+[data-theme='dark'] .bg-gray-50 {
+  background-color: var(--card-muted-bg) !important;
+}
+
+[data-theme='dark'] .border-gray-50 {
+  border-color: var(--border-color) !important;
+}
+
+[data-theme='dark'] input:not([type='checkbox']):not([type='radio']),
+[data-theme='dark'] select,
+[data-theme='dark'] textarea {
+  background-color: var(--input-bg) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-color);
+}
+
+[data-theme='dark'] input::placeholder,
+[data-theme='dark'] textarea::placeholder {
+  color: var(--text-muted) !important;
+  opacity: 1;
+}
+
+.site-shell .pro-card,
+.site-shell .premium-card,
+.site-shell .home-panel,
+.site-shell .home-panel-inner,
+.site-shell .glass-panel,
+.site-shell .theme-inner-card {
+  color: var(--text-primary);
+}
+
+.site-shell label {
+  color: var(--text-muted);
+}
+
+.page-hero-actions .hero-btn-primary {
+  background-color: #ffffff !important;
+  color: #134e4a !important;
+}
+
+[data-theme='dark'] .page-hero-actions .hero-btn-primary {
+  background-color: var(--card-bg) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-color);
+}
+
+.page-hero-actions .hero-btn-ghost {
+  color: #ffffff !important;
+}
+
+[data-theme='dark'] .health-chip-active {
+  color: #0c1a1a !important;
+}
+
+[data-theme='dark'] .min-h-screen.bg-slate-50 {
+  background-color: var(--page-bg) !important;
+  color: var(--text-primary);
+}
+
+footer [class*='text-hospital-slate'],
+footer [class*='text-hospital-dark'] {
+  opacity: 1 !important;
 }

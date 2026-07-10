@@ -69,13 +69,16 @@ export const adminT = {
     role: 'Administrator',
 
     tabs: {
-      overview: 'Home',
+      overview: 'Dashboard',
+      opqueue: 'OP queue',
       appointments: 'Bookings',
-      pharmacy: 'Pharmacy receipts',
+      pharmacy: 'Pharmacy',
       patients: 'Patients',
-      medicines: 'Medicine list',
+      medicines: 'Inventory',
       reviews: 'Reviews',
       lab: 'Lab reports',
+      aidesk: 'AI desk',
+      analytics: 'Reports',
       website: 'Website guide',
       settings: 'Settings',
     },
@@ -98,6 +101,34 @@ export const adminT = {
       empty: 'No lab requests yet',
     },
 
+    opqueue: {
+      title: 'OP visit queue',
+      sub: 'Live queue for today — update status as patients move through reception',
+      nowServing: 'Now in consult',
+      waiting: 'Waiting patients',
+      manage: 'Update visit status',
+    },
+
+    aidesk: {
+      title: 'AI operations desk',
+      sub: 'Ask AI about daily priorities, queue flow, inventory, and hospital workflows',
+      welcome: 'Hello! I can help with today\'s OP queue, pharmacy backlog, lab reports, and staff priorities. What do you need?',
+      placeholder: 'Ask about today\'s operations…',
+      thinking: 'Analyzing hospital data…',
+      actions: 'Suggested actions',
+      fallback: 'Here is a general recommendation — check the dashboard tabs for live numbers.',
+      error: 'AI desk unavailable. Use dashboard panels directly.',
+    },
+
+    analytics: {
+      title: 'Reports & export',
+      sub: 'Download CSV snapshots for audits and records',
+      exportApt: 'OP bookings',
+      exportPharma: 'Pharmacy orders',
+      exportStock: 'Inventory stock',
+      snapshot: 'Operations snapshot',
+    },
+
     schedule: {
       title: 'Doctor schedule',
       sub: 'Shown on the Doctors page — mark leave when doctor is away',
@@ -116,14 +147,22 @@ export const adminT = {
     },
 
     overview: {
-      title: 'Today at a glance',
+      title: 'Hospital operations dashboard',
+      sub: 'Live data from bookings, pharmacy, lab, and inventory',
       bookings: 'Total bookings',
-      patients: 'Patients',
+      patients: 'Unique patients',
       medicines: 'Medicines in shop',
       pharmacyPending: 'Pharmacy waiting',
-      pharmacyDone: 'Medicines given',
-      revenueHint: 'Est. registration (₹100 each)',
-      quickTitle: 'What you can do here',
+      pharmacyDone: 'Orders dispensed',
+      revenueHint: 'OP registration est. ₹100 each',
+      revenue: 'Pharmacy revenue (dispensed)',
+      todayOp: "Today's OP",
+      inConsult: 'In consult now',
+      waiting: 'Waiting in queue',
+      labPending: 'Lab reports pending',
+      reviewsPending: 'reviews to approve',
+      lowStock: 'Low stock medicines',
+      quickTitle: 'Quick actions',
       q1: 'Mark booking as paid when patient pays at reception',
       q2: 'Open Pharmacy receipts — verify prescription, then mark Dispensed',
       q3: 'Open Patients — add doctor notes and medicines',
@@ -256,13 +295,16 @@ export const adminT = {
     role: 'అడ్మిన్',
 
     tabs: {
-      overview: 'హోమ్',
+      overview: 'డాష్‌బోర్డ్',
+      opqueue: 'OP క్యూ',
       appointments: 'బుకింగ్‌లు',
-      pharmacy: 'ఫార్మసీ రసీదులు',
+      pharmacy: 'ఫార్మసీ',
       patients: 'రోగులు',
-      medicines: 'మందుల జాబితా',
+      medicines: 'ఇన్వెంటరీ',
       reviews: 'అభిప్రాయాలు',
       lab: 'ల్యాబ్ రిపోర్టులు',
+      aidesk: 'AI డెస్క్',
+      analytics: 'రిపోర్టులు',
       website: 'వెబ్‌సైట్ గైడ్',
       settings: 'సెట్టింగ్‌లు',
     },
@@ -283,6 +325,34 @@ export const adminT = {
       sub: 'నమూనా / రిపోర్ట్ సిద్ధమైనప్పుడు స్థితి మార్చండి',
       loading: 'లోడ్…',
       empty: 'ల్యాబ్ అభ్యర్థనలు లేవు',
+    },
+
+    opqueue: {
+      title: 'OP సందర్శన క్యూ',
+      sub: 'ఈ రోజు లైవ్ క్యూ — రిసెప్షన్‌లో స్థితి అప్డేట్ చేయండి',
+      nowServing: 'ఇప్పుడు కన్సల్ట్',
+      waiting: 'వేచి ఉన్న రోగులు',
+      manage: 'సందర్శన స్థితి మార్చు',
+    },
+
+    aidesk: {
+      title: 'AI ఆపరేషన్స్ డెస్క్',
+      sub: 'రోజువారీ ప్రాధాన్యతలు, క్యూ, ఇన్వెంటరీ గురించి AI ని అడగండి',
+      welcome: 'నమస్కారం! ఈ రోజు OP క్యూ, ఫార్మసీ, ల్యాబ్ పని గురించి సహాయం చేస్తాను.',
+      placeholder: 'ఆపరేషన్స్ గురించి అడగండి…',
+      thinking: 'విశ్లేషిస్తున్నాను…',
+      actions: 'సూచనలు',
+      fallback: 'సాధారణ సూచన — లైవ్ సంఖ్యలకు డాష్‌బోర్డ్ చూడండి.',
+      error: 'AI అందుబాటులో లేదు. డాష్‌బోర్డ్ ఉపయోగించండి.',
+    },
+
+    analytics: {
+      title: 'రిపోర్టులు & ఎక్స్‌పోర్ట్',
+      sub: 'ఆడిట్ కోసం CSV డౌన్‌లోడ్',
+      exportApt: 'OP బుకింగ్‌లు',
+      exportPharma: 'ఫార్మసీ ఆర్డర్లు',
+      exportStock: 'స్టాక్ జాబితా',
+      snapshot: 'ఆపరేషన్స్ స్నాప్‌షాట్',
     },
 
     schedule: {

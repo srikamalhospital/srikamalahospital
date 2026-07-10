@@ -365,11 +365,13 @@ textarea:focus-visible {
 }
 
 .home-context-lead {
-  @apply text-sm sm:text-base leading-relaxed text-hospital-slate w-full text-left;
+  @apply text-sm sm:text-base leading-relaxed w-full text-left;
+  color: var(--text-muted);
 }
 
 .home-context-body {
-  @apply text-xs sm:text-sm leading-relaxed text-hospital-slate/90 w-full text-left mt-3;
+  @apply text-xs sm:text-sm leading-relaxed w-full text-left mt-3;
+  color: var(--text-muted);
 }
 
 .home-service-card {
