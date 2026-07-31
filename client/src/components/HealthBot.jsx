@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { X, Send, Bot, User, Download, Globe, LogOut, Stethoscope } from 'lucide-react';
+import { X, Send, Bot, User, Download, Globe, LogOut, Stethoscope, Mic, Volume2, VolumeX } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { jsPDF } from 'jspdf';
 import { bookAppointment, doctorConsultAI, getConfig } from '../utils/api';
+import { matchLocalIntent } from '../utils/localAssistant';
+import useVoiceAssistant from '../hooks/useVoiceAssistant';
 import useSiteConfig from '../hooks/useSiteConfig';
 import DoctorSuggestionChips from './DoctorSuggestionChips';
 import BilingualAIBlock from './BilingualAIBlock';
@@ -30,6 +33,17 @@ const HealthBot = () => {
     const [allowOnlinePayment, setAllowOnlinePayment] = useState(true);
     const [isDismissed, setIsDismissed] = useState(false);
     const scrollRef = useRef(null);
+    const navigate = useNavigate();
+
+    // Voice assistant — mic input (te-IN / en-IN) + optional spoken replies
+    const {
+        supported: voiceSupported,
+        listening,
+        toggleListening,
+        speak,
+        speakEnabled,
+        setSpeakEnabled,
+    } = useVoiceAssistant({ language, onResult: (transcript) => handleSend(transcript) });
 
     const schedule = config.doctorSchedule?.dr_kiran || config.doctorSchedule?.[DR_KIRAN.id] || {};
     const doctorAvailable = schedule.available !== false;
@@ -251,6 +265,30 @@ const HealthBot = () => {
             return;
         }
 
+        // Inbuilt offline assistant — instant answers + app navigation, no API needed
+        const local = matchLocalIntent(text);
+        if (local && local.intent !== 'book') {
+            const bilingualReply = `${local.reply.te} ||| ${local.reply.en}`;
+            setTimeout(() => {
+                setMessages(prev => [...prev, {
+                    id: Date.now() + 1,
+                    text: displayText(bilingualReply, language),
+                    rawText: bilingualReply,
+                    bilingual: bilingualReply,
+                    sender: 'bot',
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                }]);
+                speak(language === 'te' ? local.reply.te : local.reply.en);
+                if (local.action?.type === 'navigate') {
+                    setTimeout(() => {
+                        setIsOpen(false);
+                        navigate(local.action.to === '/#location' ? '/' : local.action.to);
+                    }, 1100);
+                }
+            }, 350);
+            return;
+        }
+
         setIsTyping(true);
         try {
             const history = buildChatHistory([...messages, userMsg]);
@@ -276,6 +314,7 @@ const HealthBot = () => {
                 time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             };
             setMessages(prev => [...prev, botMsg]);
+            speak(displayText(replyText || fallback, language));
             syncSuggestions(replyText, resp.data?.suggestions || apiSug, userTurnCount + 1);
         } catch {
             const errText = 'క్షమించండి, ఇప్పుడు సమాధానం ఇవ్వలేకపోయాను. 99480 76665 ||| Sorry, I could not respond. Call 99480 76665.';
@@ -360,6 +399,19 @@ const HealthBot = () => {
                                             {doctorAvailable ? 'OP assistant · online' : 'On leave · emergency only'}
                                         </p>
                                     </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setSpeakEnabled(!speakEnabled)}
+                                        aria-label={speakEnabled ? 'Mute voice replies' : 'Speak replies aloud'}
+                                        title={speakEnabled ? 'Voice replies: on' : 'Voice replies: off'}
+                                        className={`shrink-0 w-7 h-7 rounded-full border flex items-center justify-center ${
+                                            speakEnabled
+                                                ? 'bg-hospital-primary/10 border-hospital-primary/30 text-hospital-primary'
+                                                : 'bg-white border-black/5 text-slate-400'
+                                        }`}
+                                    >
+                                        {speakEnabled ? <Volume2 size={11} /> : <VolumeX size={11} />}
+                                    </button>
                                     <button type="button" onClick={toggleLanguage} className="shrink-0 px-2 py-1 bg-white border border-black/5 rounded-full text-[9px] font-bold uppercase flex items-center gap-1">
                                         <Globe size={10} /> {language === 'te' ? 'TE' : 'EN'}
                                     </button>
@@ -430,6 +482,23 @@ const HealthBot = () => {
                                             onChange={(e) => setInput(e.target.value)}
                                             className="flex-1 min-w-0 bg-white border border-black/5 focus:border-hospital-primary px-3 py-2.5 rounded-xl outline-none text-sm sm:text-xs"
                                         />
+                                        {voiceSupported && (
+                                            <motion.button
+                                                type="button"
+                                                onClick={toggleListening}
+                                                aria-label={listening ? 'Stop listening' : (language === 'te' ? 'తెలుగులో మాట్లాడండి' : 'Speak your question')}
+                                                title={language === 'te' ? 'వాయిస్ — తెలుగులో మాట్లాడండి' : 'Voice — speak in English'}
+                                                animate={listening ? { scale: [1, 1.12, 1] } : { scale: 1 }}
+                                                transition={listening ? { duration: 1, repeat: Infinity } : {}}
+                                                className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center border transition-colors ${
+                                                    listening
+                                                        ? 'bg-red-500 text-white border-red-500 shadow-[0_0_14px_rgba(239,68,68,0.5)]'
+                                                        : 'bg-white text-hospital-primary border-black/5'
+                                                }`}
+                                            >
+                                                <Mic size={15} />
+                                            </motion.button>
+                                        )}
                                         <button
                                             type="submit"
                                             disabled={!input.trim() || isTyping}

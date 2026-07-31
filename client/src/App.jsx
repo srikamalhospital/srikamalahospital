@@ -22,6 +22,7 @@ import PageTransition from './components/PageTransition';
 import CustomCursor from './components/CustomCursor';
 import BackgroundIcons from './components/BackgroundIcons';
 import { ThemeProvider } from './context/ThemeContext';
+import AmbientMedical3D from './components/three/AmbientMedical3D';
 
 const ScrollToTop = () => {
     const { pathname } = useLocation();
@@ -60,7 +61,9 @@ const Layout = ({ children }) => {
               <CustomCursor />
             </div>
             <BackgroundIcons />
-            
+            {/* Site-wide 3D ambient particle layer (light for admin) */}
+            <AmbientMedical3D intensity={isAdmin ? 0.35 : 0.8} />
+
             {!isMinimal && <Navbar />}
             
             <main className={`${!isMinimal ? 'main-wrapper' : ''} min-h-screen relative z-10 antialiased`}>

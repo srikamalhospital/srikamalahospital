@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { ArrowRight, Sparkles, Clock, Shield, MapPin, Phone } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { staggerContainer, staggerItem, scaleIn, cardHover } from '../utils/motionPresets';
+import HeroMedical3D from './three/HeroMedical3D';
 
 const stats = [
   { value: '24/7', labelTe: 'ఎమర్జెన్సీ', labelEn: 'Emergency' },
@@ -12,6 +13,8 @@ const stats = [
 
 const Hero = () => (
   <section className="relative overflow-hidden w-full">
+    {/* WebGL medical 3D scene — DNA helix, crosses & particles (shows through the glass panel) */}
+    <HeroMedical3D className="opacity-60 sm:opacity-75" />
     <motion.div
       aria-hidden
       className="absolute -top-16 -right-10 w-48 h-48 sm:w-64 sm:h-64 rounded-full bg-hospital-primary/10 blur-3xl pointer-events-none"

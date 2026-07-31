@@ -2,7 +2,8 @@ import React from 'react';
 import { Calendar, FlaskConical, Activity, Pill, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { staggerContainer, staggerItem, cardHover } from '../utils/motionPresets';
+import { staggerContainer, staggerItem } from '../utils/motionPresets';
+import TiltCard3D from './TiltCard3D';
 
 const actions = [
   {
@@ -65,7 +66,8 @@ const QuickActionGrid = () => (
           viewport={{ once: true, margin: '-30px' }}
         >
           {actions.map(({ telugu, title, hintTe, icon: Icon, link, color, bg }) => (
-            <motion.div key={link} variants={staggerItem} {...cardHover} className="w-full min-w-0">
+            <motion.div key={link} variants={staggerItem} className="w-full min-w-0 h-full">
+              <TiltCard3D intensity={9} className="h-full">
               <Link
                 to={link}
                 className="action-card home-panel-inner !p-3 sm:!p-4 hover:border-hospital-primary/35 hover:shadow-premium transition-all duration-200 group rounded-2xl cursor-pointer w-full min-h-[7.5rem] sm:min-h-[8.5rem]"
@@ -84,6 +86,7 @@ const QuickActionGrid = () => (
                   <ChevronRight size={14} className="text-hospital-primary opacity-70 group-hover:translate-x-0.5 transition-transform duration-200" />
                 </div>
               </Link>
+              </TiltCard3D>
             </motion.div>
           ))}
         </motion.div>

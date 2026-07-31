@@ -278,7 +278,13 @@ const AI_REQUEST_TIMEOUT_MS = 12000;
 const FAST_CHAT_MODELS = ['meta/llama-3.2-3b-instruct', 'meta/llama-3.1-70b-instruct', 'meta/llama3-70b-instruct'];
 const ACCURATE_CHAT_MODELS = ['meta/llama-3.1-70b-instruct', 'meta/llama3-70b-instruct', 'meta/llama-3.2-3b-instruct'];
 
-const HOSPITAL_AI_CTX = 'Sri Kamala Hospital, Suryapet. Phone: 99480 76665. Diagnostics lab: 9866895634. Open 24/7. OP: General Medicine daily; Cardiology Thursdays only.';
+const HOSPITAL_AI_CTX = [
+    'Sri Kamala Hospital, Manasa Nagar, Suryapet. Phone: 99480 76665. Diagnostics lab: 9866895634. Open 24/7.',
+    'OP: General Medicine daily (Dr. D. Kiran); Cardiology Thursdays only.',
+    'Website services: online OP booking (/book), lab test prices & booking (/diagnosis), pharmacy medicine orders (/medical-shop), AI symptom & skin analysis (/ai-health), lab report lookup by phone number (/lab-reports).',
+    'You may answer in Telugu, English, or both (Telugu ||| English) matching the user\'s language. Keep replies short, warm, and practical.',
+    'Never give definitive diagnoses or prescriptions — guide to the right department or emergency line instead.',
+].join(' ');
 
 const withTimeout = (promise, ms = AI_REQUEST_TIMEOUT_MS) =>
     Promise.race([

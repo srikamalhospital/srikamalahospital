@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Calendar, Users, Package, Pill, MessageSquare, Settings,
   LogOut, Search, Languages, MoreVertical, Microscope, Brain, FlaskConical,
@@ -141,7 +142,20 @@ const AdminLayout = ({
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto admin-page">{children}</div>
+      <div className="flex-1 overflow-y-auto admin-page">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 16, scale: 0.995 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            className="h-full"
+          >
+            {children}
+          </motion.div>
+        </AnimatePresence>
+      </div>
     </main>
   </div>
 );
