@@ -1,6 +1,8 @@
 import React from 'react';
 import { SITE_DOMAIN } from '../config/site';
 import { HOSPITAL_MAPS } from '../utils/maps';
+import { maskPhone } from '../utils/phoneProtect';
+import SafePhoneLink from './SafePhoneLink';
 
 const VARIANT = {
   op: {
@@ -63,9 +65,21 @@ export const MedicalReceiptLayout = ({
                 శ్రీ కమల హాస్పిటల్
               </h1>
               <p className="text-xs text-theme-muted mt-1 leading-relaxed max-w-md">{address}</p>
-              <p className="text-xs text-theme-muted mt-1">
-                {config.hospitalPhone || '99480 76665'}
-                {config.diagnosticsPhone ? ` · Lab ${config.diagnosticsPhone}` : ''}
+              <p className="text-xs text-theme-muted mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                <SafePhoneLink
+                  phone={config.hospitalPhone}
+                  className="text-theme-muted hover:text-hospital-primary underline-offset-2 hover:underline"
+                >
+                  Helpline {maskPhone(config.hospitalPhone)}
+                </SafePhoneLink>
+                {config.diagnosticsPhone ? (
+                  <SafePhoneLink
+                    phone={config.diagnosticsPhone}
+                    className="text-theme-muted hover:text-hospital-primary underline-offset-2 hover:underline"
+                  >
+                    · Lab {maskPhone(config.diagnosticsPhone)}
+                  </SafePhoneLink>
+                ) : null}
               </p>
             </div>
           </div>

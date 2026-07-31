@@ -1,13 +1,22 @@
 import { useEffect, useState } from 'react';
 import { getConfig } from '../utils/api';
 import { SITE_URL, SITE_DOMAIN, SITE_EMAIL } from '../config/site';
+import {
+  ENC_HOSPITAL,
+  ENC_LAB,
+  decodePhone,
+  maskPhone,
+  buildTelHref,
+  dialPhone,
+} from '../utils/phoneProtect';
 
 const DEFAULTS = {
   showCoreServices: true,
   showHealthAwareness: true,
   allowOnlinePayment: true,
-  hospitalPhone: '99480 76665',
-  diagnosticsPhone: '98668 95634',
+  // Encoded tokens — resolved only for dialing / admin edit forms
+  hospitalPhone: decodePhone(ENC_HOSPITAL),
+  diagnosticsPhone: decodePhone(ENC_LAB),
   opTimings: 'Open 24 Hours',
   hospitalAddress: 'SRI KAMALA HOSPITAL, Manasa Nagar, Suryapet, Telangana 508213, India',
   websiteUrl: SITE_URL,
@@ -36,8 +45,24 @@ export default function useSiteConfig() {
     return () => { mounted = false; };
   }, []);
 
-  const hospitalTel = `tel:+91${String(config.hospitalPhone).replace(/\D/g, '').slice(-10)}`;
-  const diagnosticsTel = `tel:+91${String(config.diagnosticsPhone).replace(/\D/g, '').slice(-10)}`;
+  const hospitalPhoneMasked = maskPhone(config.hospitalPhone);
+  const diagnosticsPhoneMasked = maskPhone(config.diagnosticsPhone);
 
-  return { config, loading, hospitalTel, diagnosticsTel };
+  /** Prefer these for UI display — never show raw digits publicly. */
+  const hospitalTel = buildTelHref(config.hospitalPhone); // kept for legacy; prefer dialHospital()
+  const diagnosticsTel = buildTelHref(config.diagnosticsPhone);
+
+  const dialHospital = () => dialPhone(config.hospitalPhone);
+  const dialDiagnostics = () => dialPhone(config.diagnosticsPhone);
+
+  return {
+    config,
+    loading,
+    hospitalTel,
+    diagnosticsTel,
+    hospitalPhoneMasked,
+    diagnosticsPhoneMasked,
+    dialHospital,
+    dialDiagnostics,
+  };
 }

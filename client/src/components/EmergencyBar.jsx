@@ -8,7 +8,7 @@ const ROTATE_MS = 3200;
 const DISMISS_KEY = 'sk-emergency-popup-dismissed';
 
 const EmergencyBar = () => {
-  const { config, hospitalTel, diagnosticsTel } = useSiteConfig();
+  const { config, hospitalPhoneMasked, diagnosticsPhoneMasked, dialHospital, dialDiagnostics } = useSiteConfig();
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const [dismissed, setDismissed] = useState(() => {
@@ -33,25 +33,27 @@ const EmergencyBar = () => {
       {
         id: 'hospital',
         content: (
-          <a
-            href={hospitalTel}
+          <button
+            type="button"
+            onClick={dialHospital}
             className="inline-flex items-center justify-center gap-2 px-4 py-1.5 rounded-full bg-white/15 hover:bg-white/25 transition-colors max-w-full min-w-0"
           >
             <Phone size={14} className="shrink-0" aria-hidden />
-            <span className="truncate">Hospital {config.hospitalPhone}</span>
-          </a>
+            <span className="truncate">Hospital {hospitalPhoneMasked}</span>
+          </button>
         ),
       },
       {
         id: 'lab',
         content: (
-          <a
-            href={diagnosticsTel}
+          <button
+            type="button"
+            onClick={dialDiagnostics}
             className="inline-flex items-center justify-center gap-2 px-4 py-1.5 rounded-full bg-white/15 hover:bg-white/25 transition-colors max-w-full min-w-0"
           >
             <Phone size={14} className="shrink-0" aria-hidden />
-            <span className="truncate">Lab {config.diagnosticsPhone}</span>
-          </a>
+            <span className="truncate">Lab {diagnosticsPhoneMasked}</span>
+          </button>
         ),
       },
       {
@@ -67,7 +69,7 @@ const EmergencyBar = () => {
         ),
       },
     ],
-    [config.hospitalPhone, config.diagnosticsPhone, hospitalTel, diagnosticsTel]
+    [hospitalPhoneMasked, diagnosticsPhoneMasked, dialHospital, dialDiagnostics]
   );
 
   useEffect(() => {

@@ -8,6 +8,10 @@ import { addToCart } from '../utils/pharmacyCart';
 import AnimatedPage from '../components/AnimatedPage';
 import PageHero from '../components/PageHero';
 import { sectionReveal } from '../utils/motionPresets';
+import SafePhoneLink from '../components/SafePhoneLink';
+import useSiteConfig from '../hooks/useSiteConfig';
+import { HOSPITAL_PHONE } from '../utils/aiHelpers';
+import { ENC_HOSPITAL, decodePhone } from '../utils/phoneProtect';
 const TABS = [
   { id: 'symptoms', icon: Stethoscope, labelTe: 'లక్షణాలు', labelEn: 'Symptoms', hint: 'Live AI symptom analysis' },
   { id: 'ocr', icon: Scan, labelTe: 'రిపోర్టులు', labelEn: 'Reports', hint: 'Upload prescription / lab report' },
@@ -15,6 +19,8 @@ const TABS = [
 ];
 
 const AIHealthPage = () => {
+  const { config } = useSiteConfig();
+  const hospitalDigits = decodePhone(ENC_HOSPITAL);
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('symptoms');
   const [ocrResult, setOcrResult] = useState(null);
@@ -43,7 +49,7 @@ const AIHealthPage = () => {
           setOcrResult({ error: resp.data?.message || 'Could not read document' });
         }
       } catch (err) {
-        setOcrResult({ error: err.response?.data?.message || 'Report analysis unavailable. Call 99480 76665.' });
+        setOcrResult({ error: err.response?.data?.message || `Report analysis unavailable. Tap Call helpline (${HOSPITAL_PHONE}).` });
       } finally {
         setIsOcrLoading(false);
       }
@@ -301,9 +307,12 @@ const AIHealthPage = () => {
                       {skinResult.description && (
                         <p className="text-sm text-theme-muted p-4 theme-inner-card rounded-xl">{skinResult.description}</p>
                       )}
-                      <a href="tel:+919948076665" className="btn-clinical w-full py-3 rounded-xl text-center block">
-                        Call 99480 76665
-                      </a>
+                      <SafePhoneLink
+                        phone={config.hospitalPhone || hospitalDigits}
+                        className="btn-clinical w-full py-3 rounded-xl text-center block"
+                      >
+                        Call helpline · {HOSPITAL_PHONE}
+                      </SafePhoneLink>
                     </div>
                   ) : (
                     <p className="text-sm text-theme-muted text-center">Upload a photo to run skin screening.</p>

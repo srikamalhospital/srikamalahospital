@@ -4,12 +4,13 @@
  * drive the app (navigation, phone calls). Falls through to server AI
  * when no confident intent matches.
  */
+import { ENC_HOSPITAL, ENC_LAB, decodePhone, maskPhone, buildTelHref } from './phoneProtect';
 
 const HOSPITAL = {
-  phone: '+919948076665',
-  phoneDisplay: '99480 76665',
-  labPhone: '+919866895634',
-  labPhoneDisplay: '98668 95634',
+  phone: buildTelHref(decodePhone(ENC_HOSPITAL)),
+  phoneDisplay: maskPhone(decodePhone(ENC_HOSPITAL)),
+  labPhone: buildTelHref(decodePhone(ENC_LAB)),
+  labPhoneDisplay: maskPhone(decodePhone(ENC_LAB)),
   address: { te: 'మానసా నగర్, సూర్యపేట', en: 'Manasa Nagar, Suryapet' },
 };
 
@@ -37,8 +38,8 @@ const INTENTS = [
     id: 'lab',
     keywords: ['lab', 'test', 'blood', 'diagnostic', 'scan', 'x-ray', 'xray', 'report price', 'ల్యాబ్', 'టెస్ట', 'రక్త', 'పరీక్ష'],
     reply: {
-      te: 'ల్యాబ్ టెస్టుల ధరలు, బుకింగ్ కోసం డయాగ్నస్టిక్స్ పేజీ తెరుస్తున్నాను. ల్యాబ్ ఫోన్: 98668 95634.',
-      en: 'Opening diagnostics for live lab test prices and booking. Lab phone: 98668 95634.',
+      te: 'ల్యాబ్ టెస్టుల ధరలు, బుకింగ్ కోసం డయాగ్నస్టిక్స్ పేజీ తెరుస్తున్నాను. ల్యాబ్ నంబర్ కోసం కాల్ బటన్ నొక్కండి.',
+      en: 'Opening diagnostics for live lab test prices and booking. Tap Call Lab to dial securely.',
     },
     action: { type: 'navigate', to: '/diagnosis' },
   },
@@ -82,8 +83,8 @@ const INTENTS = [
     id: 'emergency',
     keywords: ['emergency', 'urgent', 'ambulance', 'chest pain', 'accident', 'ఎమర్జెన్సీ', 'అత్యవసర', 'గుండె నొప్పి'],
     reply: {
-      te: 'ఎమర్జెన్సీ 24 గంటలు అందుబాటులో ఉంది. వెంటనే కాల్ చేయండి: 99480 76665. తీవ్రమైన లక్షణాలుంటే వెంటనే ఆసుపత్రికి రండి.',
-      en: 'Emergency care is available 24/7. Call now: 99480 76665. For severe symptoms, come to the hospital immediately.',
+      te: 'ఎమర్జెన్సీ 24 గంటలు అందుబాటులో ఉంది. డయల్ ప్యాడ్ తెరవబడుతుంది — వెంటనే కాల్ చేయండి. తీవ్రమైన లక్షణాలుంటే వెంటనే ఆసుపత్రికి రండి.',
+      en: 'Emergency care is available 24/7. Opening your dial pad to call now. For severe symptoms, come to the hospital immediately.',
     },
     action: { type: 'call', to: HOSPITAL.phone },
     urgent: true,
@@ -92,8 +93,8 @@ const INTENTS = [
     id: 'call',
     keywords: ['call hospital', 'phone number', 'contact', 'call', 'ఫోన్', 'కాల్', 'నంబర్', 'సంప్రదించ'],
     reply: {
-      te: `ఆసుపత్రి ఫోన్: ${HOSPITAL.phoneDisplay} · ల్యాబ్: ${HOSPITAL.labPhoneDisplay}. కాల్ చేయడానికి నంబర్ నొక్కండి.`,
-      en: `Hospital phone: ${HOSPITAL.phoneDisplay} · Lab: ${HOSPITAL.labPhoneDisplay}. Tap a number to call.`,
+      te: `ఆసుపత్రి హెల్ప్‌లైన్: ${HOSPITAL.phoneDisplay} · ల్యాబ్: ${HOSPITAL.labPhoneDisplay}. కాల్ చేస్తేనే అసలు నంబర్ డయల్ ప్యాడ్‌లో కనిపిస్తుంది.`,
+      en: `Hospital helpline: ${HOSPITAL.phoneDisplay} · Lab: ${HOSPITAL.labPhoneDisplay}. The real number appears only in your dial pad when you call.`,
     },
     action: { type: 'call', to: HOSPITAL.phone },
   },

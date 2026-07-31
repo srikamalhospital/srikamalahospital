@@ -28,6 +28,7 @@ import {
 
 import { getPharmacyProductImage } from '../utils/pharmacyImages';
 import AnimatedPage from '../components/AnimatedPage';
+import { HOSPITAL_PHONE } from '../utils/aiHelpers';
 import PageHero from '../components/PageHero';
 import { sectionReveal } from '../utils/motionPresets';
 
@@ -106,7 +107,7 @@ const MedicalShop = () => {
       setAiInsight(resp.data?.response || 'రిసెప్షన్‌ను సంప్రదించండి. ||| Please check with the pharmacy desk.');
     } catch (err) {
       console.error(err);
-      setAiInsight('ఫార్మసీ AI అందుబాటులో లేదు. 99480 76665 కి కాల్ చేయండి. ||| Pharmacy AI unavailable. Call 99480 76665.');
+      setAiInsight(`ఫార్మసీ AI అందుబాటులో లేదు. హెల్ప్‌లైన్ (${HOSPITAL_PHONE}) కి కాల్ చేయండి. ||| Pharmacy AI unavailable. Call helpline (${HOSPITAL_PHONE}).`);
     } finally {
       setIsAiLoading(false);
     }

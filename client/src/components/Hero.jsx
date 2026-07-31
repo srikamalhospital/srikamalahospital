@@ -1,9 +1,11 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, Sparkles, Clock, Shield, MapPin, Phone } from 'lucide-react';
+import { ArrowRight, Sparkles, Clock, Shield, MapPin } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { staggerContainer, staggerItem, scaleIn, cardHover } from '../utils/motionPresets';
 import HeroMedical3D from './three/HeroMedical3D';
+import SafePhoneLink from './SafePhoneLink';
+import useSiteConfig from '../hooks/useSiteConfig';
 
 const stats = [
   { value: '24/7', labelTe: 'ఎమర్జెన్సీ', labelEn: 'Emergency' },
@@ -11,7 +13,10 @@ const stats = [
   { value: 'AI', labelTe: 'ఆరోగ్య డెస్క్', labelEn: 'Health desk' },
 ];
 
-const Hero = () => (
+const Hero = () => {
+  const { config, hospitalPhoneMasked, diagnosticsPhoneMasked } = useSiteConfig();
+
+  return (
   <section className="relative overflow-hidden w-full">
     {/* WebGL medical 3D scene — DNA helix, crosses & particles (shows through the glass panel) */}
     <HeroMedical3D className="opacity-60 sm:opacity-75" />
@@ -63,23 +68,26 @@ const Hero = () => (
             </motion.p>
 
             <motion.div variants={staggerItem} className="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-3 mb-4 w-full">
-              <a
-                href="tel:+919948076665"
+              <SafePhoneLink
+                phone={config.hospitalPhone}
                 className="home-contact-chip w-full sm:w-auto"
+                showIcon
               >
-                <Phone size={14} className="text-hospital-primary shrink-0" />
                 <span>
-                  <span className="font-telugu text-[11px] block">ఆసుపత్రి</span>
-                  <strong>99480 76665</strong>
+                  <span className="font-telugu text-[11px] block">ఆసుపత్రి · Tap to call</span>
+                  <strong>{hospitalPhoneMasked}</strong>
                 </span>
-              </a>
-              <a href="tel:+919866895634" className="home-contact-chip w-full sm:w-auto">
-                <Phone size={14} className="text-hospital-secondary shrink-0" />
+              </SafePhoneLink>
+              <SafePhoneLink
+                phone={config.diagnosticsPhone}
+                className="home-contact-chip w-full sm:w-auto"
+                showIcon
+              >
                 <span>
-                  <span className="font-telugu text-[11px] block">ల్యాబ్</span>
-                  <strong>98668 95634</strong>
+                  <span className="font-telugu text-[11px] block">ల్యాబ్ · Tap to call</span>
+                  <strong>{diagnosticsPhoneMasked}</strong>
                 </span>
-              </a>
+              </SafePhoneLink>
             </motion.div>
 
             <motion.div variants={staggerItem} className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 mb-5 w-full">
@@ -137,6 +145,7 @@ const Hero = () => (
       </div>
     </div>
   </section>
-);
+  );
+};
 
 export default Hero;

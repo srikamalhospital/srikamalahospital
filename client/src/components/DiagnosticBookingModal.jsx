@@ -3,6 +3,7 @@ import { X, Calendar, User, Phone, Send, CheckCircle2, FlaskConical as Flask, Cr
 import { motion, AnimatePresence } from 'framer-motion';
 import { bookAppointment, getConfig } from '../utils/api';
 import { todayIso } from '../utils/appointmentSchedule';
+import { HOSPITAL_PHONE } from '../utils/aiHelpers';
 
 const DiagnosticBookingModal = ({ test, isOpen, onClose }) => {
   const [formData, setFormData] = useState({
@@ -51,7 +52,7 @@ const DiagnosticBookingModal = ({ test, isOpen, onClose }) => {
         setBookingError(response.data.message);
       }
     } catch (err) {
-      setBookingError(err.response?.data?.message || 'Error booking diagnostic test. Call 99480 76665.');
+      setBookingError(err.response?.data?.message || `Error booking diagnostic test. Call helpline (${HOSPITAL_PHONE}).`);
     } finally {
       setIsSubmitting(false);
     }

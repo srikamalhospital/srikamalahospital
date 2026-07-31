@@ -80,7 +80,7 @@ const AdminPharmacyPanel = ({
               value={filters.phone || ''}
               onChange={(e) => set('phone', e.target.value)}
               className={inputCls}
-              placeholder="99480…"
+              placeholder="Patient phone…"
             />
           </div>
           <div>

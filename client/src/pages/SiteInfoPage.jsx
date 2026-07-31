@@ -5,7 +5,14 @@ import { motion } from 'framer-motion';
 import { SITE_URL, SITE_DOMAIN, SITE_EMAIL } from '../config/site';
 import AnimatedPage from '../components/AnimatedPage';
 import PageHero from '../components/PageHero';
+import SafePhoneLink from '../components/SafePhoneLink';
 import { sectionReveal } from '../utils/motionPresets';
+import { ENC_HOSPITAL, ENC_LAB, decodePhone, maskPhone } from '../utils/phoneProtect';
+
+const HOSPITAL_MASK = maskPhone(decodePhone(ENC_HOSPITAL));
+const LAB_MASK = maskPhone(decodePhone(ENC_LAB));
+const HOSPITAL_DIGITS = decodePhone(ENC_HOSPITAL);
+const LAB_DIGITS = decodePhone(ENC_LAB);
 
 const PAGE_DATA = {
   about: {
@@ -25,7 +32,7 @@ const PAGE_DATA = {
       },
       {
         heading: 'Hospital Contact',
-        content: 'Main: 99480 76665 | Diagnostics: 98668 95634 | Hours: Open 24 Hours',
+        content: `Main helpline: ${HOSPITAL_MASK} (tap Call below) | Diagnostics: ${LAB_MASK} | Hours: Open 24 Hours`,
       },
     ],
   },
@@ -40,7 +47,7 @@ const PAGE_DATA = {
       },
       {
         heading: 'Phone Numbers',
-        content: 'Hospital OP/Emergency: 99480 76665 | Diagnostics/Lab: 98668 95634',
+        content: `Hospital OP/Emergency: ${HOSPITAL_MASK} | Diagnostics/Lab: ${LAB_MASK} — real number opens only in your dial pad when you tap Call.`,
       },
       {
         heading: 'Working Hours',
@@ -69,7 +76,7 @@ const PAGE_DATA = {
       {
         heading: 'Reporting Security Issues',
         content:
-          'For urgent security concerns, contact hospital support at 99480 76665 and request escalation to the technical admin.',
+          `For urgent security concerns, use the Call helpline button (${HOSPITAL_MASK}) and request escalation to the technical admin.`,
       },
     ],
   },
@@ -130,7 +137,7 @@ const PAGE_DATA = {
       },
       {
         heading: 'How do I contact support?',
-        content: 'Call 99480 76665 for hospital support or 98668 95634 for diagnostics support.',
+        content: `Tap Call Hospital (${HOSPITAL_MASK}) for hospital support or Call Lab (${LAB_MASK}) for diagnostics — numbers appear only in the dial pad.`,
       },
     ],
   },
@@ -176,6 +183,15 @@ const SiteInfoPage = () => {
             <p className="text-base text-slate-700 leading-relaxed">{section.content}</p>
           </motion.div>
         ))}
+      </motion.div>
+
+      <motion.div className="flex flex-wrap justify-center gap-3 mt-8" {...sectionReveal}>
+        <SafePhoneLink phone={HOSPITAL_DIGITS} className="btn-clinical px-5 py-3 rounded-xl" showIcon>
+          Call Hospital · {HOSPITAL_MASK}
+        </SafePhoneLink>
+        <SafePhoneLink phone={LAB_DIGITS} className="btn-outline-health px-5 py-3 rounded-xl" showIcon>
+          Call Lab · {LAB_MASK}
+        </SafePhoneLink>
       </motion.div>
 
       <motion.p className="mt-10 text-center text-sm text-slate-500" {...sectionReveal}>

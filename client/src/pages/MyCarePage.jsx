@@ -6,6 +6,9 @@ import AnimatedPage from '../components/AnimatedPage';
 import PageHero from '../components/PageHero';
 import { sectionReveal } from '../utils/motionPresets';
 import { getPatientSummary, getLabReportDownloadUrl } from '../utils/api';
+import SafePhoneLink from '../components/SafePhoneLink';
+import useSiteConfig from '../hooks/useSiteConfig';
+import { HOSPITAL_PHONE } from '../utils/aiHelpers';
 
 const VISIT_LABELS = {
   booked: 'Booked',
@@ -27,6 +30,7 @@ const STATUS_LABELS = {
 };
 
 const MyCarePage = () => {
+  const { config } = useSiteConfig();
   const [phone, setPhone] = useState('');
   const [summary, setSummary] = useState(null);
   const [message, setMessage] = useState('');
@@ -52,7 +56,7 @@ const MyCarePage = () => {
         if (empty) setMessage('No records found for this number. Book OP or submit a lab request first.');
       }
     } catch (err) {
-      setMessage(err.response?.data?.message || 'Could not load records. Call hospital 99480 76665.');
+      setMessage(err.response?.data?.message || `Could not load records. Call hospital helpline (${HOSPITAL_PHONE}).`);
     } finally {
       setLoading(false);
     }
@@ -176,8 +180,14 @@ const MyCarePage = () => {
       )}
 
       <motion.p className="text-center text-xs text-hospital-slate mt-8" {...sectionReveal}>
-        Clinical notes are only visible to hospital staff. For urgent help call{' '}
-        <a href="tel:+919948076665" className="text-hospital-primary font-bold">99480 76665</a>.
+        Clinical notes are only visible to hospital staff. For urgent help{' '}
+        <SafePhoneLink
+          phone={config.hospitalPhone}
+          className="text-hospital-primary font-bold underline-offset-2 hover:underline"
+        >
+          tap to call ({HOSPITAL_PHONE})
+        </SafePhoneLink>
+        .
       </motion.p>
     </AnimatedPage>
   );

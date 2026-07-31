@@ -6,6 +6,8 @@ import { jsPDF } from 'jspdf';
 import { bookAppointment, doctorConsultAI, getConfig } from '../utils/api';
 import { matchLocalIntent } from '../utils/localAssistant';
 import useVoiceAssistant from '../hooks/useVoiceAssistant';
+import { dialPhone } from '../utils/phoneProtect';
+import { HOSPITAL_PHONE } from '../utils/aiHelpers';
 import useSiteConfig from '../hooks/useSiteConfig';
 import DoctorSuggestionChips from './DoctorSuggestionChips';
 import BilingualAIBlock from './BilingualAIBlock';
@@ -235,7 +237,7 @@ const HealthBot = () => {
                 } catch {
                     setMessages(prev => [...prev, {
                         id: Date.now() + 2,
-                        text: language === 'te' ? 'బుకింగ్ విఫలమైంది — 99480 76665 కి కాల్ చేయండి.' : 'Booking failed — call 99480 76665.',
+                        text: language === 'te' ? `బుకింగ్ విఫలమైంది — హెల్ప్‌లైన్ (${HOSPITAL_PHONE}) కి కాల్ చేయండి.` : `Booking failed — call helpline (${HOSPITAL_PHONE}).`,
                         sender: 'bot',
                     }]);
                 } finally {
@@ -279,7 +281,9 @@ const HealthBot = () => {
                     time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 }]);
                 speak(language === 'te' ? local.reply.te : local.reply.en);
-                if (local.action?.type === 'navigate') {
+                if (local.action?.type === 'call') {
+                    setTimeout(() => dialPhone(local.action.to), 600);
+                } else if (local.action?.type === 'navigate') {
                     setTimeout(() => {
                         setIsOpen(false);
                         navigate(local.action.to === '/#location' ? '/' : local.action.to);
@@ -317,7 +321,7 @@ const HealthBot = () => {
             speak(displayText(replyText || fallback, language));
             syncSuggestions(replyText, resp.data?.suggestions || apiSug, userTurnCount + 1);
         } catch {
-            const errText = 'క్షమించండి, ఇప్పుడు సమాధానం ఇవ్వలేకపోయాను. 99480 76665 ||| Sorry, I could not respond. Call 99480 76665.';
+            const errText = `క్షమించండి, ఇప్పుడు సమాధానం ఇవ్వలేకపోయాను. హెల్ప్‌లైన్: ${HOSPITAL_PHONE} ||| Sorry, I could not respond. Helpline: ${HOSPITAL_PHONE}.`;
             setMessages(prev => [...prev, {
                 id: Date.now() + 1,
                 text: displayText(errText, language),

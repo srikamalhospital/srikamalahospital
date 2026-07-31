@@ -8,7 +8,7 @@ import HospitalLocationMap from './HospitalLocationMap';
 import { getMapsDirectionsUrl, getMapsPlaceUrl } from '../utils/maps';
 
 const Footer = () => {
-    const { config, hospitalTel, diagnosticsTel } = useSiteConfig();
+    const { config, hospitalPhoneMasked, diagnosticsPhoneMasked, dialHospital, dialDiagnostics } = useSiteConfig();
     return (
         <footer className="pt-12 sm:pt-16 md:pt-20 pb-24 sm:pb-20 px-4 sm:px-6 safe-area-pb relative overflow-hidden border-t border-theme health-gradient-bg" style={{ backgroundColor: 'var(--surface-bg)', color: 'var(--text-primary)' }}>
 
@@ -107,27 +107,27 @@ const Footer = () => {
 
                             <HospitalLocationMap variant="compact" />
 
-                            <div className="flex gap-5 group cursor-pointer" onClick={() => window.open(hospitalTel)}>
+                            <button type="button" className="flex gap-5 group text-left" onClick={dialHospital}>
                                 <div className="w-14 h-14 bg-hospital-dark text-white rounded-[1.2rem] flex items-center justify-center group-hover:scale-110 group-hover:-rotate-12 transition-all shadow-premium shrink-0 relative overflow-hidden">
                                     <div className="absolute inset-0 bg-hospital-primary opacity-0 group-hover:opacity-40 transition-opacity"></div>
                                     <Phone size={24} className="relative z-10" />
                                 </div>
                                 <div>
-                                    <p className="text-xl font-black text-hospital-dark tracking-tighter leading-none mb-1">{config.hospitalPhone}</p>
-                                    <p className="text-[9px] font-black uppercase tracking-[0.3em] text-hospital-primary opacity-60 italic">Emergency Command</p>
+                                    <p className="text-xl font-black text-hospital-dark tracking-tighter leading-none mb-1">{hospitalPhoneMasked}</p>
+                                    <p className="text-[9px] font-black uppercase tracking-[0.3em] text-hospital-primary opacity-60 italic">Tap to call · Emergency</p>
                                 </div>
-                            </div>
+                            </button>
 
-                            <div className="flex gap-5 group cursor-pointer" onClick={() => window.open(diagnosticsTel)}>
+                            <button type="button" className="flex gap-5 group text-left" onClick={dialDiagnostics}>
                                 <div className="w-14 h-14 bg-white rounded-[1.2rem] flex items-center justify-center text-hospital-secondary border border-white/80 group-hover:scale-110 group-hover:rotate-12 transition-all shadow-clinical shrink-0 relative overflow-hidden">
                                     <div className="absolute inset-0 bg-hospital-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                                     <Activity size={24} className="relative z-10" />
                                 </div>
                                 <div>
-                                    <p className="text-xl font-black text-hospital-dark tracking-tighter leading-none mb-1">{config.diagnosticsPhone}</p>
-                                    <p className="text-[9px] font-black uppercase tracking-[0.3em] text-hospital-secondary opacity-60 italic">Diagnostic Operations</p>
+                                    <p className="text-xl font-black text-hospital-dark tracking-tighter leading-none mb-1">{diagnosticsPhoneMasked}</p>
+                                    <p className="text-[9px] font-black uppercase tracking-[0.3em] text-hospital-secondary opacity-60 italic">Tap to call · Lab</p>
                                 </div>
-                            </div>
+                            </button>
                         </div>
                     </div>
 

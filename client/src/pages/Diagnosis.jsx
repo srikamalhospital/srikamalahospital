@@ -17,12 +17,13 @@ import { Link } from 'react-router-dom';
 import { fetchLabTests } from '../utils/api';
 import DiagnosticBookingModal from '../components/DiagnosticBookingModal';
 import useSiteConfig from '../hooks/useSiteConfig';
+import { maskPhone } from '../utils/phoneProtect';
 import AnimatedPage from '../components/AnimatedPage';
 import PageHero from '../components/PageHero';
 import { sectionReveal } from '../utils/motionPresets';
 
 const Diagnosis = () => {
-  const { config, diagnosticsTel } = useSiteConfig();
+  const { config, diagnosticsPhoneMasked, dialDiagnostics } = useSiteConfig();
   const [tests, setTests] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [category, setCategory] = useState('All');
@@ -81,7 +82,7 @@ const Diagnosis = () => {
       setAiRecommendation(`${reply}${picked}`);
     } catch (err) {
       console.error(err);
-      setAiRecommendation('AI advisor busy. Call lab 9866895634. ||| AI advisor busy. Call lab 9866895634.');
+      setAiRecommendation(`AI advisor busy. Tap Call Lab (${maskPhone(config.diagnosticsPhone)}). ||| AI advisor busy. Tap Call Lab (${maskPhone(config.diagnosticsPhone)}).`);
     } finally {
       setIsAiLoading(false);
     }
@@ -101,10 +102,10 @@ const Diagnosis = () => {
           subtitle={`${tests.length}+ blood tests with transparent pricing. Book online or track your lab report status.`}
           icon={Microscope}
         >
-          <a href={diagnosticsTel} className="hero-btn-ghost">
+          <button type="button" onClick={dialDiagnostics} className="hero-btn-ghost">
             <Phone size={16} />
-            Lab {config.diagnosticsPhone}
-          </a>
+            Lab {diagnosticsPhoneMasked}
+          </button>
           <Link to="/lab-reports" className="hero-btn-primary">
             <FileText size={16} />
             Track lab report

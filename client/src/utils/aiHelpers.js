@@ -1,7 +1,11 @@
 /** Shared helpers for hospital AI responses */
+import { ENC_HOSPITAL, decodePhone, maskPhone, buildTelHref } from './phoneProtect';
 
-export const HOSPITAL_PHONE = '99480 76665';
-export const HOSPITAL_PHONE_TEL = '+919948076665';
+const _digits = decodePhone(ENC_HOSPITAL);
+/** Masked for UI / chatbot text — not the real number. */
+export const HOSPITAL_PHONE = maskPhone(_digits);
+/** Real tel URI — use only when initiating a call. */
+export const HOSPITAL_PHONE_TEL = buildTelHref(_digits).replace(/^tel:/, '');
 
 export const parseBilingual = (text) => {
   if (!text || typeof text !== 'string') return { te: '', en: text || '' };

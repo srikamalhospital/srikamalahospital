@@ -19,6 +19,9 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { staggerContainer, staggerItem, sectionReveal, cardHover } from '../utils/motionPresets';
+import { dialPhone, ENC_HOSPITAL, decodePhone } from '../utils/phoneProtect';
+
+const HOSPITAL_CALL = decodePhone(ENC_HOSPITAL);
 
 const services = [
   {
@@ -65,10 +68,11 @@ const services = [
     icon: Siren,
     te: 'ఎమర్జెన్సీ',
     en: '24/7 Emergency',
-    descTe: 'రౌండ్ ది క్లాక్ అత్యవసర సేవ. ఎప్పుడైనా 99480 76665 కాల్ చేయండి.',
-    descEn: 'Round-the-clock emergency care. Call 99480 76665 anytime.',
-    link: 'tel:+919948076665',
+    descTe: 'రౌండ్ ది క్లాక్ అత్యవసర సేవ. కాల్ చేయడానికి నొక్కండి — నంబర్ డయల్ ప్యాడ్‌లోనే కనిపిస్తుంది.',
+    descEn: 'Round-the-clock emergency care. Tap to call — number opens in dial pad only.',
+    link: '#call-hospital',
     external: true,
+    dial: 'hospital',
   },
 ];
 
@@ -237,7 +241,15 @@ const HomeContext = () => (
 
               return (
                 <motion.div key={s.en} variants={staggerItem} {...cardHover} className="home-service-card home-panel-inner w-full">
-                  {s.external ? (
+                  {s.dial === 'hospital' ? (
+                    <button
+                      type="button"
+                      onClick={() => dialPhone(HOSPITAL_CALL)}
+                      className="block w-full cursor-pointer min-h-[48px] text-left"
+                    >
+                      {inner}
+                    </button>
+                  ) : s.external ? (
                     <a href={s.link} className="block w-full cursor-pointer min-h-[48px]">{inner}</a>
                   ) : (
                     <Link to={s.link} className="block w-full cursor-pointer min-h-[48px]">{inner}</Link>
