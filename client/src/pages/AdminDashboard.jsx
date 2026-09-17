@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { LayoutDashboard, Users, Calendar, Clock, Search, LogOut, Download, Pill, Activity, Plus, Trash2, Settings, Globe, Lock, Key, Sparkles, MoreVertical, FileText, Phone, MapPin, ShieldCheck, Zap, Dna, Microscope, Syringe, Scissors, Brain, Languages, BookOpen, ClipboardList, Package, MessageSquare } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, Clock, Search, LogOut, Download, Pill, Activity, Plus, Trash2, Settings, Globe, Lock, Key, Sparkles, MoreVertical, FileText, Phone, MapPin, ShieldCheck, Zap, Dna, Microscope, Syringe, Scissors, Brain, Languages, BookOpen, ClipboardList, Package, MessageSquare, Printer } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     updateConfig,
@@ -31,6 +31,7 @@ import AdminAppointmentsPanel from '../admin/AdminAppointmentsPanel';
 import AdminAiDeskPanel from '../admin/AdminAiDeskPanel';
 import AdminAnalyticsPanel from '../admin/AdminAnalyticsPanel';
 import AdminLabReportsPanel from '../admin/AdminLabReportsPanel';
+import { downloadPrescriptionPdf, prescriptionShareText } from '../utils/prescriptionPdf';
 
 const VISIT_STATUSES = [
     { value: 'booked', label: 'Booked' },
@@ -263,6 +264,15 @@ const AdminDashboard = () => {
                 setClinicalNotes('');
                 setSelectedMedicines([]);
                 setPatientClinicalHistory(resp.data.records || []);
+                downloadPrescriptionPdf({
+                    token: payload.token,
+                    patientName: payload.patientName,
+                    phone: payload.phone,
+                    diagnosisType: payload.diagnosisType,
+                    notes: payload.notes,
+                    prescription: payload.prescription,
+                    createdAt: new Date().toISOString(),
+                }).catch(() => {});
             }
         } catch (err) {
             console.error(err);
@@ -587,6 +597,35 @@ const AdminDashboard = () => {
                                                                                     Meds: {entry.prescription.map((m) => `${m.name}×${m.qty}`).join(', ')}
                                                                                 </p>
                                                                             )}
+                                                                            <div className="flex flex-wrap gap-3 mt-3">
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => downloadPrescriptionPdf({
+                                                                                        token: entry.token,
+                                                                                        patientName: activePatient.name,
+                                                                                        phone: activePatient.phone,
+                                                                                        diagnosisType: entry.diagnosisType,
+                                                                                        notes: entry.notes,
+                                                                                        prescription: entry.prescription,
+                                                                                        createdAt: entry.createdAt,
+                                                                                    })}
+                                                                                    className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-hospital-primary"
+                                                                                >
+                                                                                    <Printer size={12} /> Print Rx PDF
+                                                                                </button>
+                                                                                <a
+                                                                                    href={`https://wa.me/?text=${encodeURIComponent(prescriptionShareText({
+                                                                                        ...entry,
+                                                                                        patientName: activePatient.name,
+                                                                                        phone: activePatient.phone,
+                                                                                    }))}`}
+                                                                                    target="_blank"
+                                                                                    rel="noopener noreferrer"
+                                                                                    className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-hospital-secondary"
+                                                                                >
+                                                                                    Share WhatsApp
+                                                                                </a>
+                                                                            </div>
                                                                         </div>
                                                                     ))}
                                                                 </div>

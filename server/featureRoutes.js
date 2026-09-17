@@ -1,4 +1,5 @@
 const { deductPharmacyStock } = require('./stockDeduction');
+const { notifyLabReportReady } = require('./notifyPatient');
 
 const LAB_STATUSES = ['submitted', 'sample_received', 'processing', 'report_ready'];
 
@@ -250,13 +251,40 @@ function registerFeatureRoutes(app, ctx) {
             if (supabase) {
                 let q = supabase.from('lab_report_requests').update(patch);
                 q = id ? q.eq('id', id) : q.eq('token', token);
-                const { data, error } = await q.select(LAB_LIST_FIELDS).maybeSingle();
-                if (!error) return res.json({ success: true, request: sanitizeLabRow(data) });
+                const { data, error } = await q.select('id, token, patient_name, phone, test_name, status, admin_notes, report_url, appointment_token, notes, ready_at, created_at, updated_at').maybeSingle();
+                if (!error && data) {
+                    let notify = null;
+                    const becameReady = data.status === 'report_ready' && (status === 'report_ready' || reportFile);
+                    if (becameReady) {
+                        notify = await notifyLabReportReady({
+                            phone: data.phone,
+                            token: data.token,
+                            testName: data.test_name,
+                            patientName: data.patient_name,
+                        }).catch((e) => {
+                            console.warn('lab notify:', e.message);
+                            return { sent: false, channel: 'whatsapp_link', whatsappUrl: null };
+                        });
+                        await supabase.from('lab_report_requests').update({ notified_at: new Date().toISOString() }).eq('id', data.id).then(() => {}, () => {});
+                    }
+                    return res.json({ success: true, request: sanitizeLabRow(data), notify });
+                }
             }
             const idx = labReportsMemory.findIndex((r) => (id && r.id === id) || r.token === token);
             if (idx >= 0) {
                 labReportsMemory[idx] = { ...labReportsMemory[idx], ...patch };
-                return res.json({ success: true, request: sanitizeLabRow(labReportsMemory[idx]) });
+                let notify = null;
+                const becameReady = labReportsMemory[idx].status === 'report_ready' && (status === 'report_ready' || reportFile);
+                if (becameReady) {
+                    notify = await notifyLabReportReady({
+                        phone: labReportsMemory[idx].phone,
+                        token: labReportsMemory[idx].token,
+                        testName: labReportsMemory[idx].test_name || labReportsMemory[idx].testName,
+                        patientName: labReportsMemory[idx].patient_name || labReportsMemory[idx].patientName,
+                    });
+                    labReportsMemory[idx].notified_at = new Date().toISOString();
+                }
+                return res.json({ success: true, request: sanitizeLabRow(labReportsMemory[idx]), notify });
             }
             return res.status(404).json({ success: false, message: 'Not found' });
         } catch (err) {
@@ -352,28 +380,37 @@ function registerFeatureRoutes(app, ctx) {
     app.post('/api/pharmacy/match-medicines', async (req, res) => {
         try {
             const { names } = req.body || {};
-            const list = Array.isArray(names) ? names : [];
-            const { getMedicineNames, mergeWithDatabase, normalizePharmacyRow } = require('./hospitalPharmacyCatalog');
+            const rawList = Array.isArray(names) ? names : [];
+            const list = rawList.map((n) => (typeof n === 'object' ? (n.name || n.medicine || '') : n)).map((s) => String(s).trim()).filter(Boolean);
+            const { getMedicineNames, normalizePharmacyRow, HOSPITAL_PHARMACY_CATALOG } = require('./hospitalPharmacyCatalog');
             const catalogNames = getMedicineNames();
+            const normalize = (s) => String(s).toLowerCase().replace(/\b\d+\s?(mg|ml|mcg|g|iu|%)\b/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
             const matched = [];
+            const unmatched = [];
             for (const raw of list) {
-                const q = String(raw).trim().toLowerCase();
+                const q = normalize(raw);
                 if (!q) continue;
-                const hit = catalogNames.find((n) => n.toLowerCase().includes(q) || q.includes(n.toLowerCase()));
+                const first = q.split(' ')[0];
+                const hit = catalogNames.find((n) => {
+                    const cn = normalize(n);
+                    return cn === q || cn.includes(q) || q.includes(cn) || (first.length > 3 && cn.split(' ')[0] === first);
+                });
                 if (hit) matched.push(hit);
+                else unmatched.push(raw);
             }
             const unique = [...new Set(matched)].slice(0, 20);
-            let products = unique.map((name) => ({ name, price: 0, category: 'Matched' }));
+            let dbRows = [];
             if (supabase) {
                 const { data } = await supabase.from('products').select('*');
-                if (data?.length) {
-                    products = unique.map((name) => {
-                        const row = data.find((p) => p.name?.toLowerCase() === name.toLowerCase());
-                        return row ? normalizePharmacyRow(row) : { name, price: 0, category: 'General' };
-                    });
-                }
+                if (data?.length) dbRows = data;
             }
-            return res.json({ success: true, products, matchedCount: unique.length });
+            const products = unique.map((name) => {
+                const catalogHit = HOSPITAL_PHARMACY_CATALOG.find((p) => p.name === name);
+                const row = dbRows.find((p) => normalize(p.name) === normalize(name) || p.name?.toLowerCase() === name.toLowerCase());
+                if (row) return normalizePharmacyRow(row);
+                return catalogHit ? { ...catalogHit } : { name, price: 0, category: 'General' };
+            });
+            return res.json({ success: true, products, matchedCount: unique.length, unmatched });
         } catch (err) {
             return res.status(500).json({ success: false, message: err.message });
         }
@@ -399,13 +436,14 @@ function registerFeatureRoutes(app, ctx) {
                 return res.status(429).json({ success: false, message: 'Too many lookups. Try again later.' });
             }
 
-            const summary = { phone, appointments: [], pharmacyOrders: [], labReports: [] };
+            const summary = { phone, appointments: [], pharmacyOrders: [], labReports: [], prescriptions: [] };
 
             if (supabase) {
-                const [apt, pharma, lab] = await Promise.all([
-                    supabase.from('appointments').select('token, department, appointment_date, payment_status, visit_status, created_at').eq('phone', phone).order('created_at', { ascending: false }).limit(15),
+                const [apt, pharma, lab, notes] = await Promise.all([
+                    supabase.from('appointments').select('token, department, appointment_date, payment_status, visit_status, created_at, name').eq('phone', phone).order('created_at', { ascending: false }).limit(15),
                     supabase.from('pharmacy_orders').select('token, status, subtotal, created_at, items').eq('phone', phone).order('created_at', { ascending: false }).limit(15),
                     supabase.from('lab_report_requests').select('token, test_name, status, created_at, admin_notes, report_url').eq('phone', phone).order('created_at', { ascending: false }).limit(15),
+                    supabase.from('patient_clinical_notes').select('token, patient_name, diagnosis_type, notes, prescription, created_at').eq('phone', phone).order('created_at', { ascending: false }).limit(20),
                 ]);
                 summary.appointments = (apt.data || []).map((a) => ({
                     token: a.token,
@@ -429,6 +467,15 @@ function registerFeatureRoutes(app, ctx) {
                     note: r.admin_notes || null,
                     hasReport: !!(r.report_url),
                     createdAt: r.created_at,
+                }));
+                summary.prescriptions = (notes.data || []).map((n) => ({
+                    token: n.token,
+                    patientName: n.patient_name,
+                    diagnosisType: n.diagnosis_type,
+                    notes: n.notes,
+                    prescription: Array.isArray(n.prescription) ? n.prescription : [],
+                    createdAt: n.created_at,
+                    phone,
                 }));
             } else {
                 summary.pharmacyOrders = pharmacyOrdersMemory

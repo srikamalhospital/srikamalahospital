@@ -472,8 +472,7 @@ CREATE TABLE IF NOT EXISTS public.lab_report_requests (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-ALTER TABLE public.lab_report_requests ADD COLUMN IF NOT EXISTS report_url TEXT;
-ALTER TABLE public.lab_report_requests ADD COLUMN IF NOT EXISTS report_file TEXT;
+ALTER TABLE public.lab_report_requests ADD COLUMN IF NOT EXISTS notified_at TIMESTAMPTZ;
 
 CREATE INDEX IF NOT EXISTS lab_report_requests_phone_idx ON public.lab_report_requests (phone);
 CREATE INDEX IF NOT EXISTS lab_report_requests_token_idx ON public.lab_report_requests (token);

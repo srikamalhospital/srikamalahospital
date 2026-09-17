@@ -123,25 +123,24 @@ const Receipt = () => {
           documentSubtitle="OP registration confirmation"
           token={appointment.token}
           issuedAt={formatDate(appointment.appointmentDate)}
-          statusLabel={paymentStatus === 'Paid' ? 'Registered' : 'Pay at hospital'}
-          statusTone={paymentStatus === 'Paid' ? 'verified' : 'info'}
+          stamp={paymentStatus === 'Paid' ? 'paid' : 'pay-at-hospital'}
           footerNote="Present this slip at reception. Your token will be called in queue order."
         >
           <ReceiptFieldGrid fields={fields} />
 
-          <div className="rounded-lg border border-sky-200 dark:border-sky-800 bg-sky-50/80 dark:bg-sky-950/30 px-5 py-4 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 print:bg-sky-50 print:border-sky-200">
+          <div className="rounded-lg border border-sky-200 bg-sky-50 px-5 py-4 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 print:bg-sky-50 print:border-sky-200">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-sky-800 dark:text-sky-300 mb-1 print:text-sky-800">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-sky-900 mb-1">
                 Consultation fee (indicative)
               </p>
-              <p className="text-2xl font-bold text-theme print:text-slate-900">₹100.00</p>
+              <p className="text-2xl font-bold text-slate-900">₹100.00</p>
             </div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-sky-800 dark:text-sky-300 sm:text-right print:text-sky-800">
+            <p className="text-xs font-semibold uppercase tracking-wide text-sky-900 sm:text-right">
               Payment at hospital reception
             </p>
           </div>
 
-          <ReceiptNotice title="Important" titleTe="ముఖ్యమైనది" variant="info" tone="op">
+          <ReceiptNotice title="Important" titleTe="ముఖ్యమైనది" variant="info">
             <p className="mb-2">
               Please show this confirmation at <strong>reception</strong> on your visit date. Your token number
               determines queue order.

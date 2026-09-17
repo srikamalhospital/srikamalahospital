@@ -4,6 +4,57 @@ body.receipt-route {
   background-color: var(--page-bg);
 }
 
+.receipt-token-line {
+  scrollbar-width: none;
+}
+.receipt-token-line::-webkit-scrollbar {
+  display: none;
+}
+
+.receipt-ink-stamp {
+  width: 5.6rem;
+  height: 5.6rem;
+  display: grid;
+  place-items: center;
+  transform: rotate(-14deg);
+  flex-shrink: 0;
+  user-select: none;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.receipt-ink-stamp__ring {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 3px solid currentColor;
+  box-shadow: inset 0 0 0 2px currentColor, 0 0 0 1px currentColor;
+  display: grid;
+  place-items: center;
+  padding: 0.35rem;
+}
+
+.receipt-ink-stamp__text {
+  font-size: 0.58rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  line-height: 1.15;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.receipt-ink-stamp--unpaid {
+  color: #dc2626;
+}
+
+.receipt-ink-stamp--paid {
+  color: #047857;
+}
+
+.receipt-notice strong {
+  color: #0f172a;
+}
+
 @media print {
   @page {
     size: A4 portrait;
@@ -84,5 +135,30 @@ body.receipt-route {
 
   body.receipt-route .medical-receipt--pharmacy .receipt-accent-bar {
     background: #0f766e !important;
+  }
+
+  body.receipt-route .receipt-token-line {
+    font-size: 11px !important;
+    white-space: nowrap !important;
+    overflow: visible !important;
+    color: #0f172a !important;
+  }
+
+  body.receipt-route .receipt-ink-stamp--unpaid {
+    color: #dc2626 !important;
+  }
+
+  body.receipt-route .receipt-ink-stamp--paid {
+    color: #047857 !important;
+  }
+
+  body.receipt-route .receipt-notice {
+    color: #1e293b !important;
+  }
+
+  body.receipt-route .receipt-notice p,
+  body.receipt-route .receipt-notice div {
+    color: inherit !important;
+    background: transparent !important;
   }
 }

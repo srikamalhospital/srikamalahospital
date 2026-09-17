@@ -12,6 +12,7 @@ import SafePhoneLink from '../components/SafePhoneLink';
 import useSiteConfig from '../hooks/useSiteConfig';
 import { HOSPITAL_PHONE } from '../utils/aiHelpers';
 import { ENC_HOSPITAL, decodePhone } from '../utils/phoneProtect';
+import { parseMedicineList } from '../utils/rxScan';
 const TABS = [
   { id: 'symptoms', icon: Stethoscope, labelTe: 'లక్షణాలు', labelEn: 'Symptoms', hint: 'Live AI symptom analysis' },
   { id: 'ocr', icon: Scan, labelTe: 'రిపోర్టులు', labelEn: 'Reports', hint: 'Upload prescription / lab report' },
@@ -37,12 +38,13 @@ const AIHealthPage = () => {
     if (!file) return;
     setIsOcrLoading(true);
     setOcrResult(null);
+    setOcrCartMsg('');
     const reader = new FileReader();
     reader.onloadend = async () => {
       try {
         const { compressDataUrl } = await import('../utils/imageCompress');
         const compressed = await compressDataUrl(reader.result, 1024, 0.85);
-        const resp = await analyzeOCR(compressed);
+        const resp = await analyzeOCR(compressed, { mode: 'prescription' });
         if (resp.data?.success !== false && resp.data?.data) {
           setOcrResult(resp.data.data);
         } else {
@@ -89,20 +91,26 @@ const AIHealthPage = () => {
   const active = TABS.find((t) => t.id === activeTab);
 
   const addOcrToShopCart = async () => {
-    const names = Array.isArray(ocrResult?.medicines) ? ocrResult.medicines : [];
-    if (!names.length) {
+    const meds = parseMedicineList(ocrResult?.medicines);
+    if (!meds.length) {
       setOcrCartMsg('No medicine names found on this prescription. Add items manually in the shop.');
       return;
     }
     setOcrCartLoading(true);
     setOcrCartMsg('');
     try {
-      const resp = await matchPharmacyMedicines(names);
+      const resp = await matchPharmacyMedicines(meds.map((m) => m.name));
       const products = resp.data?.products || [];
-      products.forEach((p) => addToCart({ ...p, price: p.price || 0 }, 1));
+      products.forEach((p) => {
+        const hit = meds.find((m) => p.name?.toLowerCase().includes(String(m.name).toLowerCase().split(' ')[0]));
+        addToCart({ ...p, price: p.price || 0, requiresPrescription: true }, hit?.qty || 1);
+      });
+      const unmatched = (resp.data?.unmatched || []).filter(Boolean);
       setOcrCartMsg(
         products.length
-          ? `Matched ${products.length} item(s). Opening medical shop…`
+          ? unmatched.length
+            ? `Matched ${products.length}. Not in stock: ${unmatched.join(', ')}. Opening shop…`
+            : `Matched ${products.length} item(s). Opening medical shop…`
           : 'No catalog matches — open shop to search manually.'
       );
       if (products.length) navigate('/medical-shop');
@@ -206,10 +214,14 @@ const AIHealthPage = () => {
                         <p className="text-[10px] uppercase text-theme-muted mb-2">English</p>
                         <p className="text-sm text-theme-muted leading-relaxed">{ocrResult.explanation_en}</p>
                       </div>
-                      {Array.isArray(ocrResult.medicines) && ocrResult.medicines.length > 0 && (
+                      {parseMedicineList(ocrResult.medicines).length > 0 && (
                         <div className="pt-4 border-t border-theme">
                           <p className="text-[10px] uppercase text-hospital-primary mb-2">Medicines detected</p>
-                          <p className="text-xs text-theme-muted mb-3">{ocrResult.medicines.join(', ')}</p>
+                          <p className="text-xs text-theme-muted mb-3">
+                            {parseMedicineList(ocrResult.medicines)
+                              .map((m) => `${m.name}${m.qty > 1 ? `×${m.qty}` : ''}${m.dose ? ` (${m.dose})` : ''}`)
+                              .join(', ')}
+                          </p>
                           <button
                             type="button"
                             onClick={addOcrToShopCart}

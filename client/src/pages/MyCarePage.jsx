@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Phone, Calendar, Pill, FlaskConical, Search, Ticket, ArrowRight, Download } from 'lucide-react';
+import { Phone, Calendar, Pill, FlaskConical, Search, Ticket, ArrowRight, Download, FileText } from 'lucide-react';
 import AnimatedPage from '../components/AnimatedPage';
 import PageHero from '../components/PageHero';
 import { sectionReveal } from '../utils/motionPresets';
@@ -9,6 +9,7 @@ import { getPatientSummary, getLabReportDownloadUrl } from '../utils/api';
 import SafePhoneLink from '../components/SafePhoneLink';
 import useSiteConfig from '../hooks/useSiteConfig';
 import { HOSPITAL_PHONE } from '../utils/aiHelpers';
+import { downloadPrescriptionPdf, prescriptionShareText } from '../utils/prescriptionPdf';
 
 const VISIT_LABELS = {
   booked: 'Booked',
@@ -51,7 +52,7 @@ const MyCarePage = () => {
       const resp = await getPatientSummary(digits);
       if (resp.data?.success) {
         const s = resp.data.summary;
-        const empty = !s.appointments?.length && !s.pharmacyOrders?.length && !s.labReports?.length;
+        const empty = !s.appointments?.length && !s.pharmacyOrders?.length && !s.labReports?.length && !s.prescriptions?.length;
         setSummary(s);
         if (empty) setMessage('No records found for this number. Book OP or submit a lab request first.');
       }
@@ -68,7 +69,7 @@ const MyCarePage = () => {
         variant="primary"
         eyebrow="Sri Kamala Hospital · Patient portal"
         title="నా ఆరోగ్య రికార్డులు"
-        subtitle="Enter your mobile number to see OP bookings, pharmacy orders, and lab report status in one place."
+        subtitle="Enter your mobile number to see OP bookings, prescriptions, pharmacy orders, and lab reports in one place."
         icon={Ticket}
       >
         <Link to="/book" className="hero-btn-ghost font-telugu">
@@ -149,6 +150,45 @@ const MyCarePage = () => {
             </section>
           )}
 
+          {summary.prescriptions?.length > 0 && (
+            <section className="home-panel home-panel-fill w-full">
+              <h3 className="home-context-title font-telugu text-lg flex items-center gap-2">
+                <FileText size={18} className="text-hospital-primary" /> ప్రిస్క్రిప్షన్లు
+              </h3>
+              <ul className="mt-4 space-y-3 w-full">
+                {summary.prescriptions.map((rx) => (
+                  <li key={`${rx.token}-${rx.createdAt}`} className="home-panel-inner w-full">
+                    <p className="font-bold text-sm text-hospital-dark">{rx.diagnosisType || 'Prescription'}</p>
+                    <p className="text-xs text-hospital-slate font-mono">{rx.token}</p>
+                    {rx.notes && <p className="text-xs text-hospital-slate mt-1">{rx.notes}</p>}
+                    {rx.prescription?.length > 0 && (
+                      <p className="text-xs text-hospital-dark mt-1">
+                        {rx.prescription.map((m) => `${m.name}${m.qty ? `×${m.qty}` : ''}`).join(', ')}
+                      </p>
+                    )}
+                    <div className="flex flex-wrap gap-3 mt-2">
+                      <button
+                        type="button"
+                        onClick={() => downloadPrescriptionPdf({ ...rx, phone: summary.phone })}
+                        className="inline-flex items-center gap-1 text-xs font-bold text-hospital-primary hover:underline"
+                      >
+                        <Download size={12} /> Download Rx PDF
+                      </button>
+                      <a
+                        href={`https://wa.me/?text=${encodeURIComponent(prescriptionShareText({ ...rx, phone: summary.phone }))}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-xs font-bold text-hospital-secondary hover:underline"
+                      >
+                        Share on WhatsApp
+                      </a>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
           {summary.labReports?.length > 0 && (
             <section className="home-panel home-panel-fill w-full">
               <h3 className="home-context-title font-telugu text-lg flex items-center gap-2">
@@ -180,7 +220,7 @@ const MyCarePage = () => {
       )}
 
       <motion.p className="text-center text-xs text-hospital-slate mt-8" {...sectionReveal}>
-        Clinical notes are only visible to hospital staff. For urgent help{' '}
+        Prescriptions saved by the doctor appear here as a PDF you can download or share. For urgent help{' '}
         <SafePhoneLink
           phone={config.hospitalPhone}
           className="text-hospital-primary font-bold underline-offset-2 hover:underline"

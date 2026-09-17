@@ -525,7 +525,17 @@ app.post('/api/ai/vision', async (req, res) => {
 
 app.post('/api/ai/ocr', async (req, res) => {
     try {
-        const { image } = req.body;
+        const { image, mode } = req.body;
+        if (!image) return res.status(400).json({ success: false, message: 'Image required' });
+        const isRx = String(mode || '') === 'prescription';
+        const prompt = isRx
+            ? `You are a hospital pharmacy OCR. Read this prescription photo. Output ONLY JSON:
+{ "patient": "", "date": "", "medicines": [{ "name": "brand or generic only", "qty": 1, "dose": "e.g. 1-0-1" }], "diagnosis_en": "", "explanation_en": "one sentence", "explanation_te": "one sentence in Telugu" }
+Rules: medicines[].name must be the drug name without strength if possible (Dolo, Pantoprazole). qty is integer strips/tablets if written else 1. Ignore doctor stamps. If unreadable, medicines=[].`
+            : `### CLINICAL OCR PROTOCOL V2.0
+Digitize this medical document with 100% precision.
+Extract as JSON: { "patient": "Patient Name", "date": "Date", "medicines": [{ "name": "...", "qty": 1, "dose": "..." }], "test_results": [{ "item_en": "...", "item_te": "...", "value": "...", "range": "...", "status": "..." }], "diagnosis_en": "...", "explanation_te": "...", "explanation_en": "..." }
+IMPORTANT: ONLY output VALID JSON.`;
         const keyCandidates = [
             normalizeApiKey(process.env.NVIDIA_VISION_API_KEY),
             normalizeApiKey(process.env.NVIDIA_VISION_FALLBACK_API_KEY),
@@ -538,7 +548,7 @@ app.post('/api/ai/ocr', async (req, res) => {
                 try {
                     const attempt = await axios.post("https://integrate.api.nvidia.com/v1/chat/completions", {
                         model: currentModel,
-                        messages: [{ role: "user", content: [{ type: "text", text: `### CLINICAL OCR PROTOCOL V2.0\nDigitize this medical document with 100% precision.\nExtract as JSON: { "patient": "Patient Name", "date": "Date", "medicines": ["..."], "test_results": [{ "item_en": "...", "item_te": "...", "value": "...", "range": "...", "status": "..." }], "diagnosis_en": "...", "explanation_te": "...", "explanation_en": "..." }\nIMPORTANT: ONLY output VALID JSON.` }, { type: "image_url", image_url: { url: image } }] }],
+                        messages: [{ role: "user", content: [{ type: "text", text: prompt }, { type: "image_url", image_url: { url: image } }] }],
                         max_tokens: 2048, temperature: 0.1
                     }, { headers: { "Authorization": `Bearer ${currentKey}`, "Content-Type": "application/json" }, timeout: 60000 });
                     if (attempt.status === 200) { response = attempt; break outer; }
@@ -548,7 +558,16 @@ app.post('/api/ai/ocr', async (req, res) => {
         const content = response?.data?.choices?.[0]?.message?.content || "";
         let json;
         try { json = JSON.parse(content.replace(/```json|```/g, '').trim()); }
-        catch { json = { raw_extraction: content }; }
+        catch {
+            const block = content.match(/\{[\s\S]*\}/);
+            try { json = block ? JSON.parse(block[0]) : { raw_extraction: content, medicines: [] }; }
+            catch { json = { raw_extraction: content, medicines: [] }; }
+        }
+        if (!Array.isArray(json.medicines)) json.medicines = [];
+        json.medicines = json.medicines.map((item) => {
+            if (typeof item === 'string') return { name: item, qty: 1 };
+            return { name: item.name || item.medicine || '', qty: Number(item.qty) || 1, dose: item.dose || '' };
+        }).filter((m) => m.name);
         res.json({ success: true, data: json });
     } catch (err) {
         res.status(500).json({ success: false, message: "OCR engine failed." });

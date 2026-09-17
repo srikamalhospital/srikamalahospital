@@ -31,6 +31,7 @@ import AnimatedPage from '../components/AnimatedPage';
 import { HOSPITAL_PHONE } from '../utils/aiHelpers';
 import PageHero from '../components/PageHero';
 import { sectionReveal } from '../utils/motionPresets';
+import RxScanToCart from '../components/RxScanToCart';
 
 const MedicalShop = () => {
   const navigate = useNavigate();
@@ -359,6 +360,18 @@ const MedicalShop = () => {
             <p className="text-xs text-slate-500 mt-auto pt-3">
               Showing {filteredProducts.length} of {products.length} items
             </p>
+            <div className="mt-3 pt-3 border-t border-slate-100 space-y-2">
+              <p className="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                Scan prescription
+              </p>
+              <RxScanToCart
+                compact
+                onAdded={() => {
+                  refreshCart();
+                  setCartOpen(true);
+                }}
+              />
+            </div>
           </div>
         </motion.div>
 

@@ -27,6 +27,30 @@ const STATUS_STYLES = {
   info: 'bg-sky-50 text-sky-800 border-sky-200 dark:bg-sky-950/40 dark:text-sky-200 dark:border-sky-800',
 };
 
+const ReceiptInkStamp = ({ type }) => {
+  const paid = type === 'paid';
+  return (
+    <div
+      className={`receipt-ink-stamp ${paid ? 'receipt-ink-stamp--paid' : 'receipt-ink-stamp--unpaid'}`}
+      aria-label={paid ? 'Paid' : 'Pay at hospital'}
+    >
+      <span className="receipt-ink-stamp__ring">
+        <span className="receipt-ink-stamp__text">
+          {paid ? (
+            'PAID'
+          ) : (
+            <>
+              PAY AT
+              <br />
+              HOSPITAL
+            </>
+          )}
+        </span>
+      </span>
+    </div>
+  );
+};
+
 /** Hospital document shell — theme-aware screen, clean single-page print */
 export const MedicalReceiptLayout = ({
   id,
@@ -38,6 +62,7 @@ export const MedicalReceiptLayout = ({
   issuedAt,
   statusLabel,
   statusTone = 'pending',
+  stamp,
   children,
   footerNote,
 }) => {
@@ -47,7 +72,7 @@ export const MedicalReceiptLayout = ({
   return (
     <article
       id={id}
-      className={`medical-receipt medical-receipt--${variant} receipt-print-target w-full max-w-3xl rounded-xl sm:rounded-2xl overflow-hidden shadow-lg border border-theme bg-theme-card text-theme print:shadow-none print:rounded-none print:max-w-none`}
+      className={`medical-receipt medical-receipt--${variant} receipt-print-target w-full max-w-3xl rounded-xl sm:rounded-2xl overflow-visible shadow-lg border border-theme bg-theme-card text-theme print:shadow-none print:rounded-none print:max-w-none`}
     >
       <div className={`receipt-accent-bar h-1.5 bg-gradient-to-r ${v.bar} print:h-1`} />
 
@@ -84,31 +109,35 @@ export const MedicalReceiptLayout = ({
             </div>
           </div>
 
-          <div className="sm:text-right shrink-0">
-            <p className={`text-[10px] font-bold uppercase tracking-wider mb-1 ${v.accent}`}>
-              {documentTitle}
-            </p>
-            {documentSubtitle && <p className="text-xs text-theme-muted mb-3">{documentSubtitle}</p>}
-            {statusLabel && (
+          <div className="sm:text-right shrink-0 flex sm:flex-col items-center sm:items-end gap-3">
+            <div>
+              <p className={`text-[10px] font-bold uppercase tracking-wider mb-1 ${v.accent}`}>
+                {documentTitle}
+              </p>
+              {documentSubtitle && <p className="text-xs text-theme-muted">{documentSubtitle}</p>}
+            </div>
+            {stamp ? (
+              <ReceiptInkStamp type={stamp} />
+            ) : statusLabel ? (
               <span
                 className={`inline-flex items-center px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide border ${STATUS_STYLES[statusTone] || STATUS_STYLES.pending}`}
               >
                 {statusLabel}
               </span>
-            )}
+            ) : null}
           </div>
         </div>
 
-        <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-          <div className="rounded-lg border border-theme bg-theme-card px-4 py-3">
+        <div className="mt-6 flex flex-col sm:flex-row gap-3">
+          <div className="rounded-lg border border-theme bg-theme-card px-3 sm:px-4 py-3 min-w-0 flex-1">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted mb-1">
               Reference no.
             </p>
-            <p className="text-xl sm:text-2xl font-bold text-theme font-mono tracking-tight break-all">
+            <p className="receipt-token-line text-[11px] sm:text-xs md:text-sm font-bold text-theme font-mono tracking-tight whitespace-nowrap overflow-x-auto">
               {token}
             </p>
           </div>
-          <div className="rounded-lg border border-theme bg-theme-card px-4 py-3 sm:col-span-2">
+          <div className="rounded-lg border border-theme bg-theme-card px-4 py-3 sm:w-44 shrink-0">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted mb-1">
               Date & time
             </p>
@@ -183,24 +212,23 @@ export const ReceiptLineTable = ({ columns, rows, footer, variant = 'op' }) => {
   );
 };
 
-export const ReceiptNotice = ({ title, titleTe, children, variant = 'info', tone = 'op' }) => {
-  const v = VARIANT[tone] || VARIANT.op;
+export const ReceiptNotice = ({ title, titleTe, children, variant = 'info' }) => {
   const styles = {
-    info: v.accentBg,
-    warning: 'bg-amber-50 border-amber-200 text-amber-950 dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-100',
+    info: 'bg-sky-50 border-sky-300 text-slate-800',
+    warning: 'bg-amber-50 border-amber-300 text-amber-950',
   };
   return (
     <aside
-      className={`rounded-lg border px-4 py-4 sm:px-5 sm:py-5 text-sm leading-relaxed print:py-3 print:px-3 print:text-xs ${styles[variant] || styles.info}`}
+      className={`receipt-notice rounded-lg border px-4 py-4 sm:px-5 sm:py-5 text-sm leading-relaxed print:py-3 print:px-3 print:text-xs ${styles[variant] || styles.info}`}
     >
       {title && (
-        <p className="font-bold text-sm mb-1 text-theme">
+        <p className="font-bold text-sm mb-1.5 text-slate-900">
           {titleTe && <span className="font-['Noto_Sans_Telugu']">{titleTe}</span>}
           {titleTe && title && ' — '}
           {title}
         </p>
       )}
-      <div className="text-xs sm:text-sm opacity-95 text-theme">{children}</div>
+      <div className="text-xs sm:text-sm text-slate-700 leading-relaxed">{children}</div>
     </aside>
   );
 };
