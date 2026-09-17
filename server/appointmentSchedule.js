@@ -50,7 +50,7 @@ const validateAppointmentBooking = (department, appointmentDate) => {
   if (blocked.some((b) => d.includes(b))) {
     return {
       ok: false,
-      message: 'Only General Medicine (daily) and Cardiology (Thursdays) are available for online OP booking. Call 99480 76665 for other departments.',
+      message: 'Only General Medicine (daily) and Cardiology (Thursdays) are available for online OP booking. Tap Call on the website for other departments.',
     };
   }
 

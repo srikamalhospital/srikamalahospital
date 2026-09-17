@@ -87,9 +87,14 @@ const BookingForm = () => {
       setBookingError(check.messageEn);
       return;
     }
+    const digits = String(formData.phone || '').replace(/\D/g, '').slice(-10);
+    if (digits.length !== 10) {
+      setBookingError('Enter a valid 10-digit mobile number.');
+      return;
+    }
     setIsSubmitting(true);
     try {
-      const response = await bookAppointment(formData);
+      const response = await bookAppointment({ ...formData, phone: digits });
       if (response.data.success) {
         if (response.data.appointment) {
           localStorage.setItem(`appointment_${response.data.token}`, JSON.stringify(response.data.appointment));

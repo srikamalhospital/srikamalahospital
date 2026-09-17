@@ -56,6 +56,8 @@ const Footer = () => {
                                 { n: 'Smart Diagnostics', t: 'పరీక్షలు', to: '/diagnosis' },
                                 { n: 'Book Appointment', t: 'బుకింగ్', to: '/book' },
                                 { n: 'AI Clinical Core', t: 'AI హెల్త్', to: '/ai-health' },
+                                { n: 'My Care records', t: 'నా కేర్', to: '/my-care' },
+                                { n: 'Lab reports', t: 'రిపోర్ట్స్', to: '/lab-reports' },
                                 { n: 'Contact', t: 'సంప్రదించండి', to: '/info/contact' },
                                 { n: 'Reviews', t: 'సమీక్షలు', to: '/reviews' }
                             ].map((item, i) => (

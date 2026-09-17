@@ -116,6 +116,15 @@ const INTENTS = [
     },
   },
   {
+    id: 'mycare',
+    keywords: ['my care', 'my records', 'my appointment', 'token status', 'నా కేర్', 'రికార్డ్'],
+    reply: {
+      te: 'నా కేర్ పేజీ తెరుస్తున్నాను — బుకింగ్ ఫోన్‌తో అపాయింట్‌మెంట్, ఫార్మసీ, ల్యాబ్ రికార్డులు చూడవచ్చు.',
+      en: 'Opening My Care — look up appointments, pharmacy and lab records with your booking phone.',
+    },
+    action: { type: 'navigate', to: '/my-care' },
+  },
+  {
     id: 'home',
     keywords: ['home', 'main page', 'go back', 'హోమ్', 'మొదటి పేజీ'],
     reply: { te: 'హోమ్ పేజీకి వెళ్తున్నాను.', en: 'Taking you to the home page.' },

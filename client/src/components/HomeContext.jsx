@@ -38,7 +38,7 @@ const services = [
     en: 'Cardiology',
     descTe: 'ప్రతి గురువారం హృదయ విశేషజ్ఞ OP. ముందుగా బుక్ చేసుకోండి.',
     descEn: 'Specialist heart OP every Thursday. Book in advance for cardiac review.',
-    link: '/book',
+    link: '/book?department=cardiology',
   },
   {
     icon: FlaskConical,

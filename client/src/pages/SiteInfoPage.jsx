@@ -28,7 +28,17 @@ const PAGE_DATA = {
       {
         heading: 'Core Services',
         content:
-          'General OP consultations, specialist care, laboratory diagnostics, digital receipt/token workflow, and patient follow-up support are available through our integrated system.',
+          'General OP (daily), Cardiology (Thursdays), 24/7 emergency, laboratory diagnostics with live prices, in-house pharmacy, digital receipts/tokens, lab report tracking, My Care records lookup, and bilingual AI health guidance.',
+      },
+      {
+        heading: 'Doctors',
+        content:
+          'Dr. D. Kiran — MBBS, MD (Reg. 64309), General Medicine. Online OP booking and AI assistant for preliminary advice. Specialist cardiology OP every Thursday.',
+      },
+      {
+        heading: 'Digital facilities',
+        content:
+          'Book OP, browse lab tests, order medicines, check My Care records by phone, track lab reports, leave reviews, and use symptom / report / skin AI — all on this website.',
       },
       {
         heading: 'Hospital Contact',

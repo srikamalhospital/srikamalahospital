@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { jsPDF } from 'jspdf';
 import { bookAppointment, doctorConsultAI, getConfig } from '../utils/api';
 import { matchLocalIntent } from '../utils/localAssistant';
+import { triageClinical, looksLikeMedicalQuery } from '../utils/clinicalTriage';
 import useVoiceAssistant from '../hooks/useVoiceAssistant';
 import { dialPhone } from '../utils/phoneProtect';
 import { HOSPITAL_PHONE } from '../utils/aiHelpers';
@@ -267,9 +268,10 @@ const HealthBot = () => {
             return;
         }
 
-        // Inbuilt offline assistant — instant answers + app navigation, no API needed
+        // Inbuilt offline assistant — hospital navigation (skip if this looks like a medical question)
         const local = matchLocalIntent(text);
-        if (local && local.intent !== 'book') {
+        const medical = looksLikeMedicalQuery(text);
+        if (local && local.intent !== 'book' && !(medical && local.action?.type === 'navigate' && !local.urgent)) {
             const bilingualReply = `${local.reply.te} ||| ${local.reply.en}`;
             setTimeout(() => {
                 setMessages(prev => [...prev, {
@@ -293,6 +295,7 @@ const HealthBot = () => {
             return;
         }
 
+        const clinical = triageClinical(text, { mode: 'doctor', language });
         setIsTyping(true);
         try {
             const history = buildChatHistory([...messages, userMsg]);
@@ -304,7 +307,7 @@ const HealthBot = () => {
             });
 
             const { reply, suggestions: apiSug } = parseDoctorConsultResponse(resp.data);
-            const replyText = reply || resp.data?.response || '';
+            const replyText = reply || resp.data?.response || clinical.response;
             const fallback = language === 'te'
                 ? 'దయచేసి మీ లక్షణాన్ని మరోసారి వివరించండి.'
                 : 'Please describe your symptom again.';
@@ -319,9 +322,9 @@ const HealthBot = () => {
             };
             setMessages(prev => [...prev, botMsg]);
             speak(displayText(replyText || fallback, language));
-            syncSuggestions(replyText, resp.data?.suggestions || apiSug, userTurnCount + 1);
+            syncSuggestions(replyText, resp.data?.suggestions || apiSug || clinical.suggestions, userTurnCount + 1);
         } catch {
-            const errText = `క్షమించండి, ఇప్పుడు సమాధానం ఇవ్వలేకపోయాను. హెల్ప్‌లైన్: ${HOSPITAL_PHONE} ||| Sorry, I could not respond. Helpline: ${HOSPITAL_PHONE}.`;
+            const errText = clinical.response;
             setMessages(prev => [...prev, {
                 id: Date.now() + 1,
                 text: displayText(errText, language),
@@ -330,7 +333,10 @@ const HealthBot = () => {
                 sender: 'bot',
                 time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             }]);
-            setSuggestions(getInitialSuggestions(language, schedule));
+            setSuggestions((clinical.suggestions || []).map((s) => ({
+                ...s,
+                label: language === 'en' ? s.en : s.te,
+            })));
         } finally {
             setIsTyping(false);
         }

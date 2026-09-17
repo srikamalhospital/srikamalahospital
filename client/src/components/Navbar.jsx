@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Home, Calendar, Users, FlaskConical, ShoppingBag, Activity, Menu, X, Star } from 'lucide-react';
+import { Home, Calendar, Users, FlaskConical, ShoppingBag, Activity, Menu, X, Star, HeartPulse, FileText } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import ThemeToggle from './ThemeToggle';
@@ -12,6 +12,7 @@ const navItems = [
   { telugu: 'పరీక్షలు', english: 'Labs', link: '/diagnosis', icon: FlaskConical },
   { telugu: 'ఫార్మసీ', english: 'Pharmacy', link: '/medical-shop', icon: ShoppingBag },
   { telugu: 'AI', english: 'AI Health', link: '/ai-health', icon: Activity },
+  { telugu: 'నా కేర్', english: 'My Care', link: '/my-care', icon: HeartPulse },
   { telugu: 'సమీక్షలు', english: 'Reviews', link: '/reviews', icon: Star },
 ];
 
@@ -67,7 +68,7 @@ const Navbar = () => {
               </div>
             </Link>
 
-            <div className="hidden lg:flex items-center gap-0.5 p-1 rounded-2xl bg-[var(--card-muted-bg)] border border-[var(--border-color)] relative">
+            <div className="hidden lg:flex items-center gap-0.5 p-1 rounded-2xl bg-[var(--card-muted-bg)] border border-[var(--border-color)] relative overflow-x-auto max-w-[min(100%,48rem)]">
               {navItems.map((item) => {
                 const isActive = location.pathname === item.link;
                 const Icon = item.icon;
@@ -171,11 +172,20 @@ const Navbar = () => {
                   );
                 })}
                 <Link
+                  to="/my-care"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 p-3.5 rounded-xl min-h-[48px] text-theme hover:bg-[var(--card-muted-bg)] cursor-pointer"
+                >
+                  <HeartPulse size={20} />
+                  <span className="font-telugu">నా రికార్డులు</span>
+                  <span className="text-xs text-theme-muted ml-auto">My Care</span>
+                </Link>
+                <Link
                   to="/lab-reports"
                   onClick={() => setMobileMenuOpen(false)}
                   className="flex items-center gap-3 p-3.5 rounded-xl min-h-[48px] text-theme hover:bg-[var(--card-muted-bg)] cursor-pointer"
                 >
-                  <FlaskConical size={20} />
+                  <FileText size={20} />
                   <span>Lab report status</span>
                 </Link>
               </nav>

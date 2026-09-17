@@ -1,10 +1,12 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { X, Send, Sparkles, Phone, CalendarCheck, Stethoscope } from 'lucide-react';
+import { X, Send, Sparkles, CalendarCheck, Stethoscope } from 'lucide-react';
 import { doctorConsultAI } from '../utils/api';
-import { getAIResponseText, fallbackAI, HOSPITAL_PHONE_TEL } from '../utils/aiHelpers';
+import { getAIResponseText, fallbackAI } from '../utils/aiHelpers';
 import useSiteConfig from '../hooks/useSiteConfig';
+import SafePhoneLink from './SafePhoneLink';
+import { triageClinical } from '../utils/clinicalTriage';
 import BilingualAIBlock from './BilingualAIBlock';
 import DoctorSuggestionChips from './DoctorSuggestionChips';
 import {
@@ -94,7 +96,8 @@ const DoctorConsultationModal = ({ isOpen, onClose, doctor }) => {
             });
 
             const { reply, suggestions: apiSug } = parseDoctorConsultResponse(resp.data);
-            const raw = reply || getAIResponseText(resp) || `${fallbackAI().te} ||| ${fallbackAI().en}`;
+            const local = triageClinical(textToSend, { mode: 'doctor', language });
+            const raw = reply || getAIResponseText(resp) || local.response;
 
             setMessages((prev) => [...prev, {
                 id: Date.now() + 1,
@@ -118,8 +121,8 @@ const DoctorConsultationModal = ({ isOpen, onClose, doctor }) => {
                 }]);
                 syncSuggestions(raw, err.response?.data?.suggestions, 0);
             } else {
-                const fb = fallbackAI();
-                const combined = `${fb.te} ||| ${fb.en}`;
+                const local = triageClinical(textToSend, { mode: 'doctor', language });
+                const combined = local.response || `${fallbackAI().te} ||| ${fallbackAI().en}`;
                 setMessages((prev) => [...prev, {
                     id: Date.now() + 1,
                     sender: 'ai',
@@ -234,9 +237,14 @@ const DoctorConsultationModal = ({ isOpen, onClose, doctor }) => {
                                     <Stethoscope size={12} /> Not a final diagnosis
                                 </span>
                                 <div className="flex flex-wrap gap-3 shrink-0">
-                                    <a href={HOSPITAL_PHONE_TEL} className="text-hospital-primary font-semibold flex items-center gap-1">
-                                        <Phone size={12} /> Call
-                                    </a>
+                                    <SafePhoneLink
+                                        phone={config.hospitalPhone}
+                                        className="text-hospital-primary font-semibold flex items-center gap-1"
+                                        showIcon
+                                        iconSize={12}
+                                    >
+                                        Call
+                                    </SafePhoneLink>
                                     <Link to="/book" onClick={onClose} className="text-hospital-secondary font-semibold flex items-center gap-1">
                                         <CalendarCheck size={12} /> Book OP
                                     </Link>

@@ -59,7 +59,7 @@ const limiter = rateLimit({
 const aiLimiter = rateLimit({
     windowMs: 60 * 60 * 1000,
     max: 40,
-    message: { success: false, message: "AI limit reached. Call +91 99480 76665." },
+    message: { success: false, message: "AI limit reached. Tap Call on the website or visit emergency." },
 });
 
 // CORS — official frontend domains + local dev
@@ -207,6 +207,7 @@ const { filterAppointments, filterPharmacyOrders, distinctValues } = require('./
 const { deductPharmacyStock } = require('./stockDeduction');
 const { registerFeatureRoutes } = require('./featureRoutes');
 const { validateAppointmentBooking } = require('./appointmentSchedule');
+const localClinicalAI = require('./localClinicalAI');
 
 const normalizePharmacyOrder = (row) => ({
     id: row.id,
@@ -274,17 +275,11 @@ const normalizeApiKey = (key) => {
     return key.trim().replace(/^Bearer\s+/i, '');
 };
 
-const AI_REQUEST_TIMEOUT_MS = 12000;
-const FAST_CHAT_MODELS = ['meta/llama-3.2-3b-instruct', 'meta/llama-3.1-70b-instruct', 'meta/llama3-70b-instruct'];
-const ACCURATE_CHAT_MODELS = ['meta/llama-3.1-70b-instruct', 'meta/llama3-70b-instruct', 'meta/llama-3.2-3b-instruct'];
+const AI_REQUEST_TIMEOUT_MS = 16000;
+const FAST_CHAT_MODELS = ['meta/llama-3.1-8b-instruct', 'meta/llama-3.2-3b-instruct', 'google/gemma-2-9b-it'];
+const ACCURATE_CHAT_MODELS = ['meta/llama-3.1-70b-instruct', 'meta/llama3-70b-instruct', 'meta/llama-3.1-8b-instruct'];
 
-const HOSPITAL_AI_CTX = [
-    'Sri Kamala Hospital, Manasa Nagar, Suryapet. Phone: 99480 76665. Diagnostics lab: 9866895634. Open 24/7.',
-    'OP: General Medicine daily (Dr. D. Kiran); Cardiology Thursdays only.',
-    'Website services: online OP booking (/book), lab test prices & booking (/diagnosis), pharmacy medicine orders (/medical-shop), AI symptom & skin analysis (/ai-health), lab report lookup by phone number (/lab-reports).',
-    'You may answer in Telugu, English, or both (Telugu ||| English) matching the user\'s language. Keep replies short, warm, and practical.',
-    'Never give definitive diagnoses or prescriptions — guide to the right department or emergency line instead.',
-].join(' ');
+const HOSPITAL_AI_CTX = localClinicalAI.hospitalContext();
 
 const withTimeout = (promise, ms = AI_REQUEST_TIMEOUT_MS) =>
     Promise.race([
@@ -324,6 +319,7 @@ const getChatAI = async (messages, modelCandidates = ACCURATE_CHAT_MODELS, token
                 );
                 if (completion?.choices?.[0]?.message?.content) return completion.choices[0].message.content;
             } catch (e) {
+                console.warn('AI model fail', model, e?.status || e?.message);
                 if (e?.status === 404) continue;
             }
         }
@@ -331,7 +327,7 @@ const getChatAI = async (messages, modelCandidates = ACCURATE_CHAT_MODELS, token
     throw new Error('All AI chat failovers exhausted');
 };
 
-const SYMPTOM_SYSTEM = `You are triage AI for ${HOSPITAL_AI_CTX} Respond ONLY with JSON: { "advice": { "en": "...", "te": "..." }, "department": { "en": "General Medicine|Cardiology|Emergency|Dermatology", "te": "..." } }. Max 2 short sentences per language. Chest pain, breathlessness, stroke signs, severe bleeding, very high fever → department Emergency and urge immediate visit or call 99480 76665.`;
+const SYMPTOM_SYSTEM = `You are triage AI for ${HOSPITAL_AI_CTX} Respond ONLY with JSON: { "advice": { "en": "...", "te": "..." }, "department": { "en": "General Medicine|Cardiology|Emergency|Dermatology", "te": "..." } }. Max 2 short sentences per language. Chest pain, breathlessness, stroke signs, severe bleeding, very high fever → department Emergency and tell them to tap Call on the website / come immediately.`;
 
 const analyzeSymptomText = async (symptoms, { hasImage = false } = {}) => {
     const text = String(symptoms || '').trim();
@@ -344,10 +340,7 @@ const analyzeSymptomText = async (symptoms, { hasImage = false } = {}) => {
     const modelText = await getChatAI(msg, FAST_CHAT_MODELS, 420, 10000);
     const json = extractJson(modelText);
     if (json?.advice) return json;
-    return {
-        advice: { en: 'Please visit the hospital for evaluation.', te: 'దయచేసి ఆసుపత్రిని సందర్శించండి.' },
-        department: { en: 'General Medicine', te: 'జనరల్ మెడిసిన్' }
-    };
+    return localClinicalAI.triage(text, { mode: 'symptom' }).analysis;
 };
 
 // ─── AI ROUTES ─────────────────────────────────────────────────────────────
@@ -361,7 +354,8 @@ app.post('/api/ai/symptom', async (req, res) => {
         const jsonResponse = await analyzeSymptomText(symptoms);
         res.json({ success: true, analysis: jsonResponse });
     } catch (err) {
-        res.status(503).json({ success: false, message: "AI services busy." });
+        const local = localClinicalAI.triage(req.body?.symptoms || '', { mode: 'symptom' });
+        res.json({ success: true, analysis: local.analysis, offline_ai: true });
     }
 });
 
@@ -520,7 +514,7 @@ app.post('/api/ai/vision', async (req, res) => {
             success: false,
             message: 'Could not analyze image. Please describe symptoms in text or visit the hospital.',
             analysis: {
-                advice: { en: 'Upload a clear photo with symptom description, or call 99480 76665.', te: 'లక్షణాలను వ్రాసండి లేదా 99480 76665 కి కాల్ చేయండి.' },
+                advice: { en: 'Upload a clear photo with symptom description, or tap Call on the website.', te: 'లక్షణాలను వ్రాసి ఫోటో అప్‌లోడ్ చేయండి, లేదా వెబ్‌సైట్‌లో Call నొక్కండి.' },
                 department: { en: 'General Medicine', te: 'జనరల్ మెడిసిన్' },
             },
         });
@@ -630,7 +624,7 @@ app.post('/api/ai/chat', async (req, res) => {
 Clinical rules:
 - Preliminary triage only; never give a final diagnosis.
 - 2 short sentences in reply (both languages).
-- Chest pain, breathlessness, stroke signs, severe bleeding, very high fever → tell them to come immediately or call 99480 76665.
+- Chest pain, breathlessness, stroke signs, severe bleeding, very high fever → tell them to come immediately and tap Call on the website (do not print a phone number).
 - ${avail ? `You are available for OP today. OP hours: ${hours}.` : 'You are on leave today — urgent cases must go to hospital emergency.'}
 - ${HOSPITAL_AI_CTX} Website: ${SITE_URL}
 - Prefer ${lang} tone in "reply" but always include both Telugu and English separated by |||
@@ -678,7 +672,8 @@ OUTPUT ONLY JSON: { "reply": "Telugu summary ||| English summary", "actions": ["
         }
         msg.push({ role: 'user', content: String(query).trim() });
 
-        const responseText = await getChatAI(msg, models, tokens);
+        const responseText = await getChatAI(msg, models, tokens, mode === 'doctor' ? 20000 : AI_REQUEST_TIMEOUT_MS);
+        const localPack = localClinicalAI.triage(query, { mode: mode || 'general', language });
 
         if (mode === 'doctor') {
             const parsed = parseDoctorAIJson(responseText);
@@ -694,11 +689,12 @@ OUTPUT ONLY JSON: { "reply": "Telugu summary ||| English summary", "actions": ["
             }
             const fallbackReply = responseText && String(responseText).includes('|||')
                 ? String(responseText).trim()
-                : 'మీ వివరాలు స్వీకరించాను. దయచేసి ఆసుపత్రికి రండి లేదా 99480 76665 కి కాల్ చేయండి. ||| I have noted your concern. Please visit the hospital or call 99480 76665.';
+                : localPack.response;
             return res.json({
                 success: true,
                 response: fallbackReply,
-                suggestions: defaultDoctorSuggestions(),
+                suggestions: localPack.suggestions || defaultDoctorSuggestions(),
+                offline_ai: !String(responseText || '').includes('|||'),
             });
         }
 
@@ -712,8 +708,14 @@ OUTPUT ONLY JSON: { "reply": "Telugu summary ||| English summary", "actions": ["
                 });
             }
             if (responseText && String(responseText).includes('|||')) {
-                return res.json({ success: true, response: String(responseText).trim(), tests: [] });
+                return res.json({ success: true, response: String(responseText).trim(), tests: localPack.tests || [] });
             }
+            return res.json({
+                success: true,
+                response: localPack.response,
+                tests: localPack.tests || [],
+                offline_ai: true,
+            });
         }
 
         if (mode === 'admin') {
@@ -728,23 +730,26 @@ OUTPUT ONLY JSON: { "reply": "Telugu summary ||| English summary", "actions": ["
             if (responseText && String(responseText).includes('|||')) {
                 return res.json({ success: true, response: String(responseText).trim(), actions: [] });
             }
+            return res.json({
+                success: true,
+                response: localPack.response,
+                actions: localPack.actions || [],
+                offline_ai: true,
+            });
         }
 
-        const fallback = 'క్షమించండి, ఇప్పుడు అందుబాటులో లేదు. 99480 76665 కి కాల్ చేయండి. ||| AI unavailable. Call +91 99480 76665.';
-        res.json({ success: true, response: responseText || fallback });
+        const fallback = localPack.response;
+        res.json({ success: true, response: responseText || fallback, offline_ai: !responseText });
     } catch (err) {
         console.error('AI chat error:', err.message);
-        const isDoctor = req.body?.mode === 'doctor';
-        const doctorFallback = {
-            success: false,
-            message: 'Clinical AI is temporarily unavailable. Call +91 99480 76665.',
-            response: 'క్షమించండి, ఇప్పుడు కనెక్ట్ కాలేదు. 99480 76665 కి కాల్ చేయండి. ||| Sorry, connection failed. Please call 99480 76665.',
-            suggestions: defaultDoctorSuggestions(),
-        };
-        res.status(500).json(isDoctor ? doctorFallback : {
-            success: false,
-            message: doctorFallback.message,
-            response: doctorFallback.response,
+        const local = localClinicalAI.triage(req.body?.query || '', { mode: req.body?.mode || 'general' });
+        return res.json({
+            success: true,
+            response: local.response,
+            suggestions: local.suggestions,
+            tests: local.tests,
+            actions: local.actions,
+            offline_ai: true,
         });
     }
 });

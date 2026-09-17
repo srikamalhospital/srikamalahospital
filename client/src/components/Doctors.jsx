@@ -13,6 +13,9 @@ const doctors = [
     specialty: 'General Medicine (MD)',
     qualification: 'MBBS, MD',
     exp: '15+ years',
+    languages: 'Telugu, English, Hindi',
+    focus: 'Fever, diabetes, BP, infections, chronic care',
+    op: 'Daily OP · 24-hour hospital',
     img: drKiran,
     regNo: '64309',
   },
@@ -112,8 +115,13 @@ const Doctors = ({ compact = false, hideHeader = false }) => {
                     {doctor.qualification} · {doctor.specialty}
                   </p>
                   <p className={`text-slate-500 ${compact ? 'text-[10px] mt-1' : 'text-xs mt-2'}`}>
-                    {doctor.exp} experience
+                    {doctor.exp} · {doctor.languages}
                   </p>
+                  {!compact && (
+                    <p className="text-xs text-slate-600 mt-2">
+                      Treats: {doctor.focus}. {doctor.op}. Cardiology clinic on Thursdays.
+                    </p>
+                  )}
                   {sched?.opHours && (
                     <p
                       className={`text-hospital-primary flex items-center gap-1 ${

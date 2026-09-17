@@ -3,6 +3,7 @@ import { Brain, ShieldAlert, Activity, ChevronRight, RefreshCw, Upload, X, Pill,
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { getBilingualText, joinBilingualItems, toArray, HOSPITAL_PHONE, detectEmergencySymptoms } from '../utils/aiHelpers';
+import { triageClinical } from '../utils/clinicalTriage';
 import { sectionReveal } from '../utils/motionPresets';
 
 const AISymptomChecker = () => {
@@ -94,10 +95,8 @@ const AISymptomChecker = () => {
             }
         } catch (err) {
             console.error("AI Error:", err);
-            setResult({
-                advice: { en: `Cannot reach AI service. Call ${HOSPITAL_PHONE}.`, te: `AI సేవ లేదు. ${HOSPITAL_PHONE} కి కాల్ చేయండి.` },
-                department: { en: "General Medicine", te: "జనరల్ మెడిసిన్" }
-            });
+            const local = triageClinical(symptoms, { mode: 'symptom' });
+            setResult(local.analysis);
         } finally {
             setIsAnalyzing(false);
         }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, FlaskConical, Activity, Pill, ChevronRight } from 'lucide-react';
+import { Calendar, FlaskConical, Activity, Pill, ChevronRight, HeartPulse, FileText } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { staggerContainer, staggerItem } from '../utils/motionPresets';
@@ -42,6 +42,24 @@ const actions = [
     color: 'text-hospital-secondary',
     bg: 'bg-hospital-secondary/10',
   },
+  {
+    telugu: 'నా కేర్',
+    title: 'My records',
+    hintTe: 'అపాయింట్‌మెంట్ & రిపోర్ట్‌లు',
+    icon: HeartPulse,
+    link: '/my-care',
+    color: 'text-hospital-primary',
+    bg: 'bg-hospital-primary/10',
+  },
+  {
+    telugu: 'ల్యాబ్ రిపోర్ట్',
+    title: 'Lab reports',
+    hintTe: 'ఫోన్‌తో స్థితి చూడండి',
+    icon: FileText,
+    link: '/lab-reports',
+    color: 'text-hospital-secondary',
+    bg: 'bg-hospital-secondary/10',
+  },
 ];
 
 const QuickActionGrid = () => (
@@ -59,7 +77,7 @@ const QuickActionGrid = () => (
         </header>
 
         <motion.div
-          className="equal-stretch-grid grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 w-full"
+          className="equal-stretch-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-4 w-full"
           variants={staggerContainer}
           initial="initial"
           whileInView="animate"
